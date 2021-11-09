@@ -1,9 +1,15 @@
+"""
+This module contains the structures for representing grammars.
+"""
+
 from __future__ import annotations
 
-from typing import Iterator, List, Set, Tuple, Union
+from abc import ABCMeta
+from typing import Iterator, List, Optional, Set, Tuple, Union
 
 from tokenizer import Token, Tokenizer
 
+# Tokenizer for grammars
 TKNZ = Tokenizer()
 TKNZ.add_pattern("NEWLINE", r"[ \n]*\n+[ \n]*", lambda l: "NEWLINE")
 TKNZ.add_pattern("SPACE", r"[ \t]+", lambda t: None)
@@ -15,6 +21,20 @@ TKNZ.add_pattern("OP", r"[|:]")
 
 @TKNZ.process_tokens
 def _process_tokens(tokens: List[Token]) -> List[Token]:
+    """Process the tokens of a grammar file.
+
+    This allows grammars to have productions on independent lines.
+
+    Parameters
+    ----------
+    tokens : List[Token]
+        Grammar tokens.
+
+    Returns
+    -------
+    List[Token]
+        Processed tokens.
+    """
     new_tokens = []
     skip = 0
     for i, tok in enumerate(tokens):
@@ -47,12 +67,32 @@ def _process_tokens(tokens: List[Token]) -> List[Token]:
     return new_tokens
 
 
-class Item:
+class Item(metaclass=ABCMeta):
+    """Abstract class for representing either a Terminal or a NonTerminal.
+
+    Parameters
+    ----------
+    name :
+        Name of the grammar item.
+
+    Attributes
+    ----------
+    name :
+        Name of the grammar item.
+    """
+
     def __init__(self, name):
         self.name = name
 
     @property
-    def is_terminal(self):
+    def is_terminal(self) -> bool:
+        """Checks if the grammar item is a terminal or not.
+
+        Returns
+        -------
+        bool
+            True if the grammar item is a Terminal.
+        """
         return isinstance(self, Terminal)
 
     def __str__(self):
@@ -60,11 +100,26 @@ class Item:
 
 
 class Production:
+    """Represents a grammar production.
+
+    Parameters
+    ----------
+    items : List[Item]
+        List of grammar items that compose the production.
+    """
+
     def __init__(self, items: List[Item]):
         self.items = items
         self.first = None
 
-    def calculate_first(self, trace=[]):
+    def calculate_first(self, trace: List[NonTerminal] = []):
+        """Calculates the `first` set of the production.
+
+        Parameters
+        ----------
+        trace : List[NonTerminal]
+            List of non terminals walked in the recursion.
+        """
         if self.first is not None:
             return
         first = []
@@ -100,14 +155,36 @@ class Production:
 
 
 class NonTerminal(Item):
-    def __init__(self, name, prods: List[Production] = []):
+    """Represents a non terminal (a grammar expression).
+
+    Parameters
+    ----------
+    name : str
+        Name of the expression.
+    prods : List[Production]
+        List of productions that compose the expression.
+    """
+
+    def __init__(self, name, prods: Optional[List[Production]] = None):
         super().__init__(name)
-        self.prods = prods
+        self.prods = [] if prods is None else prods
         self.first_dict = None
         self.first = []
         self.follow = []
 
     def calculate_first(self, trace: List[NonTerminal] = None) -> List[Terminal]:
+        """Calculates the `first` set of the expression.
+
+        Parameters
+        ----------
+        trace : List[NonTerminal]
+            List of non terminals walked in the recursion.
+
+        Returns
+        -------
+        List[Terminal]
+            List of the `first` set's items.
+        """
         if self.first_dict is not None:
             return self.first_dict
         self.first_dict = {}
@@ -130,17 +207,29 @@ class NonTerminal(Item):
             return self.prods[int(item[5:])]
         raise AttributeError()
 
-    def show(self):
-        print(f"\n{self.name}:")
-        for prod in self.prods:
-            print(str(prod))
-
     def __repr__(self):
         return f"NT({self.name})"
 
 
 class Terminal(Item):
-    def __init__(self, name, match=None):
+    """Terminal.
+
+    Parameters
+    ----------
+    name : str
+        Name of the terminal.
+    match :
+        Regex pattern used to check if a token lexem match in parsing process.
+
+    Attributes
+    ----------
+    name : str
+        Name of the terminal.
+    match : str
+        Regex pattern used to check if a token lexem match in parsing process.
+    """
+
+    def __init__(self, name: str, match: str = None):
         super().__init__(name)
         self.match = match
         self.follow = self
@@ -149,12 +238,38 @@ class Terminal(Item):
         return f"T({self.name})"
 
     def calculate_first(self, trace: List[NonTerminal] = []) -> List[Terminal]:
+        """Calculates the `first` set of this item. As it is a Terminal, the
+        `first` se is itself.
+
+        Parameters
+        ----------
+        trace : List[NonTerminal]
+            List of non terminals walked in the recursion.
+
+        Returns
+        -------
+        List[Terminal]
+            List of the `first` set's items.
+        """
         return [self]
 
 
 class Grammar:
-    def __init__(self, exprs=[]):
-        self.exprs = exprs
+    """Represents a Grammar.
+
+    Parameters
+    ----------
+    exprs : List[NonTerminal]
+        Grammar expressions.
+
+    Attributes
+    ----------
+    exprs : List[NonTerminal]
+        Grammar expressions.
+    """
+
+    def __init__(self, exprs: List[NonTerminal] = None):
+        self.exprs = [] if exprs is None else exprs
         if exprs:
             self.start = exprs[0]
         self.exprs_dict = {exp.name: exp for exp in exprs}
@@ -165,6 +280,13 @@ class Grammar:
         raise AttributeError()
 
     def all_terminals(self) -> Set[Terminal]:
+        """Set of all the terminals in the grammar.
+
+        Returns
+        -------
+        Set[Terminal]
+            Terminals set.
+        """
         terminals = []
         for exp in self.exprs_dict.values():
             for prod in exp.prods:
@@ -177,32 +299,103 @@ class Grammar:
         return set(terminals)
 
     def all_productions(self) -> Iterator[Tuple[NonTerminal, Production]]:
+        """Production iterator.
+
+        In each iteration a tuple is given where the first element is the
+        expression and the second is the production.
+
+        Returns
+        -------
+        Iterator[Tuple[NonTerminal, Production]]
+            (Expression, Production) iterator.
+        """
         for expr in self.exprs:
             for prod in expr.prods:
                 yield (expr, prod)
 
     def assign_term_matches(self, **matches: str):
+        """Assigns a set of matches for serveral terminals.
+
+        Example:
+
+        This assigns a match pattern for the terminal `i` on a grammar `grm`:
+
+            >>> grm.assign_term_matches(i=r"[0-9]+")
+
+        Parameters
+        ----------
+        matches : Dict[str, str]
+            Kwargs containing the match patterns (values) for each terminal
+            (keys).
+        """
         for term in self.all_terminals():
             if term.name in matches:
                 term.match = matches[term.name]
             elif term.match is None:
                 print(f"[WARNING] Terminal {term.name} not found in match dictionary")
 
-    def show(self):
-        for exp in self.exprs:
-            exp.show()
-
     @staticmethod
     def open(file_path: str) -> Grammar:
-        with open(file_path, "r", encoding="utf-8") as fd:
-            text = fd.read()
+        """Reads and create a grammar from a `.grm` file.
+
+        The `.grm` format can express a gramma as shown bellow.
+
+        expression: production_1 | production_2 | ... | production_n
+
+        Example:
+
+        Expr: Term Expr_X
+        Expr_X: '+' Expr | EPS
+        Term: Factor Term_Y
+        Term_Y: '*' Term | EPS
+        Factor: '(' E ')' | i
+
+        Productions also can be separated on independent lines. The follow
+        grammar is the same as the show as a example:
+
+        Expr: Term Expr_X
+
+        Expr_X:
+            | '+' Expr
+            | EPS
+
+        Term: Factor Term_Y
+
+        Term_Y:
+            | '*' Term
+            | EPS
+
+        Factor:
+            | '(' E ')'
+            | i
+
+        Parameters
+        ----------
+        file_path : str
+            Grammar file path.
+
+        Returns
+        -------
+        Grammar
+            Readed grammar.
+        """
+        with open(file_path, "r", encoding="utf-8") as file:
+            text = file.read()
         tokens = TKNZ.tokenize(text)
-        gp = _GrammarParser(tokens)
-        grm = gp.parse()
+        grm_parser = _GrammarParser(tokens)
+        grm = grm_parser.parse()
         return grm
 
 
 class _GrammarParser:
+    """Parser for grammars.
+
+    Parameters
+    ----------
+    tokens : List[Token]
+        Tokens to be parsed.
+    """
+
     def __init__(self, tokens: List[Token]):
         self.tokens = tokens
         self._cursor = 0
@@ -214,6 +407,27 @@ class _GrammarParser:
         pos: int = None,
         or_none: bool = False,
     ):
+        """Check if the token in a given position match the expected type and
+        value.
+
+        Parameters
+        ----------
+        expected_type : Union[str, List[str]]
+            Expected token type.
+        expected_value : str, optional
+            Expected value (lexem) of the token. If None then the value is not
+            checked, by default None.
+        pos : int, optional
+            Position of the token to be checked. If None then `pos` is taken as
+            the cursor prosition, by default None.
+        or_none : bool, optional
+            Do not raise exception if the position is invalid.
+
+        Raises
+        ------
+        ValueError
+            If the token does not match with the given restrictions.
+        """
         if pos is None:
             pos = self._cursor
         if not isinstance(expected_type, list):
@@ -233,16 +447,31 @@ class _GrammarParser:
             )
 
     @property
-    def _ctoken(self):
+    def _ctoken(self) -> Token:
+        """Token as cursos position (current token)self."""
         if self._cursor >= len(self.tokens):
             return None
         return self.tokens[self._cursor]
 
     def parse(self) -> Grammar:
+        """Parses the tokens.
+
+        Returns
+        -------
+        Grammar
+            Resulting grammar.
+        """
         self._cursor = 0
         return self._parse_grammar()
 
     def _parse_grammar(self) -> Grammar:
+        """Parse a grammar.
+
+        Returns
+        -------
+        Grammar
+            Resulting grammar.
+        """
         if self._cursor >= len(self.tokens):
             return None
         self._check_token("ID")
@@ -261,6 +490,13 @@ class _GrammarParser:
         return Grammar(exprs)
 
     def _parse_expr_list(self) -> List[NonTerminal]:
+        """Parses an expression list.
+
+        Returns
+        -------
+        List[NonTerminal]
+            Resulting expressions.
+        """
         if self._ctoken is None:
             return None
         expr = self._parse_expr()
@@ -271,6 +507,13 @@ class _GrammarParser:
         return exprs
 
     def _parse_expr(self) -> NonTerminal:
+        """Parses an expression.
+
+        Returns
+        -------
+        NonTerminal
+            Resulting expresson.
+        """
         self._check_token("ID")
         expr_name = self._ctoken.lexem
         self._cursor += 1
@@ -287,10 +530,24 @@ class _GrammarParser:
         return expr
 
     def _parse_prod(self) -> Production:
+        """Parses a production.
+
+        Returns
+        -------
+        Production
+            Resulting production.
+        """
         prod_items = self._parse_prod_items()
         return Production(prod_items)
 
     def _parse_prod_items(self) -> List[Item]:
+        """Parses all the items of a production.
+
+        Returns
+        -------
+        List[Item]
+            Resulting items.
+        """
         if self._ctoken.OP:
             return None
         if self._ctoken.NEWLINE:
@@ -302,17 +559,34 @@ class _GrammarParser:
         return [item] + prod_items
 
     def _parse_item(self) -> Item:
+        """Parses a grammar item.
+
+        Returns
+        -------
+        Item
+            Resulting item.
+        """
         self._check_token(["ID", "LITERAL", "SPECIAL"])
         name = self._ctoken.lexem
         match = None
         if self._ctoken.LITERAL:
             match = name
             name = f"'{match}'"
+
+        # It always returns a Terminal but after parsing all terminals with
+        # non terminal names will be replaced by the non terminal item.
         term = Terminal(name, match)
         self._cursor += 1
         return term
 
     def _parse_prod_list(self) -> List[Production]:
+        """Parses a production list.
+
+        Returns
+        -------
+        List[Production]
+            Resulting productions.
+        """
         if self._cursor >= len(self.tokens):
             return None
         if self._ctoken.NEWLINE:

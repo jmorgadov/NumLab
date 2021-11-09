@@ -1,3 +1,7 @@
+"""
+This module contains the basic structures for parsing.
+"""
+
 from __future__ import annotations
 
 from typing import List
@@ -7,6 +11,30 @@ from tokenizer import Token, Tokenizer
 
 
 def _flatten(nested_list: list) -> list:
+    """Flats a nested list into a single list.
+
+    Parameters
+    ----------
+    nested_list : list
+        Nested list.
+
+    Returns
+    -------
+    list
+        Resulting flatten list.
+
+    Examples
+    --------
+
+        >>> _flatten([1, 2, 3])
+        [1,2,3]
+        >>> _flatten([1, [2, 3]])
+        [1,2,3]
+        >>> _flatten([1, [[[2]]], 3])
+        [1,2,3]
+        >>> _flatten([[[1, [[2]]]], 3])
+        [1,2,3]
+    """
     flatten_list = []
     for item in nested_list:
         if isinstance(item, list):
@@ -17,32 +45,68 @@ def _flatten(nested_list: list) -> list:
 
 
 class Parser:
+    """Structure used for parsing a text given a grammar and a tokenizer.
+
+    Parameters
+    ----------
+    grammar : Grammar
+        Grammar that will be use for parsing.
+    tokenizer : Tokenizer
+        Tokenizer that will be use for tokenize a given txt.
+    """
+
     def __init__(self, grammar: Grammar, tokenizer: Tokenizer = None):
+        """__init__.
+
+        """
         self.grammar = grammar
         self.tokenizer = tokenizer
-        self.first_calculated = False
-        self.follow_calculated = False
+        self._first_calculated = False
+        self._follow_calculated = False
 
     def _calcule_first_and_follow(self):
-        self.first_calculated = False
-        self.follow_calculated = False
+        """Recalculates the `first` and `follow` sets of the grammar."""
+        self._first_calculated = False
+        self._follow_calculated = False
         self.calculate_first()
         self.calculate_follow()
 
-    def parse_file(self, file_path):
+    def parse_file(self, file_path: str):
+        """Opens a file and parses it contents.
+
+        Parameters
+        ----------
+        file_path : str
+            File path.
+        """
         with open(file_path, "r", encoding="utf-8") as file:
             text = file.read()
         self.parse(text)
 
-    def parse(self, text):
+    def parse(self, text: str):
+        """Parses a text.
+
+        Parameters
+        ----------
+        text : str
+            Text to be parsed.
+        """
         tokens = self.tokenizer.tokenize(text)
         self.parse_tokens(tokens)
 
     def parse_tokens(self, tokens: List[Token]):
+        """Parses a list of tokens.
+
+        Parameters
+        ----------
+        tokens : List[Token]
+            List of tokens to be parsed.
+        """
         pass
 
     def calculate_first(self):
-        if self.first_calculated:
+        """Calculates the `first` set of the grammar."""
+        if self._first_calculated:
             return
 
         # Reset all expresion first
@@ -52,10 +116,11 @@ class Parser:
 
         for exp in self.grammar.exprs:
             exp.calculate_first()
-        self.first_calculated = True
+        self._first_calculated = True
 
     def calculate_follow(self):
-        if self.follow_calculated:
+        """Calculates `follow` set of the grammar."""
+        if self._follow_calculated:
             return
 
         # First is needed to calculate follow
@@ -92,4 +157,4 @@ class Parser:
                         item.follow.append(expr.follow)
         for expr in self.grammar.exprs:
             expr.follow = list(set(_flatten(expr.follow)))
-        self.follow_calculated = True
+        self._follow_calculated = True

@@ -1,5 +1,5 @@
 """
-This module contains the basic structures to tokenize a text.
+This module contains the structures for text tokenization.
 
 Example of use:
 
