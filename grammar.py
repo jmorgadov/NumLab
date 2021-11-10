@@ -13,7 +13,7 @@ from tokenizer import Token, Tokenizer
 TKNZ = Tokenizer()
 TKNZ.add_pattern("NEWLINE", r"[ \n]*\n+[ \n]*", lambda l: "NEWLINE")
 TKNZ.add_pattern("SPACE", r"[ \t]+", lambda t: None)
-TKNZ.add_pattern("LITERAL", r"'\.*[^\\]'", lambda l: l[1:-1])
+TKNZ.add_pattern("LITERAL", r"'(.*?)[^\\]'", lambda l: l[1:-1])
 TKNZ.add_pattern("SPECIAL", r"[A-Z_][A-Z0-9_]*")
 TKNZ.add_pattern("ID", r"[a-zA-Z_][a-zA-Z0-9_]*")
 TKNZ.add_pattern("OP", r"[|:]")
@@ -336,7 +336,7 @@ class Grammar:
 
     @staticmethod
     def open(file_path: str) -> Grammar:
-        """Reads and create a grammar from a `.grm` file.
+        """Reads and create a grammar from a `.gm` file.
 
         The `.grm` format can express a gramma as shown bellow.
 

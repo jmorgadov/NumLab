@@ -1,5 +1,5 @@
 import pytest
-from numlab.tokenizer import Tokenizer
+from tokenizer import Tokenizer
 import re
 
 @pytest.fixture

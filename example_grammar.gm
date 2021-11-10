@@ -1,0 +1,5 @@
+expr_1: '_barg' expr_2 | ')'
+
+expr_2:
+	| int expr_2
+	| EPS
