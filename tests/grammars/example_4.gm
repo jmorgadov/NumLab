@@ -1,0 +1,8 @@
+expr1: 'foo' expr2
+
+expr2:
+	| 'bar'
+	| expr3
+	| EPS
+
+expr3: int | str
