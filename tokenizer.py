@@ -106,6 +106,8 @@ class Tokenizer:
             functon is applied to the token lexem. The token's new lexem will
             be the return value of `func`.
         """
+        if token_type in self._token_patterns:
+            raise ValueError(f"Token type {token_type} already exists.")
         self._token_patterns[token_type] = re.compile(pattern)
         if func is None:
             func = lambda lex: lex
