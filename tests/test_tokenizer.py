@@ -48,6 +48,11 @@ def test_tokenizer(tokenizer: Tokenizer):
     for token, ttype in zip(tokens, types):
         assert token.token_type == ttype
 
+    # Test wrong text
+    text = "123"
+    with pytest.raises(ValueError):
+        tokenizer.tokenize(text)
+
 
 def test_wrong_pattern_order(tokenizer: Tokenizer):
     ttype_1 = "ABC"
