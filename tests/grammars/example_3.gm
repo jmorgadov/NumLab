@@ -1,0 +1,5 @@
+expr1: 'foo' expr2
+
+expr2:
+	| 'bar'
+	| EPS
