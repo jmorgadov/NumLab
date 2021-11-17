@@ -4,9 +4,9 @@ This module contains the basic structures for parsing.
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Set
 
-from grammar import Grammar, Terminal
+from grammar import Grammar, Item, Terminal
 from tokenizer import Token, Tokenizer
 
 
@@ -44,6 +44,49 @@ def _flatten(nested_list: list) -> list:
     return flatten_list
 
 
+class TerminalSet:
+    """Terminal set.
+
+    Attributes
+    ----------
+    terminals : Set[Terminal]
+        Set of terminals.
+    """
+
+    def __init__(self):
+        self.terminals: Set[Terminal] = set()
+
+    def add(self, terminal: Terminal):
+        """Adds a terminal to the set.
+
+        Parameters
+        ----------
+        terminal : Terminal
+            terminal to add.
+        """
+        last_len = len(self.terminals)
+        self.terminals.add(terminal)
+        return last_len != len(self.terminals)
+
+    def update(self, terminal_set: TerminalSet):
+        """Updates the set with another set.
+
+        Parameters
+        ----------
+        terminal_set : ItemSet
+            terminal set to update with.
+        """
+        last_len = len(self.terminals)
+        self.terminals.update(terminal_set.terminals)
+        return last_len != len(self.terminals)
+
+    def __contains__(self, item: Terminal):
+        return item in self.terminals
+
+    def __repr__(self):
+        return list(self.terminals).__repr__()
+
+
 class Parser:
     """Structure used for parsing a text given a grammar and a tokenizer.
 
@@ -56,19 +99,14 @@ class Parser:
     """
 
     def __init__(self, grammar: Grammar, tokenizer: Tokenizer = None):
-        """__init__.
-
-        """
         self.grammar = grammar
         self.tokenizer = tokenizer
-        self._first_calculated = False
-        self._follow_calculated = False
+        self._first = None
+        self._prod_first = None
+        self._follow = None
 
     def _calcule_first_and_follow(self):
         """Recalculates the `first` and `follow` sets of the grammar."""
-        self._first_calculated = False
-        self._follow_calculated = False
-        self.calculate_first()
         self.calculate_follow()
 
     def parse_file(self, file_path: str):
@@ -106,21 +144,31 @@ class Parser:
 
     def calculate_first(self):
         """Calculates the `first` set of the grammar."""
-        if self._first_calculated:
-            return
 
-        # Reset all expresion first
-        for exp in self.grammar.exprs:
-            exp.first_dict = None
-            exp.first = []
+        self._first = {expr: TerminalSet() for expr in self.grammar.exprs}
+        self._prod_first = {
+            prod: TerminalSet() for _, prod in self.grammar.all_productions()
+        }
 
-        for exp in self.grammar.exprs:
-            exp.calculate_first()
-        self._first_calculated = True
+        change = True
+
+        while change:
+            change = False
+            for expr, prod in self.grammar.all_productions():
+                for item in prod.items:
+                    if item.is_terminal:
+                        change |= self._first[expr].add(item)
+                        self._prod_first[prod].add(item)
+                        break
+                    if item != expr:
+                        change |= self._first[expr].update(self._first[item])
+                        self._prod_first[prod].update(self._first[item])
+                        if "EPS" not in self._first[item].terminals:
+                            break
 
     def calculate_follow(self):
         """Calculates `follow` set of the grammar."""
-        if self._follow_calculated:
+        if self._follow is not None:
             return
 
         # First is needed to calculate follow

@@ -14,7 +14,7 @@ TKNZ = Tokenizer()
 TKNZ.add_pattern("NEWLINE", r"[ \n]*\n+[ \n]*", lambda l: "NEWLINE")
 TKNZ.add_pattern("SPACE", r"[ \t]+", lambda t: None)
 TKNZ.add_pattern("LITERAL", r"'(.*?)[^\\]'", lambda l: l[1:-1])
-TKNZ.add_pattern("SPECIAL", r"[A-Z_][A-Z0-9_]*")
+TKNZ.add_pattern("SPECIAL", r"EPS")
 TKNZ.add_pattern("ID", r"[a-zA-Z_][a-zA-Z0-9_]*")
 TKNZ.add_pattern("OP", r"[|:]")
 
@@ -98,6 +98,14 @@ class Item(metaclass=ABCMeta):
     def __str__(self):
         return self.name
 
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.name == other
+        return self is other
+
+    def __hash__(self):
+        return hash(self.name)
+
 
 class Production:
     """Represents a grammar production.
@@ -110,30 +118,6 @@ class Production:
 
     def __init__(self, items: List[Item]):
         self.items = items
-        self.first = None
-
-    def calculate_first(self, trace: List[NonTerminal] = []):
-        """Calculates the `first` set of the production.
-
-        Parameters
-        ----------
-        trace : List[NonTerminal]
-            List of non terminals walked in the recursion.
-        """
-        if self.first is not None:
-            return
-        first = []
-        for item in self.items:
-            if item in trace:
-                rec_eval = " -> ".join(it.name for it in trace)
-                raise ValueError(
-                    "Invalid grammar. Possible recursive evaluation:\n {rec_eval}"
-                )
-            item_first = item.calculate_first(trace + [item])
-            first += item_first
-            if not any(f.name == "EPS" for f in item_first):
-                break
-        self.first = first
 
     def __getitem__(self, index):
         return self.items[index]
@@ -168,36 +152,7 @@ class NonTerminal(Item):
     def __init__(self, name, prods: Optional[List[Production]] = None):
         super().__init__(name)
         self.prods = [] if prods is None else prods
-        self.first_dict = None
-        self.first = []
         self.follow = []
-
-    def calculate_first(self, trace: List[NonTerminal] = None) -> List[Terminal]:
-        """Calculates the `first` set of the expression.
-
-        Parameters
-        ----------
-        trace : List[NonTerminal]
-            List of non terminals walked in the recursion.
-
-        Returns
-        -------
-        List[Terminal]
-            List of the `first` set's items.
-        """
-        if self.first_dict is not None:
-            return self.first_dict
-        self.first_dict = {}
-        if trace is None:
-            trace = [self]
-        for prod in self.prods:
-            prod.calculate_first(trace)
-            for fst in prod.first:
-                if fst not in self.first_dict:
-                    self.first_dict[fst] = []
-                self.first_dict[fst].append(prod)
-        self.first = list(self.first_dict.keys())
-        return self.first
 
     def __getitem__(self, index):
         return self.prods[index]
@@ -236,22 +191,6 @@ class Terminal(Item):
 
     def __repr__(self):
         return f"T({self.name})"
-
-    def calculate_first(self, trace: List[NonTerminal] = []) -> List[Terminal]:
-        """Calculates the `first` set of this item. As it is a Terminal, the
-        `first` se is itself.
-
-        Parameters
-        ----------
-        trace : List[NonTerminal]
-            List of non terminals walked in the recursion.
-
-        Returns
-        -------
-        List[Terminal]
-            List of the `first` set's items.
-        """
-        return [self]
 
 
 class Grammar:
@@ -292,7 +231,6 @@ class Grammar:
             for prod in exp.prods:
                 for item in prod.items:
                     if isinstance(item, Terminal) and item.name not in [
-                        "NEWLINE",
                         "EPS",
                     ]:
                         terminals.append(item)
