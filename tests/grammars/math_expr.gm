@@ -1,0 +1,15 @@
+Expr: Term Expr_X
+
+Expr_X:
+	| '+' Term
+	| EPS
+
+Term: Factor Term_Y
+
+Term_Y:
+	| '*' Factor
+	| EPS
+
+Factor:
+	| '(' Expr ')'
+	| i
