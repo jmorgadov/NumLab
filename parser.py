@@ -53,8 +53,8 @@ class TerminalSet:
         Set of terminals.
     """
 
-    def __init__(self):
-        self.terminals: Set[Terminal] = set()
+    def __init__(self, terminals: Set[Terminal] = None):
+        self.terminals = set() if terminals is None else terminals
 
     def add(self, terminal: Terminal):
         """Adds a terminal to the set.
@@ -79,6 +79,39 @@ class TerminalSet:
         last_len = len(self.terminals)
         self.terminals.update(terminal_set.terminals)
         return last_len != len(self.terminals)
+
+    def __sub__(self, other):
+        if isinstance(other, Terminal):
+            return TerminalSet(terminals=self.terminals - {other})
+        if isinstance(other, TerminalSet):
+            return TerminalSet(terminals=self.terminals - other.terminals)
+        if isinstance(other, set):
+            return TerminalSet(terminals=self.terminals - other)
+        if isinstance(other, str):
+            new_set = {item for item in self.terminals if item.name != other}
+            return TerminalSet(terminals=new_set)
+        raise TypeError(
+            f"unsupported operand type(s) for -: "
+            f"'{type(self).__name__}' and '{type(other).__name__}'"
+        )
+
+    def __and__(self, other):
+        if isinstance(other, Terminal):
+            return TerminalSet(terminals=self.terminals & {other})
+        if isinstance(other, TerminalSet):
+            return TerminalSet(terminals=self.terminals & other.terminals)
+        if isinstance(other, set):
+            return TerminalSet(terminals=self.terminals & other)
+        if isinstance(other, str):
+            new_set = {item for item in self.terminals if item.name == other}
+            return TerminalSet(terminals=new_set)
+        raise TypeError(
+            f"unsupported operand type(s) for &: "
+            f"'{type(self).__name__}' and '{type(other).__name__}'"
+        )
+
+    def __len__(self):
+        return len(self.terminals)
 
     def __contains__(self, item: Terminal):
         return item in self.terminals
@@ -168,41 +201,33 @@ class Parser:
 
     def calculate_follow(self):
         """Calculates `follow` set of the grammar."""
-        if self._follow is not None:
-            return
 
         # First is needed to calculate follow
         self.calculate_first()
 
-        # Reset all expression follows
-        for exp in self.grammar.exprs:
-            exp.follow = []
+        follow = {expr: TerminalSet() for expr in self.grammar.exprs}
+        follow[self.grammar.start_expr].add(Terminal("$"))
 
-        # Add $ to Follow(S)
-        self.grammar.start.follow.append(Terminal("END"))
+        change = True
 
-        for expr, prod in self.grammar.all_productions():
-            for i, item in enumerate(prod.items):
-                if item.is_terminal:
-                    continue
-                # Check all next items while EPS is present
-                for j in range(i + 1, len(prod.items)):
-                    next_item = prod.items[j]
-                    if next_item.is_terminal:
-                        item.follow.append(next_item)
-                        break
-                    next_first = [fst for fst in next_item.first if fst.name != "EPS"]
-                    item.follow.append(next_first)
-                    if all(fst.name != "EPS" for fst in next_item.first):
-                        break
-                else:
-                    # All next items contain EPS
-                    if (
-                        expr.follow not in item.follow
-                        and item.follow not in expr.follow
-                        and item != expr
-                    ):
-                        item.follow.append(expr.follow)
-        for expr in self.grammar.exprs:
-            expr.follow = list(set(_flatten(expr.follow)))
-        self._follow_calculated = True
+        while change:
+            change = False
+            for expr, prod in self.grammar.all_productions():
+                for i, item in enumerate(prod.items):
+                    next_item = prod.items[i + 1] if i + 1 < len(prod.items) else None
+                    if item.is_terminal:
+                        continue
+                    if next_item is None:
+                        print(f"follow {item} updated with {follow[expr] - 'EPS'}")
+                        change |= follow[item].update(follow[expr] - "EPS")
+                    elif next_item.is_terminal:
+                        print(f"follow {item} updated with {next_item}")
+                        change |= follow[item].add(next_item)
+                    else:
+                        print(
+                            f"follow {item} updated with {self._first[next_item] - 'EPS'}"
+                        )
+                        change |= follow[item].update(self._first[next_item] - "EPS")
+                        if "EPS" not in self._first[next_item].terminals:
+                            break
+        self._follow = follow

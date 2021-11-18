@@ -26,4 +26,20 @@ def test_calculate_first_set(parser: Parser):
         for item in first_list:
             assert item in parser._first[expr]
 
+# Test follow set calculation
+def test_calculate_follow_set(parser: Parser):
+    parser.calculate_follow()
+
+    correct_follow = {
+        "Expr": ["')'", "$"],
+        "Expr_X": ["')'", "$"],
+        "Term": ["'+'", "')'", "$"],
+        "Term_Y": ["'+'", "')'", "$"],
+        "Factor": ["'+'", "')'", "'*'", "$"],
+    }
+
+    for expr, follow_list in correct_follow.items():
+        assert len(follow_list) == len(parser._follow[expr])
+        for item in follow_list:
+            assert item in parser._follow[expr]
     

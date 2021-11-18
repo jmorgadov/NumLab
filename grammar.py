@@ -152,7 +152,6 @@ class NonTerminal(Item):
     def __init__(self, name, prods: Optional[List[Production]] = None):
         super().__init__(name)
         self.prods = [] if prods is None else prods
-        self.follow = []
 
     def __getitem__(self, index):
         return self.prods[index]
@@ -187,7 +186,6 @@ class Terminal(Item):
     def __init__(self, name: str, match: str = None):
         super().__init__(name)
         self.match = match
-        self.follow = self
 
     def __repr__(self):
         return f"T({self.name})"
@@ -209,6 +207,7 @@ class Grammar:
 
     def __init__(self, exprs: List[NonTerminal] = None):
         self.exprs = [] if exprs is None else exprs
+        self.start = None
         if exprs:
             self.start = exprs[0]
         self.exprs_dict = {exp.name: exp for exp in exprs}
@@ -217,6 +216,19 @@ class Grammar:
         if item in self.exprs_dict:
             return self.exprs_dict[item]
         raise AttributeError()
+
+    @property
+    def start_expr(self):
+        """Gets the start expression of the grammar.
+
+        Returns
+        -------
+        NonTerminal
+            Start expression.
+        """
+        if self.start is None:
+            raise ValueError("Grammar has no start expression.")
+        return self.start
 
     def all_terminals(self) -> Set[Terminal]:
         """Set of all the terminals in the grammar.
