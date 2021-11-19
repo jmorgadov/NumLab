@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import List, Set
 
-from grammar import Grammar, Item, Terminal
+from grammar import Grammar, Terminal
 from tokenizer import Token, Tokenizer
 
 
@@ -137,10 +137,36 @@ class Parser:
         self._first = None
         self._prod_first = None
         self._follow = None
+        self._ll_one_table = None
 
     def _calcule_first_and_follow(self):
         """Recalculates the `first` and `follow` sets of the grammar."""
         self.calculate_follow()
+
+    def _build_ll_one_table(self):
+        """Builds the LL(1) table."""
+        table = self._ll_one_table = {}
+
+        all_terminals = self.grammar.all_terminals()
+        all_terminals.add(Terminal("$"))
+        for expr, prod in self.grammar.all_productions():
+            if prod.is_eps:
+                continue
+            for terminal in all_terminals:
+                if terminal == "EPS":
+                    continue
+                if terminal in self._prod_first[prod]:
+                    if (expr, terminal) in table and table[expr, terminal] is not None:
+                        raise ValueError(
+                            f"Ambiguity in the LL(1) table: \n"
+                            f"{expr} {prod}\n"
+                            f"{expr} {table[expr, terminal]}"
+                        )
+                    table[expr, terminal] = prod
+                elif "EPS" in self._first[expr] and terminal.name in self._follow[expr]:
+                    table[expr, terminal] = "EPS"
+                elif (expr, terminal) not in table:
+                    table[expr, terminal] = None
 
     def parse_file(self, file_path: str):
         """Opens a file and parses it contents.
@@ -218,15 +244,10 @@ class Parser:
                     if item.is_terminal:
                         continue
                     if next_item is None:
-                        print(f"follow {item} updated with {follow[expr] - 'EPS'}")
                         change |= follow[item].update(follow[expr] - "EPS")
                     elif next_item.is_terminal:
-                        print(f"follow {item} updated with {next_item}")
                         change |= follow[item].add(next_item)
                     else:
-                        print(
-                            f"follow {item} updated with {self._first[next_item] - 'EPS'}"
-                        )
                         change |= follow[item].update(self._first[next_item] - "EPS")
                         if "EPS" not in self._first[next_item].terminals:
                             break
