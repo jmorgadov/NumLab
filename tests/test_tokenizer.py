@@ -2,7 +2,7 @@ import re
 
 import pytest
 from tokenizer import Tokenizer
-
+from exceptions import TokenizationError
 
 @pytest.fixture
 def tokenizer():
@@ -23,7 +23,7 @@ def test_add_existent_token_type(tokenizer: Tokenizer):
     ttype = "AB"
     patt = r"[ab]+"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TokenizationError):
         tokenizer.add_pattern(ttype, patt)
         tokenizer.add_pattern(ttype, patt)
 
@@ -50,7 +50,7 @@ def test_tokenizer(tokenizer: Tokenizer):
 
     # Test wrong text
     text = "123"
-    with pytest.raises(ValueError):
+    with pytest.raises(TokenizationError):
         tokenizer.tokenize(text)
 
 

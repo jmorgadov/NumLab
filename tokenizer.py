@@ -20,6 +20,8 @@ Example of use:
 import re
 from typing import Any, Callable, Dict, List
 
+from exceptions import TokenizationError
+
 
 class Token:
     """Represents a single token.
@@ -107,7 +109,7 @@ class Tokenizer:
             be the return value of `func`.
         """
         if token_type in self._token_patterns:
-            raise ValueError(f"Token type {token_type} already exists.")
+            raise TokenizationError(f"Token type {token_type} already exists.")
         self._token_patterns[token_type] = re.compile(pattern)
         if func is None:
             func = lambda lex: lex
@@ -208,7 +210,7 @@ class Tokenizer:
                         col = len(lexem.split("\n")[-1])
                     break
             else:
-                raise ValueError(
+                raise TokenizationError(
                     f"No match found. Line: {line}, Col{col}.\n"
                     f"Text: {text[i:i+10]}..."
                 )
