@@ -103,7 +103,7 @@ class Tokenizer:
             Regex pattern.
         func : Callable[[str], Any]
             When a match is found for a pattern and a token is created this
-            functon is applied to the token lexem. The token's new lexem will
+            function is applied to the token lexem. The token's new lexem will
             be the return value of `func`.
         """
         if token_type in self._token_patterns:
@@ -112,6 +112,30 @@ class Tokenizer:
         if func is None:
             func = lambda lex: lex
         self._token_found_functions[token_type] = func
+
+
+    def add_patterns(self, **kwargs: str):
+        """Adds a list of patterns for recognizing tokens
+
+        The order of patterns is very important as the patterns are checked in the same
+        order they where added.
+
+        Parameters
+        ----------
+        **kwargs: str
+        
+
+        Example 
+        ------- 
+        tknz.add_patterns(
+            INT = r"\d+", 
+            OPERATOR = r"[+\-*/]"
+            )
+
+        """
+        for token_type, patt in kwargs.items():
+            self.add_pattern(self, token_type, patt)
+
 
     def process_tokens(self, func: Callable[[List[Token]], List[Token]]):
         """Decorator for processing the tokens after tokenization process.
