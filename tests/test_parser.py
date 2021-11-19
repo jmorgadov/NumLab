@@ -51,37 +51,23 @@ def test_calculate_ll_one_table(parser: Parser):
     parser._build_ll_one_table()
 
     correct_ll_one_table = {
-        ("Expr", "$"): None,
-        ("Expr", "')'"): None,
         ("Expr", "i"): parser.grammar.Expr.prod_0,
-        ("Expr", "'+'"): None,
         ("Expr", "'('"): parser.grammar.Expr.prod_0,
-        ("Expr", "'*'"): None,
         ("Expr_X", "$"): "EPS",
         ("Expr_X", "')'"): "EPS",
-        ("Expr_X", "i"): None,
         ("Expr_X", "'+'"): parser.grammar.Expr_X.prod_0,
-        ("Expr_X", "'('"): None,
-        ("Expr_X", "'*'"): None,
-        ("Term", "$"): None,
-        ("Term", "')'"): None,
         ("Term", "i"): parser.grammar.Term.prod_0,
-        ("Term", "'+'"): None,
         ("Term", "'('"): parser.grammar.Term.prod_0,
-        ("Term", "'*'"): None,
         ("Term_Y", "$"): "EPS",
         ("Term_Y", "')'"): "EPS",
-        ("Term_Y", "i"): None,
         ("Term_Y", "'+'"): "EPS",
-        ("Term_Y", "'('"): None,
         ("Term_Y", "'*'"): parser.grammar.Term_Y.prod_0,
-        ("Factor", "$"): None,
-        ("Factor", "')'"): None,
         ("Factor", "i"): parser.grammar.Factor.prod_1,
-        ("Factor", "'+'"): None,
         ("Factor", "'('"): parser.grammar.Factor.prod_0,
-        ("Factor", "'*'"): None,
     }
 
-    for key, value in correct_ll_one_table.items():
-        assert parser._ll_one_table[key] == value
+    for key, value in parser._ll_one_table.items():
+        if key in correct_ll_one_table:
+            assert value == correct_ll_one_table[key]
+        else:
+            assert value is None
