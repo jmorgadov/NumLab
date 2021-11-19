@@ -1,13 +1,10 @@
 
 NumLabError = type('NumLabError', (Exception,), {})
 
-CompilationError = type('CompilationError', (Exception))
+CompilationError = type('CompilationError', (Exception,), {})
 
-Tokenizer = type('Tokenizer',CompilationError)
+TokenizerError = type('Tokenizer', (CompilationError,), {})
 
-class ParserError (CompilationError):
-
-  def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+ParserError = type('ParserError', (CompilationError,), {})
         
 
