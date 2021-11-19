@@ -1,10 +1,12 @@
+"""
+This module contains the exceptions used on the project.
+"""
 
-NumLabError = type('NumLabError', (Exception,), {})
 
-CompilationError = type('CompilationError', (Exception,), {})
+NumLabError = type("NumLabError", (Exception,), {})
 
-TokenizerError = type('Tokenizer', (CompilationError,), {})
+CompilationError = type("CompilationError", (NumLabError,), {})
 
-ParserError = type('ParserError', (CompilationError,), {})
-        
+TokenizationError = type("TokenizationError", (CompilationError,), {})
 
+ParsingError = type("ParsingError", (CompilationError,), {})
