@@ -119,6 +119,17 @@ class Production:
     def __init__(self, items: List[Item]):
         self.items = items
 
+    @property
+    def is_eps(self) -> bool:
+        """Checks if the production is the empty production.
+
+        Returns
+        -------
+        bool
+            True if the production is the empty production.
+        """
+        return len(self.items) == 1 and self.items[0] == "EPS"
+
     def __getitem__(self, index):
         return self.items[index]
 
@@ -126,16 +137,13 @@ class Production:
         self.items[index] = item
 
     def __repr__(self):
-        s = "-> "
+        prod_str = "-> "
         for item in self.items:
-            s += f"{item} "
-        return s
+            prod_str += f"{item} "
+        return prod_str
 
     def __str__(self):
-        s = "  | "
-        for item in self.items:
-            s += f"{item} "
-        return s
+        return self.__repr__()
 
 
 class NonTerminal(Item):
