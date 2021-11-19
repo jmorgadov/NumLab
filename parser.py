@@ -165,7 +165,7 @@ class Parser:
                     table[expr, terminal] = prod
                 elif "EPS" in self._first[expr] and terminal.name in self._follow[expr]:
                     table[expr, terminal] = "EPS"
-                else:
+                elif (expr, terminal) not in table:
                     table[expr, terminal] = None
 
     def parse_file(self, file_path: str):
