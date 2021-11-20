@@ -18,6 +18,21 @@ def test_add_pattern(tokenizer: Tokenizer):
     assert ttype in tokenizer._token_patterns
     assert tokenizer._token_patterns[ttype] == re.compile(patt)
 
+def test_add_patterns(tokenizer: Tokenizer):
+    patterns = {
+        "AB": r"[ab]+",
+        "ABC": r"[abc]+",
+        "ABCD": r"[abcd]+",
+        "SPACE": r"[ \t]"
+    }
+
+    for token_type, patt in patterns.items():
+        tokenizer.add_pattern(token_type, patt)
+    
+    for token_type, patt in patterns.items():
+        assert token_type in tokenizer._token_patterns
+        assert tokenizer._token_patterns[token_type] == re.compile(patt)
+
 
 def test_add_existent_token_type(tokenizer: Tokenizer):
     ttype = "AB"
