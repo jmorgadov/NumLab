@@ -85,7 +85,7 @@ class Tokenizer:
     """Tokenizer"""
 
     def __init__(self):
-        self._token_patterns: Dict[str, re.Pattern] = {}
+        self.token_patterns: Dict[str, re.Pattern] = {}
         self._token_found_functions = {}
         self._process_tokens = lambda tk: tk
 
@@ -108,9 +108,9 @@ class Tokenizer:
             function is applied to the token lexem. The token's new lexem will
             be the return value of `func`.
         """
-        if token_type in self._token_patterns:
+        if token_type in self.token_patterns:
             raise TokenizationError(f"Token type {token_type} already exists.")
-        self._token_patterns[token_type] = re.compile(pattern)
+        self.token_patterns[token_type] = re.compile(pattern)
         if func is None:
             func = lambda lex: lex
         self._token_found_functions[token_type] = func
@@ -125,18 +125,18 @@ class Tokenizer:
         Parameters
         ----------
         **kwargs: str
-        
 
-        Example 
-        ------- 
+
+        Example
+        -------
         tknz.add_patterns(
-            INT = r"\d+", 
-            OPERATOR = r"[+\-*/]"
+            INT = r"\\d+",
+            OPERATOR = r"[+\\-*/]"
             )
 
         """
         for token_type, patt in kwargs.items():
-            self.add_pattern(self, token_type, patt)
+            self.add_pattern(token_type, patt)
 
 
     def process_tokens(self, func: Callable[[List[Token]], List[Token]]):
@@ -218,7 +218,7 @@ class Tokenizer:
         line, col = 0, 0
         i = 0
         while i < len(text):
-            for token_type, patt in self._token_patterns.items():
+            for token_type, patt in self.token_patterns.items():
                 match = patt.match(text, pos=i)
                 if match is not None:
                     lexem = match.group()

@@ -1,8 +1,9 @@
 import re
 
 import pytest
-from tokenizer import Tokenizer
 from exceptions import TokenizationError
+from tokenizer import Tokenizer
+
 
 @pytest.fixture
 def tokenizer():
@@ -15,8 +16,8 @@ def test_add_pattern(tokenizer: Tokenizer):
 
     tokenizer.add_pattern(ttype, patt)
 
-    assert ttype in tokenizer._token_patterns
-    assert tokenizer._token_patterns[ttype] == re.compile(patt)
+    assert ttype in tokenizer.token_patterns
+    assert tokenizer.token_patterns[ttype] == re.compile(patt)
 
 def test_add_patterns(tokenizer: Tokenizer):
     patterns = {
@@ -25,13 +26,10 @@ def test_add_patterns(tokenizer: Tokenizer):
         "ABCD": r"[abcd]+",
         "SPACE": r"[ \t]"
     }
-
+    tokenizer.add_patterns(**patterns)
     for token_type, patt in patterns.items():
-        tokenizer.add_pattern(token_type, patt)
-    
-    for token_type, patt in patterns.items():
-        assert token_type in tokenizer._token_patterns
-        assert tokenizer._token_patterns[token_type] == re.compile(patt)
+        assert token_type in tokenizer.token_patterns
+        assert tokenizer.token_patterns[token_type] == re.compile(patt)
 
 
 def test_add_existent_token_type(tokenizer: Tokenizer):
