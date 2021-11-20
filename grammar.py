@@ -191,9 +191,10 @@ class Terminal(Item):
         Regex pattern used to check if a token lexem match in parsing process.
     """
 
-    def __init__(self, name: str, match: str = None):
+    def __init__(self, name: str, match: str = None, is_literal=False):
         super().__init__(name)
         self.match = match
+        self.is_literal = is_literal
 
     def __repr__(self):
         return f"T({self.name})"
@@ -532,8 +533,8 @@ class _GrammarParser:
             name = f"'{match}'"
 
         # It always returns a Terminal but after parsing all terminals with
-        # non terminal names will be replaced by the non terminal item.
-        term = Terminal(name, match)
+        # non terminal names will be replaced by the non terminal items.
+        term = Terminal(name, match, self._ctoken.LITERAL)
         self._cursor += 1
         return term
 

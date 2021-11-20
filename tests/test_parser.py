@@ -1,13 +1,25 @@
 from parser import Parser
 
 import pytest
+from tokenizer import Tokenizer
 from grammar import Grammar
+from exceptions import ParsingError
+
 
 
 @pytest.fixture
 def parser():
     gm = Grammar.open("./tests/grammars/math_expr.gm")
-    return Parser(gm)
+
+    tokenizer = Tokenizer()
+    tokenizer.add_pattern("NEWLINE", r"[ \n]*\n+[ \n]*", lambda l: "NEWLINE")
+    tokenizer.add_pattern("SPACE", r"[ \t]+", lambda t: None)
+    tokenizer.add_pattern("i", r"\d+", int)
+    tokenizer.add_pattern("PLUS", r"\+")
+    tokenizer.add_pattern("TIMES", r"\*")
+    tokenizer.add_pattern("LPAREN", r"\(")
+    tokenizer.add_pattern("RPAREN", r"\)")
+    return Parser(gm, tokenizer)
 
 
 # Test first set calculation
@@ -71,3 +83,20 @@ def test_calculate_ll_one_table(parser: Parser):
             assert value == correct_ll_one_table[key]
         else:
             assert value is None
+
+# Test parsing
+def test_parse(parser: Parser):
+    parser.parse("(1+2)*3")
+    parser.parse("(1+2)*(3+4)")
+
+    with pytest.raises(ParsingError):
+        parser.parse("1+2+")
+
+    with pytest.raises(ParsingError):
+        parser.parse("1+2)")
+
+    with pytest.raises(ParsingError):
+        parser.parse("(")
+
+    with pytest.raises(ParsingError):
+        parser.parse("")

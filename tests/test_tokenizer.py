@@ -15,8 +15,8 @@ def test_add_pattern(tokenizer: Tokenizer):
 
     tokenizer.add_pattern(ttype, patt)
 
-    assert ttype in tokenizer._token_patterns
-    assert tokenizer._token_patterns[ttype] == re.compile(patt)
+    assert ttype in tokenizer.token_patterns
+    assert tokenizer.token_patterns[ttype] == re.compile(patt)
 
 
 def test_add_existent_token_type(tokenizer: Tokenizer):

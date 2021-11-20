@@ -4,120 +4,13 @@ This module contains the basic structures for parsing.
 
 from __future__ import annotations
 
-from typing import List, Set
+from typing import List
 
+from exceptions import ParsingError
+from generic_ast import AST
 from grammar import Grammar, Terminal
+from terminal_set import TerminalSet
 from tokenizer import Token, Tokenizer
-
-
-def _flatten(nested_list: list) -> list:
-    """Flats a nested list into a single list.
-
-    Parameters
-    ----------
-    nested_list : list
-        Nested list.
-
-    Returns
-    -------
-    list
-        Resulting flatten list.
-
-    Examples
-    --------
-
-        >>> _flatten([1, 2, 3])
-        [1,2,3]
-        >>> _flatten([1, [2, 3]])
-        [1,2,3]
-        >>> _flatten([1, [[[2]]], 3])
-        [1,2,3]
-        >>> _flatten([[[1, [[2]]]], 3])
-        [1,2,3]
-    """
-    flatten_list = []
-    for item in nested_list:
-        if isinstance(item, list):
-            flatten_list += _flatten(item)
-        else:
-            flatten_list.append(item)
-    return flatten_list
-
-
-class TerminalSet:
-    """Terminal set.
-
-    Attributes
-    ----------
-    terminals : Set[Terminal]
-        Set of terminals.
-    """
-
-    def __init__(self, terminals: Set[Terminal] = None):
-        self.terminals = set() if terminals is None else terminals
-
-    def add(self, terminal: Terminal):
-        """Adds a terminal to the set.
-
-        Parameters
-        ----------
-        terminal : Terminal
-            terminal to add.
-        """
-        last_len = len(self.terminals)
-        self.terminals.add(terminal)
-        return last_len != len(self.terminals)
-
-    def update(self, terminal_set: TerminalSet):
-        """Updates the set with another set.
-
-        Parameters
-        ----------
-        terminal_set : ItemSet
-            terminal set to update with.
-        """
-        last_len = len(self.terminals)
-        self.terminals.update(terminal_set.terminals)
-        return last_len != len(self.terminals)
-
-    def __sub__(self, other):
-        if isinstance(other, Terminal):
-            return TerminalSet(terminals=self.terminals - {other})
-        if isinstance(other, TerminalSet):
-            return TerminalSet(terminals=self.terminals - other.terminals)
-        if isinstance(other, set):
-            return TerminalSet(terminals=self.terminals - other)
-        if isinstance(other, str):
-            new_set = {item for item in self.terminals if item.name != other}
-            return TerminalSet(terminals=new_set)
-        raise TypeError(
-            f"unsupported operand type(s) for -: "
-            f"'{type(self).__name__}' and '{type(other).__name__}'"
-        )
-
-    def __and__(self, other):
-        if isinstance(other, Terminal):
-            return TerminalSet(terminals=self.terminals & {other})
-        if isinstance(other, TerminalSet):
-            return TerminalSet(terminals=self.terminals & other.terminals)
-        if isinstance(other, set):
-            return TerminalSet(terminals=self.terminals & other)
-        if isinstance(other, str):
-            new_set = {item for item in self.terminals if item.name == other}
-            return TerminalSet(terminals=new_set)
-        raise TypeError(
-            f"unsupported operand type(s) for &: "
-            f"'{type(self).__name__}' and '{type(other).__name__}'"
-        )
-
-    def __len__(self):
-        return len(self.terminals)
-
-    def __contains__(self, item: Terminal):
-        return item in self.terminals
-
-    def __repr__(self):
-        return list(self.terminals).__repr__()
 
 
 class Parser:
@@ -138,6 +31,7 @@ class Parser:
         self._prod_first = None
         self._follow = None
         self._ll_one_table = None
+        self.token_to_term = {}
 
     def _calcule_first_and_follow(self):
         """Recalculates the `first` and `follow` sets of the grammar."""
@@ -168,38 +62,121 @@ class Parser:
                 elif (expr, terminal) not in table:
                     table[expr, terminal] = None
 
-    def parse_file(self, file_path: str):
+    def _build_token_to_term_dict(self):
+        """
+        Builds a dictionary that maps a token from the tokenizer to a
+        grammar terminal.
+        """
+        all_terminals = self.grammar.all_terminals()
+        for token_type, patt in self.tokenizer.token_patterns.items():
+            for term in all_terminals:
+                if term.is_literal and patt.match(term.match):
+                    self.token_to_term[token_type] = term
+                    break
+                if not term.is_literal and token_type == term.name:
+                    self.token_to_term[token_type] = term
+                    break
+
+    def parse_file(self, file_path: str) -> AST:
         """Opens a file and parses it contents.
 
         Parameters
         ----------
         file_path : str
             File path.
+
+        Returns
+        -------
+        AST
+            AST generated by the parser.
         """
         with open(file_path, "r", encoding="utf-8") as file:
             text = file.read()
-        self.parse(text)
+        return self.parse(text)
 
-    def parse(self, text: str):
+    def parse(self, text: str) -> AST:
         """Parses a text.
 
         Parameters
         ----------
         text : str
             Text to be parsed.
+
+        Returns
+        -------
+        AST
+            AST generated by the parser.
         """
         tokens = self.tokenizer.tokenize(text)
-        self.parse_tokens(tokens)
+        return self.parse_tokens(tokens)
 
-    def parse_tokens(self, tokens: List[Token]):
+    def parse_tokens(self, tokens: List[Token]) -> AST:
         """Parses a list of tokens.
 
         Parameters
         ----------
         tokens : List[Token]
             List of tokens to be parsed.
+
+        Returns
+        -------
+        AST
+            AST generated by the parser.
         """
-        pass
+        self.calculate_follow()
+        self._build_ll_one_table()
+        last_line, last_col = (tokens[-1].line, tokens[-1].col) if tokens else (0, 0)
+        tokens.append(Token("$", "$", last_line, last_col))
+        derivation_root = AST(self.grammar.start_expr)
+        derivation_stack = [derivation_root]
+        self._build_token_to_term_dict()
+
+        last_token = None
+        for token in tokens:
+            last_token = token
+            if token.token_type == "$":
+                while (
+                    len(derivation_stack) > 0
+                    and "EPS" in self._first[derivation_stack[-1].item]
+                ):
+                    derivation_stack.pop()
+                if len(derivation_stack) != 0:
+                    raise ParsingError(
+                        "Unexpected end of file",
+                        last_line,
+                        last_col,
+                    )
+                return derivation_root
+
+            while True:
+                if len(derivation_stack) == 0:
+                    raise ParsingError("Unespected ending", token.line, token.col)
+                derivation = derivation_stack.pop()
+                if derivation.item.is_terminal:
+                    derivation.value = token.lexem
+                    break
+
+                term_name = self.token_to_term[token.token_type]
+                prod_to_apply = self._ll_one_table[derivation.item, term_name]
+                if prod_to_apply is None:
+                    raise ParsingError(
+                        f"Unexpected '{token}'",
+                        token.line,
+                        token.col,
+                    )
+                if prod_to_apply == "EPS":
+                    continue
+
+                for item in prod_to_apply.items[::-1]:
+                    new_derivation = AST(item, derivation)
+                    derivation.children.insert(0, new_derivation)
+                    derivation_stack.append(new_derivation)
+        if len(derivation_stack) != 0:
+            raise ParsingError(
+                f"Unexpected {last_token.lexem}", last_token.line, last_token.col
+            )
+
+        return derivation_root
 
     def calculate_first(self):
         """Calculates the `first` set of the grammar."""
@@ -235,7 +212,6 @@ class Parser:
         follow[self.grammar.start_expr].add(Terminal("$"))
 
         change = True
-
         while change:
             change = False
             for expr, prod in self.grammar.all_productions():
