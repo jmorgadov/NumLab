@@ -125,18 +125,18 @@ class Tokenizer:
         Parameters
         ----------
         **kwargs: str
-        
 
-        Example 
-        ------- 
+
+        Example
+        -------
         tknz.add_patterns(
-            INT = r"\d+", 
-            OPERATOR = r"[+\-*/]"
+            INT = r"\\d+",
+            OPERATOR = r"[+\\-*/]"
             )
 
         """
         for token_type, patt in kwargs.items():
-            self.add_pattern(self, token_type, patt)
+            self.add_pattern(token_type, patt)
 
 
     def process_tokens(self, func: Callable[[List[Token]], List[Token]]):
