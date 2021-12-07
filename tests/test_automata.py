@@ -85,3 +85,19 @@ def test_run(pair_ones_automata, alpha_automata):
     alpha_automata.run(input_, stop_when_final=True)
     final_pos = alpha_automata._pos - 1
     assert input_[:final_pos] == 'sometext'
+
+def test_sub_automata():
+    a = Automata()
+    a.add_state('q0', initial=True)
+    a.add_state('q1')
+    a.add_transition('q0', 'a', 'q1')
+
+    b = Automata()
+    b.add_state('q0', initial=True)
+    b.add_state('q1', final=True)
+    b.add_transition('q0', 'b', 'q1')
+
+    a.add_transition('q1', 'x', b)
+
+    assert a.run('axb')
+
