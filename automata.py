@@ -23,6 +23,26 @@ class State:
     def __init__(self, name: str) -> None:
         self.name = name
         self.transitions: List[Transition] = []
+        self.automata = None
+
+    def substitute(self, other_state: State) -> State:
+        """
+        Substitute the state with another one.
+
+        Parameters
+        ----------
+        other_state : State
+            The other state.
+
+        Returns
+        -------
+        State
+            The substituted state.
+        """
+
+        self.name = other_state.name
+        self.transitions = other_state.transitions
+        return self
 
     def __str__(self) -> str:
         return self.name
@@ -116,8 +136,63 @@ class Automata:
             return self.states[item]
         raise AttributeError(f"No attribute {item}")
 
+    def concatenate(self, other: Automata, set_single: bool = False) -> Automata:
+        """
+        Concatenate the automata with another one.
+
+        Parameters
+        ----------
+        other : Automata
+            The other automata.
+        set_single : bool, optional
+            Whether to set the automata to have a single start and end state
+            when needed, by default False.
+
+        Returns
+        -------
+        Automata
+            The concatenated automata.
+
+        Raises
+        ------
+        ValueError
+            If the current automata has multiple end states and ``set_single`` is
+            False.
+        ValueError
+            If the other automata has multiple start states and ``set_single`` is
+            False.
+        """
+
+        if len(self.end_states) != 1:
+            if set_single:
+                self.set_single_end()
+            else:
+                raise ValueError(f"Automata {self.name} has multiple end states.")
+        if len(other.start_states) != 1:
+            if set_single:
+                other.set_single_start()
+            else:
+                raise ValueError(f"Automata {other.name} has multiple start states.")
+        self.end_state.substitute(other.start_state)
+        self.end_states = other.end_states
+        return self
+
+    @property
+    def start_state(self) -> State:
+        """Get the start state of the automata."""
+        if len(self.start_states) == 1:
+            return self.start_states[0]
+        raise ValueError("The automata has multiple start states.")
+
+    @property
+    def end_state(self) -> State:
+        """Get the end state of the automata."""
+        if len(self.end_states) == 1:
+            return self.end_states[0]
+        raise ValueError("The automata has multiple end states.")
+
     def add_state(
-        self, state: Union[str, State], start: bool = False, end: bool = False
+        self, state: Union[str, State] = None, start: bool = False, end: bool = False
     ) -> State:
         """
         Add a state to the automata.
@@ -130,13 +205,15 @@ class Automata:
             Whether the state is a start state.
         end : bool
             Whether the state is an end state.
-        
+
         Returns
         -------
         State
             The added state.
         """
 
+        if state is None:
+            state = State(f"q{len(self.states)}")
         if isinstance(state, str):
             if state in self.states:
                 raise ValueError(f"State {state} already exists.")
@@ -146,6 +223,7 @@ class Automata:
             self.start_states.append(state)
         if end:
             self.end_states.append(state)
+        state.automata = self
         return state
 
     def add_transition(
@@ -283,6 +361,9 @@ class Automata:
 
     def _step(self):
         self._current_state, self._pos = self._stack.pop()
+        print(f"{self._current_state} {self._current_state.automata.name} {self._pos}")
+        if self._pos < len(self._input):
+            print(f"read: {self._input[self._pos]}")
         for transition in self._current_state.transitions:
             if transition.is_epsilon or (
                 0 <= self._pos < len(self._input)
