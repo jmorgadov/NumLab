@@ -11,6 +11,13 @@ _ATMT_COUNT = 0
 class State:
     """
     A state of an automata.
+
+    Attributes
+    ----------
+    name : str
+        The name of the state.
+    transitions : List[Transition]
+        The transitions of the state.
     """
 
     def __init__(self, name: str) -> None:
@@ -25,6 +32,32 @@ class State:
 
 
 class Transition:
+    """
+    A transition between two states.
+
+    Parameters
+    ----------
+    from_state : State
+        The state from which the transition starts.
+    to_state : State
+        The state to which the transition goes.
+    condition : Any
+        The condition under which the transition is taken.
+    action : int
+        The action to perform when the transition is taken.
+
+    Attributes
+    ----------
+    from_state : State
+        The state from which the transition starts.
+    to_state : State
+        The state to which the transition goes.
+    condition : Any
+        The condition under which the transition is taken.
+    action : int
+        The action to perform when the transition is taken.
+    """
+
     def __init__(
         self, from_state: State, to_state: State, condition: Any = None, action: int = 1
     ) -> None:
@@ -35,6 +68,7 @@ class Transition:
 
     @property
     def is_epsilon(self) -> bool:
+        """Returns True if the transition is an epsilon transition."""
         return self.condition is None
 
     def __str__(self) -> str:
@@ -42,6 +76,26 @@ class Transition:
 
 
 class Automata:
+    """
+    An automata.
+
+    Parameters
+    ----------
+    name : str
+        The name of the automata.
+
+    Attributes
+    ----------
+    name : str
+        The name of the automata.
+    states : Dict[str, State]
+        The states of the automata.
+    start_states : List[State]
+        The start states of the automata.
+    end_states : List[State]
+        The end states of the automata.
+    """
+
     def __init__(self, name: str = None) -> None:
         if name is None:
             global _ATMT_COUNT
@@ -65,6 +119,24 @@ class Automata:
     def add_state(
         self, state: Union[str, State], start: bool = False, end: bool = False
     ) -> State:
+        """
+        Add a state to the automata.
+
+        Parameters
+        ----------
+        state : Union[str, State]
+            The name of the state to add or the state itself.
+        start : bool
+            Whether the state is a start state.
+        end : bool
+            Whether the state is an end state.
+        
+        Returns
+        -------
+        State
+            The added state.
+        """
+
         if isinstance(state, str):
             if state in self.states:
                 raise ValueError(f"State {state} already exists.")
@@ -83,6 +155,26 @@ class Automata:
         condition: Any = None,
         action: int = None,
     ) -> None:
+        """
+        Add a transition to the automata.
+
+        Parameters
+        ----------
+        from_state : Union[str, State]
+            The state from which the transition starts.
+        to_state : Union[str, State]
+            The state to which the transition goes.
+        condition : Any
+            The condition under which the transition is taken.
+        action : int
+            The action to perform when the transition is taken.
+
+        Raises
+        ------
+        ValueError
+            If any of the states does not exist.
+        """
+
         if isinstance(from_state, str):
             from_state = self.states.get(from_state, None)
             if from_state is None:
@@ -98,6 +190,15 @@ class Automata:
         return transition
 
     def set_single_start(self) -> State:
+        """
+        Set the automata to have a single start state.
+
+        Returns
+        -------
+        State
+            The start state.
+        """
+
         if len(self.start_states) == 1:
             return self.start_states[0]
         start_st = self.add_state(f"_start_{self.name}")
@@ -107,6 +208,15 @@ class Automata:
         return start_st
 
     def set_single_end(self) -> State:
+        """
+        Set the automata to have a single end state.
+
+        Returns
+        -------
+        State
+            The end state.
+        """
+
         if len(self.end_states) == 1:
             return self.end_states[0]
         end_st = self.add_state(f"_end_{self.name}")
@@ -116,6 +226,15 @@ class Automata:
         return end_st
 
     def set_single_start_end(self) -> Tuple[State, State]:
+        """
+        Set the automata to have a single start and end state.
+
+        Returns
+        -------
+        Tuple[State, State]
+            The start and end state.
+        """
+
         start_st = self.set_single_start()
         end_st = self.set_single_end()
         return start_st, end_st
@@ -126,6 +245,30 @@ class Automata:
         stop_at_end: bool = False,
         success_at_full_input: bool = False,
     ) -> bool:
+        """
+        Run the automata on the given input.
+
+        Parameters
+        ----------
+        input_ : Iterable
+            The input to run the automata on.
+        stop_at_end : bool
+            Whether to stop the automata at the first end state encountered.
+        success_at_full_input : bool
+            Whether to consider the automata successful if the input is fully
+            consumed.
+
+        Returns
+        -------
+        bool
+            Whether the automata succeeded.
+
+        Raises
+        ------
+        ValueError
+            If the automata has no start state.
+        """
+
         if not self.start_states:
             raise ValueError("No start states defined.")
         self._pos = 0
@@ -139,7 +282,6 @@ class Automata:
         return success_at_full_input or self._current_state in self.end_states
 
     def _step(self):
-        print(self._stack)
         self._current_state, self._pos = self._stack.pop()
         for transition in self._current_state.transitions:
             if transition.is_epsilon or (
