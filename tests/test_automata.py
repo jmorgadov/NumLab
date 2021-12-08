@@ -1,103 +1,124 @@
 import pytest
-import re
+from automata import Automata
 
-from automata import Automata, FOWARD, BACKWARD, STAY
 
 def test_add_state():
     a = Automata()
 
-    a.add_state('q0', initial=True)
-    assert 'q0' in a.state_ids
-    assert a.initial_state == a.state_ids['q0']
+    q_0 = a.add_state("q0", start=True)
+    assert "q0" in a.states
+    assert a.start_states == [q_0]
 
-    a.add_state('q1')
-    assert 'q1' in a.state_ids
-    assert a.initial_state != a.state_ids['q1']
+    q_1 = a.add_state("q1")
+    assert "q1" in a.states
 
-    a.add_state('q2', final=True)
-    assert 'q2' in a.state_ids
-    assert a.final_states == [a.state_ids['q2']]
+    q_2 = a.add_state("q2", end=True)
+    assert "q2" in a.states
+    assert q_2 in a.end_states
 
-    a.add_state('q3', final=True)
-    assert 'q3' in a.state_ids
-    assert a.state_ids['q3'] in a.final_states
+    q_3 = a.add_state("q3", end=True)
+    assert "q3" in a.states
+    assert q_3 in a.end_states
 
 
 def test_add_transition():
     a = Automata()
 
-    a.add_state('q0', initial=True)
-    a.add_state('q1')
-    a.add_state('q2', final=True)
+    q_0 = a.add_state("q0", start=True)
+    q_1 = a.add_state("q1")
+    q_2 = a.add_state("q2", end=True)
 
-    a.add_transition('q0', 'a', 'q1')
-    assert a.q0 in a.transitions
-    assert a.transitions[a.q0][0].value == 'a'
-    assert a.transitions[a.q0][0].to_state == a.q1
-    assert a.transitions[a.q0][0].action == FOWARD
-    assert a.transitions[a.q0][0].regex == False
+    a.add_transition("q0", "q1", "a")
+    assert len(q_0.transitions) == 1
+    assert q_0.transitions[0].condition == "a"
+    assert q_0.transitions[0].from_state == q_0
+    assert q_0.transitions[0].to_state == q_1
+    assert q_0.transitions[0].is_epsilon == False
 
-    a.add_transition('q1', 'b', 'q2', BACKWARD, regex=True)
-    assert a.q1 in a.transitions
-    assert a.transitions[a.q1][0].value == re.compile('b')
-    assert a.transitions[a.q1][0].to_state == a.q2
-    assert a.transitions[a.q1][0].action == BACKWARD
-    assert a.transitions[a.q1][0].regex == True
+    a.add_transition("q1", "q2", "b")
+    assert len(q_1.transitions) == 1
+    assert q_1.transitions[0].condition == "b"
+    assert q_1.transitions[0].from_state == q_1
+    assert q_1.transitions[0].to_state == q_2
+    assert q_1.transitions[0].is_epsilon == False
 
-    a.add_transition('q1', 'c', 'q2', STAY)
-    assert a.q1 in a.transitions
-    assert a.transitions[a.q1][1].value == 'c'
-    assert a.transitions[a.q1][1].to_state == a.q2
-    assert a.transitions[a.q1][1].action == STAY
-    assert a.transitions[a.q1][1].regex == False
+    a.add_transition(q_0, q_1)
+    assert len(q_0.transitions) == 2
+    assert q_0.transitions[1].condition == None
+    assert q_0.transitions[1].from_state == q_0
+    assert q_0.transitions[1].to_state == q_1
+    assert q_0.transitions[1].is_epsilon == True
 
-@pytest.fixture
-def pair_ones_automata():
+
+def test_run():
     a = Automata()
-    a.add_state('q0', initial=True, final=True)
-    a.add_state('q1')
-    a.add_transition('q0', '1', 'q1')
-    a.add_transition('q1', '1', 'q0')
-    a.add_transition('q0', '0', 'q0')
-    a.add_transition('q1', '0', 'q1')
-    return a
+    a.add_state("q0", start=True, end=True)
+    a.add_state("q1")
+    a.add_transition("q0", "q1", "1")
+    a.add_transition("q1", "q0", "1")
+    a.add_transition("q0", "q0", "0")
+    a.add_transition("q1", "q1", "0")
 
-@pytest.fixture
-def alpha_automata():
+    assert a.run("11")
+    assert a.run("00")
+    assert a.run("01") == False
+    assert a.run("1000101") == False
+
+
+def test_non_deterministc():
     a = Automata()
-    a.add_state('q0', initial=True)
-    a.add_state('q1', final=True)
-    a.add_transition('q0', r'[a-z]', 'q0', regex=True)
-    a.add_transition('q0', r'[^a-z]', 'q1', regex=True)
-    return a
+    a.add_state("q0", start=True)
+    a.add_state("q1")
+    a.add_state("q2", end=True)
+    a.add_transition("q0", "q0", "a")
+    a.add_transition("q0", "q1", "a")
+    a.add_transition("q1", "q2", "b")
 
-def test_run(pair_ones_automata, alpha_automata):
-    assert pair_ones_automata.run('11')
-    assert pair_ones_automata.run('00')
-    assert pair_ones_automata.run('01') == False
-    assert pair_ones_automata.run('1000101') == False
+    assert a.run("b") == False
+    assert a.run("a") == False
+    assert a.run("ab")
+    assert a.run("aaaab")
 
-    assert alpha_automata.run('abc$')
-    assert alpha_automata.run('abc') == False
-    assert alpha_automata.run('abc', success_at_full_input=True)
-    
-    input_ = "sometext123"
-    alpha_automata.run(input_, stop_when_final=True)
-    final_pos = alpha_automata._pos - 1
-    assert input_[:final_pos] == 'sometext'
 
 def test_sub_automata():
     a = Automata()
-    a.add_state('q0', initial=True)
-    a.add_state('q1')
-    a.add_transition('q0', 'a', 'q1')
+    a_0 = a.add_state("q0a", start=True)
+    a_1 = a.add_state("q1a", end=True)
 
     b = Automata()
-    b.add_state('q0', initial=True)
-    b.add_state('q1', final=True)
-    b.add_transition('q0', 'b', 'q1')
+    b_0 = b.add_state("q0b", start=True)
+    b_1 = b.add_state("q1b", end=True)
 
-    a.add_transition('q1', 'x', b)
+    a.add_transition(a_0, b_0, "a")
+    b.add_transition(b_0, b_1, "b")
+    b.add_transition(b_1, a_1, "c")
 
-    assert a.run('axb')
+    a.run("abc")
 
+
+def test_multiple_starts_and_ends():
+    a = Automata()
+    a_0 = a.add_state("q0", start=True)
+    a_1 = a.add_state("q1", start=True)
+    a_2 = a.add_state("q2")
+    a_3 = a.add_state("q3", end=True)
+    a_4 = a.add_state("q4", end=True)
+
+    a.add_transition(a_0, a_2, "a")
+    a.add_transition(a_1, a_2, "b")
+    a.add_transition(a_2, a_3, "c")
+    a.add_transition(a_2, a_4, "d")
+
+    assert a.run("ac")
+    assert a.run("bc")
+    assert a.run("ad")
+    assert a.run("bd")
+    assert a.run("abc") == False
+
+    a.set_single_start_end()
+
+    assert a.run("ac")
+    assert a.run("bc")
+    assert a.run("ad")
+    assert a.run("bd")
+    assert a.run("abc") == False
