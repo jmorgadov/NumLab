@@ -129,7 +129,8 @@ class Automata:
         self._pos = 0
         self._input = None
         self._current_state: State = None
-        self._stack: List[Tuple[State, int]] = []
+        self._processes: List[Tuple[State, int]] = []
+        self._processes_idx: int = 0
 
     def __getattr__(self, item: str) -> Any:
         if item in self.states:
@@ -351,26 +352,45 @@ class Automata:
             raise ValueError("No start states defined.")
         self._pos = 0
         self._input = input_
-        self._stack = [(st, self._pos) for st in self.start_states]
-        while self._stack:
+        self._processes = [(st, self._pos) for st in self.start_states]
+        print(self._processes_idx, self._processes)
+        while self._processes:
             if self._step():
                 break
+            print(self._processes_idx, self._processes)
             if self._current_state in self.end_states and stop_at_end:
                 return True
+        print(self._processes_idx, self._processes)
         return success_at_full_input or self._current_state in self.end_states
 
     def _step(self):
-        self._current_state, self._pos = self._stack.pop()
+        self._current_state, self._pos = self._processes[self._processes_idx]
         print(f"{self._current_state} {self._current_state.automata.name} {self._pos}")
         if self._pos < len(self._input):
             print(f"read: {self._input[self._pos]}")
+        last_process_count = len(self._processes)
+        new_processes = 0
+
         for transition in self._current_state.transitions:
             if transition.is_epsilon or (
                 0 <= self._pos < len(self._input)
                 and self._input[self._pos] == transition.condition
             ):
                 run_state = (transition.to_state, self._pos + transition.action)
-                self._stack.append(run_state)
+                if new_processes == 0:
+                    self._processes[self._processes_idx] = run_state
+                else:
+                    self._processes.append(run_state)
+                new_processes += 1
+
+        if not new_processes:
+            self._processes.pop(self._processes_idx)
+        self._processes_idx = (
+            0
+            if last_process_count != len(self._processes)
+            else (self._processes_idx + 1) % len(self._processes)
+        )
+
         if self._pos >= len(self._input) or self._pos < 0:
             return self._current_state in self.end_states
         return False

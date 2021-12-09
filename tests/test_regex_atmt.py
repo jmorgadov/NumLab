@@ -45,6 +45,18 @@ def test_escape_char():
     assert match(r"a\*", "a") is None
     assert match(r"a\**", "a***")
     assert match(r"a\**", "a")
+    assert match(r"a\\*", "a\\\\")
+
+
+def test_special_chars():
+    assert match(r"a.+b", "afoob")
+    assert match(r"a.*b", "ab")
+    assert match(r"a.*b", "afoob")
+    assert match(r"a\sb", "a b")
+    assert match(r"a\nb", "a\nb")
+    assert match(r"a\tb", "a\tb")
+    assert match(r"a\rb", "a\rb")
+    assert match(r"a\fb", "a\fb")
 
 
 def test_combined_op():

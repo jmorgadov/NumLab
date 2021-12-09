@@ -15,7 +15,7 @@ Exmaple:
 
 from automata import Automata
 
-SPECIAL_CHARS = ["(", ")", "|", "*", "+", "?", "."]
+SPECIAL_CHARS = ["(", ")", "|", "*", "+", "?"]
 
 
 class RegexMatch:
@@ -221,13 +221,30 @@ def _build_automata(re_expr: str, stack: list = None) -> Automata:
         #
         # - - > (q0) -- a --> ((q1))
         #
+        escaped = False
         if re_expr[0] == "\\":
             re_expr = re_expr[1:]
+            escaped = True
         char = re_expr[0]
+
+        if escaped:
+            if char == "s":
+                char = " "
+            elif char == "n":
+                char = "\n"
+            elif char == "t":
+                char = "\t"
+            elif char == "r":
+                char = "\r"
+            elif char == "f":
+                char = "\f"
+        elif char == ".":
+            char = None
+
         new_atmt = Automata()
         from_st = new_atmt.add_state("q0", start=True)
         to_st = new_atmt.add_state("q1", end=True)
-        new_atmt.add_transition(from_st, to_st, char)
+        new_atmt.add_transition(from_st, to_st, char, action=1)
         new_atmt, changed = _check_special_char(re_expr, 1, new_atmt)
 
         if stack:
@@ -276,7 +293,7 @@ def _build_automata(re_expr: str, stack: list = None) -> Automata:
         new_atmt.add_transition(b_atmt.end_state, new_atmt.end_state)
         return new_atmt
 
-    raise ValueError("Invalid regular expression.")
+    raise ValueError("Invalid regular expression {}".format(re_expr))
 
 
 def compile_patt(re_expr: str) -> Automata:
