@@ -86,6 +86,29 @@ class Transition:
         self.condition = condition
         self.action = action
 
+    def check_condition(self, value: Any) -> bool:
+        """
+        Check if the transition is taken.
+
+        Parameters
+        ----------
+        value : Any
+            The value to check.
+
+        Returns
+        -------
+        bool
+            True if the transition is taken, False otherwise.
+        """
+
+        if self.condition is None:
+            return True
+        if isinstance(self.condition, list):
+            return value in self.condition
+        if callable(self.condition):
+            return self.condition(value)
+        return value == self.condition
+
     @property
     def is_epsilon(self) -> bool:
         """Returns True if the transition is an epsilon transition."""
@@ -353,28 +376,22 @@ class Automata:
         self._pos = 0
         self._input = input_
         self._processes = [(st, self._pos) for st in self.start_states]
-        print(self._processes_idx, self._processes)
         while self._processes:
             if self._step():
                 break
-            print(self._processes_idx, self._processes)
             if self._current_state in self.end_states and stop_at_end:
                 return True
-        print(self._processes_idx, self._processes)
         return success_at_full_input or self._current_state in self.end_states
 
     def _step(self):
         self._current_state, self._pos = self._processes[self._processes_idx]
-        print(f"{self._current_state} {self._current_state.automata.name} {self._pos}")
-        if self._pos < len(self._input):
-            print(f"read: {self._input[self._pos]}")
         last_process_count = len(self._processes)
         new_processes = 0
 
         for transition in self._current_state.transitions:
             if transition.is_epsilon or (
                 0 <= self._pos < len(self._input)
-                and self._input[self._pos] == transition.condition
+                and transition.check_condition(self._input[self._pos])
             ):
                 run_state = (transition.to_state, self._pos + transition.action)
                 if new_processes == 0:

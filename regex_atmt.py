@@ -16,7 +16,9 @@ Exmaple:
 from automata import Automata
 
 SPECIAL_CHARS = ["(", ")", "|", "*", "+", "?"]
-
+DIGITS = [c for c in "0123456789"]
+LOWER_CASE_CHARS = [c for c in "abcdefghijklmnopqrstuvwxyz"]
+UPPER_CASE_CHARS = [c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
 
 class RegexMatch:
     """
@@ -225,26 +227,34 @@ def _build_automata(re_expr: str, stack: list = None) -> Automata:
         if re_expr[0] == "\\":
             re_expr = re_expr[1:]
             escaped = True
-        char = re_expr[0]
+        cond = re_expr[0]
 
         if escaped:
-            if char == "s":
-                char = " "
-            elif char == "n":
-                char = "\n"
-            elif char == "t":
-                char = "\t"
-            elif char == "r":
-                char = "\r"
-            elif char == "f":
-                char = "\f"
-        elif char == ".":
-            char = None
+            if cond == "s":
+                cond = " "
+            elif cond == "n":
+                cond = "\n"
+            elif cond == "t":
+                cond = "\t"
+            elif cond == "r":
+                cond = "\r"
+            elif cond == "f":
+                cond = "\f"
+            elif cond == "v":
+                cond = "\v"
+            elif cond == "d":
+                cond = DIGITS
+            elif cond == "a":
+                cond = LOWER_CASE_CHARS
+            elif cond == "A":
+                cond = UPPER_CASE_CHARS
+        elif cond == ".":
+            cond = None
 
         new_atmt = Automata()
         from_st = new_atmt.add_state("q0", start=True)
         to_st = new_atmt.add_state("q1", end=True)
-        new_atmt.add_transition(from_st, to_st, char, action=1)
+        new_atmt.add_transition(from_st, to_st, cond, action=1)
         new_atmt, changed = _check_special_char(re_expr, 1, new_atmt)
 
         if stack:

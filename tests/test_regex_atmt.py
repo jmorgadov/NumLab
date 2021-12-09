@@ -57,6 +57,15 @@ def test_special_chars():
     assert match(r"a\tb", "a\tb")
     assert match(r"a\rb", "a\rb")
     assert match(r"a\fb", "a\fb")
+    assert match(r"a\vb", "a\vb")
+    assert match(r"a\a*b", "afoob")
+    assert match(r"a\a*b", "aFoob") is None
+    assert match(r"a\A*b", "aFOOb")
+    assert match(r"a\A*b", "aFoob") is None
+    assert match(r"a(\A|\a)*b", "aFoob")
+    assert match(r"a\db", "a5b")
+    assert match(r"a\d*b", "a5x4b") is None
+    assert match(r"a\d*.\db", "a5x4b")
 
 
 def test_combined_op():
