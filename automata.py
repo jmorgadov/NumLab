@@ -569,6 +569,71 @@ class Automata:
             whole_closure.update(self._eps_closure_single(current_state))
         return whole_closure
 
+    def _goto_single(self, state: Union[str, State], symbol: str) -> Set[State]:
+        """
+        Compute the goto of a single state.
+
+        Parameters
+        ----------
+        state : Union[str, State]
+            The state to compute the goto of.
+        symbol : str
+            The symbol to compute the goto of.
+
+        Returns
+        -------
+        Set[State]
+            The goto of the state.
+
+        Raises
+        ------
+        ValueError
+            If the state does not exist.
+        """
+
+        if isinstance(state, str):
+            if state not in self.states:
+                raise ValueError(f"No state {state} defined.")
+            state = self.states[state]
+        answer = set()
+        st_esp_closure = self.eps_closure(state)
+        for current_state in st_esp_closure:
+            for transition in current_state.transitions:
+                if transition.check_condition(symbol) and not transition.is_epsilon:
+                    answer.add(transition.to_state)
+        return answer
+
+    def goto(
+        self, state: Union[str, State, Iterable[str], Iterable[State]], symbol: str
+    ) -> Set[State]:
+        """
+        Compute the goto of a state or a set of states.
+
+        Parameters
+        ----------
+        state : Union[str, State, Iterable[str], Iterable[State]]
+            The state or a list of states.
+        symbol : str
+            The symbol to compute the goto of.
+
+        Returns
+        -------
+        Set[State]
+            The goto of the state or a set of states.
+
+        Raises
+        ------
+        ValueError
+            If any of the states does not exist.
+        """
+
+        if isinstance(state, (str, State)):
+            return self._goto_single(state, symbol)
+        whole_goto = set()
+        for current_state in state:
+            whole_goto.update(self._goto_single(current_state, symbol))
+        return whole_goto
+
     def run(
         self,
         input_: Iterable,
@@ -618,7 +683,6 @@ class Automata:
 
     def _step(self):
         self._current_state, self._pos = self._processes[self._processes_idx]
-        last_process_count = len(self._processes)
         new_processes = 0
         logging.debug(f"{self._processes_idx} {self._processes}")
 
