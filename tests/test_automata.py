@@ -161,3 +161,16 @@ def test_goto(nfa):
     assert nfa.goto({nfa.q0, nfa.q1}, "a") == {nfa.q0, nfa.q2}
     assert nfa.goto(nfa.q0, "b") == {nfa.q0}
     assert nfa.goto({nfa.q0, nfa.q1}, "b") == {nfa.q0}
+
+
+def test_to_dfa(nfa):
+    dfa = nfa.to_dfa()
+    assert len(dfa.states) == 4
+
+    for state in dfa.states.values():
+        conds = []
+        for transition in state.transitions:
+            assert transition.is_epsilon == False
+            assert transition.condition not in conds
+            conds.append(transition.condition)
+

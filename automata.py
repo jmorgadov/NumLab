@@ -531,7 +531,6 @@ class Automata:
                             and to_st not in new_non_vsited
                             and to_st not in non_vsited
                         ):
-                            print(transition)
                             new_non_vsited.append(to_st)
             non_vsited = new_non_vsited
         return visited
@@ -629,6 +628,63 @@ class Automata:
         for current_state in state:
             whole_goto.update(self._goto_single(current_state, symbol))
         return whole_goto
+
+    def to_dfa(self) -> Automata:
+        """
+        Convert the automata to a DFA.
+
+        Returns
+        -------
+        Automata
+            The DFA.
+        """
+
+        get_name = lambda states: "".join(sorted(x.name for x in states))
+        alphabet = set()
+        for state in self.states.values():
+            for transition in state.transitions:
+                if transition.is_epsilon:
+                    continue
+                if isinstance(transition.condition, str):
+                    alphabet.add(transition.condition)
+                else:
+                    alphabet.update(transition.condition)
+        dfa = Automata(self.name)
+        start_state = self.eps_closure(self.start_states)
+        start_name = get_name(start_state)
+        q_0 = dfa.add_state(start_name, start=True)
+        dfa_to_nfa = {q_0: start_state}
+        visited = set()
+        non_visited = [q_0]
+        while non_visited:
+            new_non_visited = []
+            for current_state in non_visited:
+                if current_state in visited:
+                    continue
+                visited.add(current_state)
+                for symbol in alphabet:
+                    goto_states = self.goto(dfa_to_nfa[current_state], symbol)
+                    if not goto_states:
+                        continue
+                    next_state = self.eps_closure(goto_states)
+                    next_name = get_name(next_state)
+                    if next_name not in dfa.states:
+                        dfa_state = dfa.add_state(
+                            next_name,
+                            end=any(s in self.end_states for s in next_state),
+                        )
+                        dfa_to_nfa[dfa_state] = next_state
+                        new_non_visited.append(dfa_state)
+                    else:
+                        dfa_state = dfa.states[next_name]
+                    dfa.add_transition(current_state.name, next_name, symbol)
+                    if (
+                        next_state not in new_non_visited
+                        and next_state not in visited
+                    ):
+                        new_non_visited.append(dfa_state)
+            non_visited = new_non_visited
+        return dfa
 
     def run(
         self,
