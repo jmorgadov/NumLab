@@ -162,8 +162,6 @@ class Transition:
             ret_val = True
         elif isinstance(self.condition, list):
             ret_val = value in self.condition
-        elif callable(self.condition):
-            ret_val = self.condition(value)
         else:
             ret_val = value == self.condition
         ret_val = not ret_val if self.negated else ret_val
@@ -198,8 +196,6 @@ class Transition:
                 if len(cond) <= 10
                 else (f"[{cond[0]}, {cond[1]}, ..., {cond[-1]}]")
             )
-        if callable(self.condition):
-            return self.condition.__name__
         return str(self.condition)
 
 
@@ -683,6 +679,9 @@ class Automata:
 
     def _step(self):
         self._current_state, self._pos = self._processes[self._processes_idx]
+        if self._pos > len(self._input):
+            self._processes.pop(self._processes_idx)
+            return False
         new_processes = 0
         logging.debug(f"{self._processes_idx} {self._processes}")
 

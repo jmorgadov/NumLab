@@ -71,6 +71,7 @@ def test_negation():
     assert check(r"(^a)", "b")
     assert check(r"(^a)", "a") == False
     assert check(r"(^a)(^a)*", "bcdef")
-    assert check(r"'.*(^\\)'", "'asfew'")
-    assert check(r"'.*(^\\)'", "'ab\\'") == False
-    assert check(r"'.*(^\\)'", "'asfew\\'a") == False
+    assert check(r"'(^')*(^\\)'", "'asfew'")
+    assert check(r"'(^')*(^\\)'", "'ab\\'") == False
+    assert check(r"'(^')*(^\\)'", "'asfew\\'a") == False
+    assert check(r"'(^')*(^\\)'", "'asfew' foo 'bar'") == False
