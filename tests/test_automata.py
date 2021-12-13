@@ -122,3 +122,29 @@ def test_multiple_starts_and_ends():
     assert a.run("ad")
     assert a.run("bd")
     assert a.run("abc") == False
+
+
+def test_epsilon_closure():
+    a = Automata()
+    q_0 = a.add_state("q0", start=True)
+    q_1 = a.add_state("q1")
+    q_2 = a.add_state("q2")
+    q_3 = a.add_state("q3", end=True)
+
+    a.add_transition(q_0, q_0, "a")
+    a.add_transition(q_0, q_0, "b")
+    a.add_transition(q_0, q_1)
+    a.add_transition(q_1, q_2, "a")
+    a.add_transition(q_2, q_3, "a")
+    a.add_transition(q_2, q_3, "b")
+
+    assert a.run("aa")
+    assert a.run("ab")
+    assert a.run("aababaabaa")
+
+    assert a.eps_closure(a.q0) == {a.q0, a.q1}
+    assert a.eps_closure({a.q0, a.q2}) == {a.q0, a.q1, a.q2}
+
+    a.add_transition(q_1, q_2)
+
+    assert a.eps_closure(a.q0) == {a.q0, a.q1, a.q2}

@@ -4,7 +4,7 @@ This module contains the structs necessary to represent an automata.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 
 _ATMT_COUNT = 0
 
@@ -340,13 +340,13 @@ class Automata:
             if state in self.states:
                 raise ValueError(f"State {state} already exists.")
             state = State(state)
+            state.automata = self
         name = name if name is not None else state.name
         self.states[name] = state
         if start:
             self.start_states.append(state)
         if end:
             self.end_states.append(state)
-        state.automata = self
         return state
 
     def add_transition(
@@ -496,6 +496,78 @@ class Automata:
                     f"-> {inv_states[transition.to_state]}"
                     f"({state.name})"
                 )
+
+    def _eps_closure_single(self, state: Union[str, State]) -> Set[State]:
+        """
+        Compute the epsilon closure of a single state.
+
+        Parameters
+        ----------
+        state : Union[str, State]
+            The state to compute the epsilon closure of.
+
+        Returns
+        -------
+        Set[State]
+            The epsilon closure of the state.
+
+        Raises
+        ------
+        ValueError
+            If the state does not exist.
+        """
+
+        if isinstance(state, str):
+            if state not in self.states:
+                raise ValueError(f"No state {state} defined.")
+            state = self.states[state]
+        visited = set()
+        non_vsited = [state]
+        while non_vsited:
+            new_non_vsited = []
+            for current_state in non_vsited:
+                visited.add(current_state)
+                for transition in current_state.transitions:
+                    if transition.is_epsilon:
+                        to_st = transition.to_state
+                        if (
+                            to_st not in visited
+                            and to_st not in new_non_vsited
+                            and to_st not in non_vsited
+                        ):
+                            print(transition)
+                            new_non_vsited.append(to_st)
+            non_vsited = new_non_vsited
+        return visited
+
+    def eps_closure(
+        self, state: Union[str, State, Iterable[str], Iterable[State]]
+    ) -> Set[State]:
+        """
+        Compute the epsilon closure of a state or a set of states.
+
+        Parameters
+        ----------
+        state : Union[str, State, Iterable[str], Iterable[State]]
+            The state or a list of states.
+
+        Returns
+        -------
+        Set[State]
+            The epsilon closure of the state or a set of states.
+
+        Raises
+        ------
+        ValueError
+            If any of the states does not exist.
+        """
+
+        if isinstance(state, (str, State)):
+            return self._eps_closure_single(state)
+        whole_closure = set()
+        for current_state in state:
+            whole_closure.update(self._eps_closure_single(current_state))
+        return whole_closure
 
     def run(
         self,
