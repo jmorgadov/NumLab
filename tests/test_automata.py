@@ -122,3 +122,55 @@ def test_multiple_starts_and_ends():
     assert a.run("ad")
     assert a.run("bd")
     assert a.run("abc") == False
+
+
+@pytest.fixture
+def nfa():
+    a = Automata()
+    q_0 = a.add_state("q0", start=True)
+    q_1 = a.add_state("q1")
+    q_2 = a.add_state("q2")
+    q_3 = a.add_state("q3", end=True)
+
+    a.add_transition(q_0, q_0, "a")
+    a.add_transition(q_0, q_0, "b")
+    a.add_transition(q_0, q_1)
+    a.add_transition(q_1, q_2, "a")
+    a.add_transition(q_2, q_3, "a")
+    a.add_transition(q_2, q_3, "b")
+    return a
+
+
+def test_epsilon_closure(nfa):
+    assert nfa.eps_closure(nfa.q0) == {nfa.q0, nfa.q1}
+    assert nfa.eps_closure({nfa.q0, nfa.q2}) == {nfa.q0, nfa.q1, nfa.q2}
+    assert nfa.eps_closure({nfa.q0, nfa.q2, nfa.q3}) == {
+        nfa.q0,
+        nfa.q1,
+        nfa.q2,
+        nfa.q3,
+    }
+
+    nfa.add_transition(nfa.q1, nfa.q2)
+
+    assert nfa.eps_closure(nfa.q0) == {nfa.q0, nfa.q1, nfa.q2}
+
+
+def test_goto(nfa):
+    assert nfa.goto(nfa.q0, "a") == {nfa.q0, nfa.q2}
+    assert nfa.goto({nfa.q0, nfa.q1}, "a") == {nfa.q0, nfa.q2}
+    assert nfa.goto(nfa.q0, "b") == {nfa.q0}
+    assert nfa.goto({nfa.q0, nfa.q1}, "b") == {nfa.q0}
+
+
+def test_to_dfa(nfa):
+    dfa = nfa.to_dfa()
+    assert len(dfa.states) == 4
+
+    for state in dfa.states.values():
+        conds = []
+        for transition in state.transitions:
+            assert transition.is_epsilon == False
+            assert transition.condition not in conds
+            conds.append(transition.condition)
+

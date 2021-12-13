@@ -4,7 +4,7 @@ This module contains the structs necessary to represent an automata.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 
 _ATMT_COUNT = 0
 
@@ -162,8 +162,6 @@ class Transition:
             ret_val = True
         elif isinstance(self.condition, list):
             ret_val = value in self.condition
-        elif callable(self.condition):
-            ret_val = self.condition(value)
         else:
             ret_val = value == self.condition
         ret_val = not ret_val if self.negated else ret_val
@@ -198,8 +196,6 @@ class Transition:
                 if len(cond) <= 10
                 else (f"[{cond[0]}, {cond[1]}, ..., {cond[-1]}]")
             )
-        if callable(self.condition):
-            return self.condition.__name__
         return str(self.condition)
 
 
@@ -340,13 +336,13 @@ class Automata:
             if state in self.states:
                 raise ValueError(f"State {state} already exists.")
             state = State(state)
+            state.automata = self
         name = name if name is not None else state.name
         self.states[name] = state
         if start:
             self.start_states.append(state)
         if end:
             self.end_states.append(state)
-        state.automata = self
         return state
 
     def add_transition(
@@ -497,6 +493,199 @@ class Automata:
                     f"({state.name})"
                 )
 
+    def _eps_closure_single(self, state: Union[str, State]) -> Set[State]:
+        """
+        Compute the epsilon closure of a single state.
+
+        Parameters
+        ----------
+        state : Union[str, State]
+            The state to compute the epsilon closure of.
+
+        Returns
+        -------
+        Set[State]
+            The epsilon closure of the state.
+
+        Raises
+        ------
+        ValueError
+            If the state does not exist.
+        """
+
+        if isinstance(state, str):
+            if state not in self.states:
+                raise ValueError(f"No state {state} defined.")
+            state = self.states[state]
+        visited = set()
+        non_vsited = [state]
+        while non_vsited:
+            new_non_vsited = []
+            for current_state in non_vsited:
+                visited.add(current_state)
+                for transition in current_state.transitions:
+                    if transition.is_epsilon:
+                        to_st = transition.to_state
+                        if (
+                            to_st not in visited
+                            and to_st not in new_non_vsited
+                            and to_st not in non_vsited
+                        ):
+                            new_non_vsited.append(to_st)
+            non_vsited = new_non_vsited
+        return visited
+
+    def eps_closure(
+        self, state: Union[str, State, Iterable[str], Iterable[State]]
+    ) -> Set[State]:
+        """
+        Compute the epsilon closure of a state or a set of states.
+
+        Parameters
+        ----------
+        state : Union[str, State, Iterable[str], Iterable[State]]
+            The state or a list of states.
+
+        Returns
+        -------
+        Set[State]
+            The epsilon closure of the state or a set of states.
+
+        Raises
+        ------
+        ValueError
+            If any of the states does not exist.
+        """
+
+        if isinstance(state, (str, State)):
+            return self._eps_closure_single(state)
+        whole_closure = set()
+        for current_state in state:
+            whole_closure.update(self._eps_closure_single(current_state))
+        return whole_closure
+
+    def _goto_single(self, state: Union[str, State], symbol: str) -> Set[State]:
+        """
+        Compute the goto of a single state.
+
+        Parameters
+        ----------
+        state : Union[str, State]
+            The state to compute the goto of.
+        symbol : str
+            The symbol to compute the goto of.
+
+        Returns
+        -------
+        Set[State]
+            The goto of the state.
+
+        Raises
+        ------
+        ValueError
+            If the state does not exist.
+        """
+
+        if isinstance(state, str):
+            if state not in self.states:
+                raise ValueError(f"No state {state} defined.")
+            state = self.states[state]
+        answer = set()
+        st_esp_closure = self.eps_closure(state)
+        for current_state in st_esp_closure:
+            for transition in current_state.transitions:
+                if transition.check_condition(symbol) and not transition.is_epsilon:
+                    answer.add(transition.to_state)
+        return answer
+
+    def goto(
+        self, state: Union[str, State, Iterable[str], Iterable[State]], symbol: str
+    ) -> Set[State]:
+        """
+        Compute the goto of a state or a set of states.
+
+        Parameters
+        ----------
+        state : Union[str, State, Iterable[str], Iterable[State]]
+            The state or a list of states.
+        symbol : str
+            The symbol to compute the goto of.
+
+        Returns
+        -------
+        Set[State]
+            The goto of the state or a set of states.
+
+        Raises
+        ------
+        ValueError
+            If any of the states does not exist.
+        """
+
+        if isinstance(state, (str, State)):
+            return self._goto_single(state, symbol)
+        whole_goto = set()
+        for current_state in state:
+            whole_goto.update(self._goto_single(current_state, symbol))
+        return whole_goto
+
+    def to_dfa(self) -> Automata:
+        """
+        Convert the automata to a DFA.
+
+        Returns
+        -------
+        Automata
+            The DFA.
+        """
+
+        get_name = lambda states: "".join(sorted(x.name for x in states))
+        alphabet = set()
+        for state in self.states.values():
+            for transition in state.transitions:
+                if transition.is_epsilon:
+                    continue
+                if isinstance(transition.condition, str):
+                    alphabet.add(transition.condition)
+                else:
+                    alphabet.update(transition.condition)
+        dfa = Automata(self.name)
+        start_state = self.eps_closure(self.start_states)
+        start_name = get_name(start_state)
+        q_0 = dfa.add_state(start_name, start=True)
+        dfa_to_nfa = {q_0: start_state}
+        visited = set()
+        non_visited = [q_0]
+        while non_visited:
+            new_non_visited = []
+            for current_state in non_visited:
+                if current_state in visited:
+                    continue
+                visited.add(current_state)
+                for symbol in alphabet:
+                    goto_states = self.goto(dfa_to_nfa[current_state], symbol)
+                    if not goto_states:
+                        continue
+                    next_state = self.eps_closure(goto_states)
+                    next_name = get_name(next_state)
+                    if next_name not in dfa.states:
+                        dfa_state = dfa.add_state(
+                            next_name,
+                            end=any(s in self.end_states for s in next_state),
+                        )
+                        dfa_to_nfa[dfa_state] = next_state
+                        new_non_visited.append(dfa_state)
+                    else:
+                        dfa_state = dfa.states[next_name]
+                    dfa.add_transition(current_state.name, next_name, symbol)
+                    if (
+                        next_state not in new_non_visited
+                        and next_state not in visited
+                    ):
+                        new_non_visited.append(dfa_state)
+            non_visited = new_non_visited
+        return dfa
+
     def run(
         self,
         input_: Iterable,
@@ -546,7 +735,9 @@ class Automata:
 
     def _step(self):
         self._current_state, self._pos = self._processes[self._processes_idx]
-        last_process_count = len(self._processes)
+        if self._pos > len(self._input):
+            self._processes.pop(self._processes_idx)
+            return False
         new_processes = 0
         logging.debug(f"{self._processes_idx} {self._processes}")
 

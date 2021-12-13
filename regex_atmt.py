@@ -225,14 +225,12 @@ def _process_single_char(re_expr: str, negated: bool) -> Automata:
         elif cond == "A":
             cond = UPPER_CASE_CHARS
     elif cond == ".":
-        is_dot = lambda c: True
-        is_dot.__name__ = "is_dot"
-        cond = is_dot
+        cond = None
 
     new_atmt = Automata()
     from_st = new_atmt.add_state("q0", start=True)
     to_st = new_atmt.add_state("q1", end=True)
-    new_atmt.add_transition(from_st, to_st, cond, negated=negated)
+    new_atmt.add_transition(from_st, to_st, cond, negated=negated, action=1)
     logging.debug(f"Condition: {new_atmt.q0.transitions[0].str_cond}")
     new_atmt, changed = _check_special_char(re_expr, 1, new_atmt)
     logging.debug(f"Especial char found after {changed}")
