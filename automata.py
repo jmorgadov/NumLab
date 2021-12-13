@@ -3,6 +3,7 @@ This module contains the structs necessary to represent an automata.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
 _ATMT_COUNT = 0
@@ -44,6 +45,56 @@ class State:
         self.transitions = other_state.transitions
         return self
 
+    def merge(self, other_state: State) -> State:
+        """
+        Merge the state with another one.
+
+        Parameters
+        ----------
+        other_state : State
+            The other state.
+
+        Returns
+        -------
+        State
+            The merged state.
+        """
+
+        for trans in other_state.transitions:
+            to_state = self if trans.to_state is other_state else trans.to_state
+            new_t = Transition(
+                self,
+                to_state,
+                trans.condition,
+                trans.action,
+                trans.negated,
+            )
+            self.transitions.append(new_t)
+        return self
+
+    def show(self) -> None:
+        """
+        Show the state.
+        """
+
+        print(self)
+        for trans in self.transitions:
+            print(f"  {trans}")
+
+    def copy(self) -> State:
+        """
+        Copy the state.
+
+        Returns
+        -------
+        State
+            The copied state.
+        """
+
+        new_state = State(self.name)
+        new_state.transitions = self.transitions
+        return new_state
+
     def __str__(self) -> str:
         return self.name
 
@@ -79,12 +130,18 @@ class Transition:
     """
 
     def __init__(
-        self, from_state: State, to_state: State, condition: Any = None, action: int = 1
+        self,
+        from_state: State,
+        to_state: State,
+        condition: Any = None,
+        action: int = 1,
+        negated: bool = False,
     ) -> None:
         self.from_state = from_state
         self.to_state = to_state
         self.condition = condition
         self.action = action
+        self.negated = negated
 
     def check_condition(self, value: Any) -> bool:
         """
@@ -102,12 +159,16 @@ class Transition:
         """
 
         if self.condition is None:
-            return True
-        if isinstance(self.condition, list):
-            return value in self.condition
-        if callable(self.condition):
-            return self.condition(value)
-        return value == self.condition
+            ret_val = True
+        elif isinstance(self.condition, list):
+            ret_val = value in self.condition
+        elif callable(self.condition):
+            ret_val = self.condition(value)
+        else:
+            ret_val = value == self.condition
+        ret_val = not ret_val if self.negated else ret_val
+        logging.debug(f"Checking condition {self.str_cond} against {value} ({ret_val})")
+        return ret_val
 
     @property
     def is_epsilon(self) -> bool:
@@ -116,6 +177,30 @@ class Transition:
 
     def __str__(self) -> str:
         return f"{self.from_state} - ({self.condition}) -> {self.to_state}"
+
+    @property
+    def str_cond(self) -> str:
+        """
+        Get the string representation of the condition.
+
+        Returns
+        -------
+        str
+            The string representation of the condition.
+        """
+
+        if self.condition is None:
+            return "ε"
+        if isinstance(self.condition, list):
+            cond = self.condition
+            return (
+                cond.__repr__
+                if len(cond) <= 10
+                else (f"[{cond[0]}, {cond[1]}, ..., {cond[-1]}]")
+            )
+        if callable(self.condition):
+            return self.condition.__name__
+        return str(self.condition)
 
 
 class Automata:
@@ -197,8 +282,17 @@ class Automata:
                 other.set_single_start()
             else:
                 raise ValueError(f"Automata {other.name} has multiple start states.")
-        self.end_state.substitute(other.start_state)
-        self.end_states = other.end_states
+        other = other.flat()
+        other_first_state = other.start_state
+        other_last_state = other.end_state
+        self.end_state.merge(other_first_state)
+        if other_last_state == other_first_state:
+            other_last_state = self.end_state
+        for state in other.states.values():
+            for trans in state.transitions:
+                if trans.to_state is other_first_state:
+                    trans.to_state = self.end_state
+        self.end_states = [other_last_state]
         return self
 
     @property
@@ -216,7 +310,11 @@ class Automata:
         raise ValueError("The automata has multiple end states.")
 
     def add_state(
-        self, state: Union[str, State] = None, start: bool = False, end: bool = False
+        self,
+        state: Union[str, State] = None,
+        start: bool = False,
+        end: bool = False,
+        name: str = None,
     ) -> State:
         """
         Add a state to the automata.
@@ -242,7 +340,8 @@ class Automata:
             if state in self.states:
                 raise ValueError(f"State {state} already exists.")
             state = State(state)
-        self.states[state.name] = state
+        name = name if name is not None else state.name
+        self.states[name] = state
         if start:
             self.start_states.append(state)
         if end:
@@ -256,6 +355,7 @@ class Automata:
         to_state: Union[str, State],
         condition: Any = None,
         action: int = None,
+        negated: bool = False,
     ) -> None:
         """
         Add a transition to the automata.
@@ -287,7 +387,7 @@ class Automata:
                 raise ValueError(f"No state {to_state} defined.")
         if action is None:
             action = 0 if condition is None else 1
-        transition = Transition(from_state, to_state, condition, action)
+        transition = Transition(from_state, to_state, condition, action, negated)
         from_state.transitions.append(transition)
         return transition
 
@@ -341,11 +441,66 @@ class Automata:
         end_st = self.set_single_end()
         return start_st, end_st
 
+    def flat(self) -> Automata:
+        """
+        Flatten the automata.
+
+        Returns
+        -------
+        Automata
+            The flattened automata.
+        """
+
+        flat = Automata(self.name)
+        count = 0
+        visited_states = []
+        non_visited_states = self.start_states
+        while non_visited_states:
+            new_non_visited_states = []
+            for state in non_visited_states:
+                flat.add_state(
+                    state,
+                    state in self.start_states,
+                    state in self.end_states,
+                    name=f"q{count}",
+                )
+                state.name = f"q{count}"
+                count += 1
+                visited_states.append(state)
+                for transition in state.transitions:
+                    to_state = transition.to_state
+                    if (
+                        to_state not in visited_states
+                        and to_state not in new_non_visited_states
+                        and to_state not in non_visited_states
+                    ):
+                        new_non_visited_states.append(transition.to_state)
+
+            non_visited_states = new_non_visited_states
+        return flat
+
+    def show(self) -> None:
+        """
+        Show the automata.
+        """
+
+        # Inverse name states dict
+        inv_states = {v: k for k, v in self.states.items()}
+
+        for name, state in self.states.items():
+            print(name, f"({state.name})", f"Final: {state in self.end_states}")
+            for transition in state.transitions:
+                neg = "^" if transition.negated else ""
+                print(
+                    f"  ({neg}{transition.str_cond}) "
+                    f"-> {inv_states[transition.to_state]}"
+                    f"({state.name})"
+                )
+
     def run(
         self,
         input_: Iterable,
         stop_at_end: bool = False,
-        success_at_full_input: bool = False,
     ) -> bool:
         """
         Run the automata on the given input.
@@ -374,19 +529,26 @@ class Automata:
         if not self.start_states:
             raise ValueError("No start states defined.")
         self._pos = 0
+        self._processes_idx = 0
         self._input = input_
         self._processes = [(st, self._pos) for st in self.start_states]
         while self._processes:
-            if self._step():
+            stop = self._step()
+            if self._current_state in self.end_states:
+                if stop_at_end:
+                    return True
+            if stop:
                 break
-            if self._current_state in self.end_states and stop_at_end:
-                return True
-        return success_at_full_input or self._current_state in self.end_states
+        else:
+            return False
+        logging.debug(f"Final {self._processes_idx} {self._processes}")
+        return self._current_state in self.end_states
 
     def _step(self):
         self._current_state, self._pos = self._processes[self._processes_idx]
         last_process_count = len(self._processes)
         new_processes = 0
+        logging.debug(f"{self._processes_idx} {self._processes}")
 
         for transition in self._current_state.transitions:
             if transition.is_epsilon or (
@@ -402,11 +564,9 @@ class Automata:
 
         if not new_processes:
             self._processes.pop(self._processes_idx)
-        self._processes_idx = (
-            0
-            if last_process_count != len(self._processes)
-            else (self._processes_idx + 1) % len(self._processes)
-        )
+
+        if self._processes:
+            self._processes_idx = (self._processes_idx + 1) % len(self._processes)
 
         if self._pos >= len(self._input) or self._pos < 0:
             return self._current_state in self.end_states
