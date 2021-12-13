@@ -13,12 +13,15 @@ Exmaple:
     RegexMatch(matched:'abb'; end=3)"
 """
 
+import logging
+
 from automata import Automata
 
-SPECIAL_CHARS = ["(", ")", "|", "*", "+", "?"]
-DIGITS = [c for c in "0123456789"]
-LOWER_CASE_CHARS = [c for c in "abcdefghijklmnopqrstuvwxyz"]
-UPPER_CASE_CHARS = [c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+SPECIAL_CHARS = ["(", ")", "|", "*", "^"]
+DIGITS = list("0123456789")
+LOWER_CASE_CHARS = list("abcdefghijklmnopqrstuvwxyz")
+UPPER_CASE_CHARS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
 
 class RegexMatch:
     """
@@ -53,7 +56,7 @@ class RegexMatch:
 
     @property
     def matched_text(self) -> str:
-        return self.text[:self.end]
+        return self.text[: self.end]
 
 
 class RegexPattern:
@@ -80,7 +83,7 @@ class RegexPattern:
 
     def __init__(self, re_expr: str):
         self.re_expr = re_expr
-        self.atmt = _build_automata(re_expr)
+        self.atmt = _build_automata(self.re_expr).flat()
 
     def match(self, text: str) -> RegexMatch:
         """
@@ -144,57 +147,167 @@ def _apply_star_op(atmt: Automata) -> Automata:
     Automata
         Automata.
     """
-    #                        .---- < ----.
-    #                       /             \
-    #  - - > (new_q0) --> (q0) -- .. --> (qf) --> ((new_qf))
-    #              \                                /
-    #               `------------- > --------------'
     #
-    new_atmt = _apply_plus_op(atmt)
-    new_atmt.add_transition("q0", "qf")
-    return new_atmt
+    #           .---- < ----.
+    #          /             \
+    #  - - > (q0) -- .. --> (qf) --> ((new_qf))
+    #          \                      /
+    #           `-------- > ---------'
+    #
+
+    flat_atmt = atmt.flat()
+    q_0 = flat_atmt.start_state
+    q_f = flat_atmt.end_state
+    print(q_0, q_f)
+    flat_atmt.states.pop(q_f.name)
+    for state in list(flat_atmt.states.values()):
+        for trans in state.transitions:
+            print(f"Checking {trans}")
+            if trans.to_state == q_f:
+                trans.to_state = q_0
+                print(f"Changing final transition to {trans.to_state}")
+                print(trans)
+    flat_atmt.end_states = [flat_atmt.start_state]
+    return flat_atmt
 
 
-def _apply_plus_op(atmt: Automata) -> Automata:
+def _check_special_char(re_expr, index, atmt):
+    if index < 0 or index >= len(re_expr) or re_expr[index] != "*":
+        return atmt, False
+    atmt = _apply_star_op(atmt)
+    return atmt, True
+
+
+def _process_single_char(re_expr: str, negated: bool) -> Automata:
     """
-    Applies the plus operator to an automata.
-
+    Processes a single character.
 
     Parameters
     ----------
-    atmt : Automata
-        Automata.
+    re_expr : str
+        Regular expression.
 
     Returns
     -------
     Automata
-        Automata after applying the plus operator.
+        Automata.
     """
     #
-    #                         .---- < ----.
-    #                        /             \
-    #   - - > (new_q0) --> (q0) -- .. --> (qf) --> ((new_qf))
+    # - - > (q0) -- a --> ((q1))
+    #
+    escaped = False
+    if re_expr[0] == "\\":
+        re_expr = re_expr[1:]
+        logging.debug("Escaped character")
+        escaped = True
+    cond = re_expr[0]
+    logging.debug(f"Parsing {cond}")
+
+    if escaped:
+        if cond == "s":
+            cond = " "
+        elif cond == "n":
+            cond = "\n"
+        elif cond == "t":
+            cond = "\t"
+        elif cond == "r":
+            cond = "\r"
+        elif cond == "f":
+            cond = "\f"
+        elif cond =="v":
+            cond = "\v"
+        elif cond == "b":
+            cond = "\b"
+        elif cond == "d":
+            cond = DIGITS
+        elif cond == "a":
+            cond = LOWER_CASE_CHARS
+        elif cond == "A":
+            cond = UPPER_CASE_CHARS
+    elif cond == ".":
+        is_dot = lambda c: True
+        is_dot.__name__ = "is_dot"
+        cond = is_dot
+
+    new_atmt = Automata()
+    from_st = new_atmt.add_state("q0", start=True)
+    to_st = new_atmt.add_state("q1", end=True)
+    new_atmt.add_transition(from_st, to_st, cond, negated=negated)
+    logging.debug(f"Condition: {new_atmt.q0.transitions[0].str_cond}")
+    new_atmt, changed = _check_special_char(re_expr, 1, new_atmt)
+    logging.debug(f"Especial char found after {changed}")
+    new_index = 2 if changed else 1
+    new_index += 1 if escaped else 0
+    return new_atmt, new_index
+
+
+def _process_group(re_expr: str, negated: bool) -> Automata:
+    """
+    Processes a group.
+
+    Parameters
+    ----------
+    re_expr : str
+        Regular expression.
+
+    Returns
+    -------
+    Automata
+        Automata.
+    """
+    logging.debug("Parsing group")
+    close_paren_index = _find_matching_paren(re_expr)
+    negated = re_expr[1] == "^"
+    start_index = 2 if negated else 1
+    new_atmt = _build_automata(re_expr[start_index:close_paren_index], negated=negated)
+
+    new_atmt, changed = _check_special_char(re_expr, close_paren_index + 1, new_atmt)
+
+    logging.debug(f"Especial char found after group {changed}")
+    new_index = close_paren_index + 2 if changed else close_paren_index + 1
+    return new_atmt, new_index
+
+
+def _process_or_operator(a_atmt: Automata, b_atmt: Automata) -> Automata:
+    """
+    Processes an or operator.
+
+    Parameters
+    ----------
+    re_expr : str
+        Regular expression.
+
+    Returns
+    -------
+    Automata
+        Automata.
+    """
+    #
+    #              .-- > -- (a0) --..--> (af) -- > --.
+    #             /                                   \
+    # - - > (new_q0)                                  ((new_qf))
+    #             \                                   /
+    #              `-- > -- (b0) --..--> (bf) -- > --'
     #
     new_atmt = Automata()
-    new_atmt.add_state("q0", start=True)
+    b_atmt = b_atmt.flat()
+    q_0 = a_atmt.start_state.merge(b_atmt.start_state)
+    for state in b_atmt.states.values():
+        for trans in state.transitions:
+            if trans.to_state == b_atmt.start_state:
+                trans.to_state = q_0
+    b_end_state = q_0 if b_atmt.end_state == b_atmt.start_state else b_atmt.end_state
+    new_atmt.states["q0"] = q_0
+    new_atmt.start_states = [q_0]
     new_atmt.add_state("qf", end=True)
-    new_atmt.add_transition(atmt.end_state, atmt.start_state)
-    new_atmt.add_transition("q0", atmt.start_state)
-    new_atmt.add_transition(atmt.end_state, "qf")
+    new_atmt.add_transition(a_atmt.end_state, new_atmt.end_state)
+    new_atmt.add_transition(b_end_state, new_atmt.end_state)
     return new_atmt
 
 
-def _check_special_char(re_expr, index, atmt):
-    if index < 0 or index >= len(re_expr) or re_expr[index] not in ["*", "+"]:
-        return atmt, False
-    if re_expr[index] == "*":
-        atmt = _apply_star_op(atmt)
-    elif re_expr[index] == "+":
-        atmt = _apply_plus_op(atmt)
-    return atmt, True
-
-
-def _build_automata(re_expr: str, stack: list = None) -> Automata:
+def _build_automata(
+    re_expr: str, last_atmt: Automata = None, negated: bool = False
+) -> Automata:
     """
     Builds an automata from a regular expression using the Thompson
     construction algorithm.
@@ -210,103 +323,41 @@ def _build_automata(re_expr: str, stack: list = None) -> Automata:
         Automata.
     """
 
-    if stack is None:
-        stack = []
-
     if re_expr == "":
-        if stack:
-            return stack.pop()
+        if last_atmt:
+            return last_atmt
         raise ValueError("Invalid regular expression.")
+
+    logging.debug(f"Building automata for {re_expr}")
 
     # Parse a single character
     if re_expr[0] not in SPECIAL_CHARS or re_expr[0] == "\\":
-        #
-        # - - > (q0) -- a --> ((q1))
-        #
-        escaped = False
-        if re_expr[0] == "\\":
-            re_expr = re_expr[1:]
-            escaped = True
-        cond = re_expr[0]
-
-        if escaped:
-            if cond == "s":
-                cond = " "
-            elif cond == "n":
-                cond = "\n"
-            elif cond == "t":
-                cond = "\t"
-            elif cond == "r":
-                cond = "\r"
-            elif cond == "f":
-                cond = "\f"
-            elif cond == "v":
-                cond = "\v"
-            elif cond == "d":
-                cond = DIGITS
-            elif cond == "a":
-                cond = LOWER_CASE_CHARS
-            elif cond == "A":
-                cond = UPPER_CASE_CHARS
-        elif cond == ".":
-            cond = None
-
-        new_atmt = Automata()
-        from_st = new_atmt.add_state("q0", start=True)
-        to_st = new_atmt.add_state("q1", end=True)
-        new_atmt.add_transition(from_st, to_st, cond, action=1)
-        new_atmt, changed = _check_special_char(re_expr, 1, new_atmt)
-
-        if stack:
-            atmt = stack.pop()
-            atmt.concatenate(new_atmt)
-            new_atmt = atmt
-
-        stack.append(new_atmt)
-        new_index = 2 if changed else 1
-        return _build_automata(re_expr[new_index:], stack)
+        new_atmt, new_index = _process_single_char(re_expr, negated)
+        if last_atmt:
+            new_atmt = last_atmt.concatenate(new_atmt)
+        return _build_automata(re_expr[new_index:], new_atmt, negated)
 
     # Parse a group
     if re_expr[0] == "(":
-        close_paren_index = _find_matching_paren(re_expr)
-        new_atmt = _build_automata(re_expr[1:close_paren_index])
-        new_atmt, changed = _check_special_char(
-            re_expr, close_paren_index + 1, new_atmt
-        )
-        if stack:
-            atmt = stack.pop()
-            atmt.concatenate(new_atmt)
-            new_atmt = atmt
-        stack.append(new_atmt)
-        new_index = close_paren_index + 2 if changed else close_paren_index + 1
-        return _build_automata(re_expr[new_index:], stack)
+        new_atmt, new_index = _process_group(re_expr, negated)
+        if last_atmt:
+            new_atmt = last_atmt.concatenate(new_atmt)
+        return _build_automata(re_expr[new_index:], new_atmt, negated)
 
     # Parse an or operator
     if re_expr[0] == "|":
-        #
-        #              .-- > -- (a0) --..--> (af) -- > --.
-        #             /                                   \
-        # - - > (new_q0)                                  ((new_qf))
-        #             \                                   /
-        #              `-- > -- (b0) --..--> (bf) -- > --'
-        #
-        if not stack:
+        logging.debug("Parsing or operator")
+        if not last_atmt:
             raise ValueError("Invalid regular expression.")
-        a_atmt = stack.pop()
-        b_atmt = _build_automata(re_expr[1:])
-        new_atmt = Automata()
-        new_atmt.add_state("q0", start=True)
-        new_atmt.add_state("qf", end=True)
-        new_atmt.add_transition(new_atmt.start_state, a_atmt.start_state)
-        new_atmt.add_transition(new_atmt.start_state, b_atmt.start_state)
-        new_atmt.add_transition(a_atmt.end_state, new_atmt.end_state)
-        new_atmt.add_transition(b_atmt.end_state, new_atmt.end_state)
+        a_atmt = last_atmt
+        b_atmt = _build_automata(re_expr[1:], None, negated)
+        new_atmt = _process_or_operator(a_atmt, b_atmt)
         return new_atmt
 
-    raise ValueError("Invalid regular expression {}".format(re_expr))
+    raise ValueError("Invalid regular expression {re_expr}")
 
 
-def compile_patt(re_expr: str) -> Automata:
+def compile_patt(re_expr: str) -> RegexPattern:
     """
     Compiles a regular expression into an automata.
 
@@ -323,9 +374,9 @@ def compile_patt(re_expr: str) -> Automata:
     return RegexPattern(re_expr)
 
 
-def match(re_expr: str, text: str) -> bool:
+def check(re_expr: str, text: str) -> bool:
     """
-    Matches a regular expression against a text.
+    Checks a regular expression against a text.
 
     Parameters
     ----------
@@ -340,5 +391,5 @@ def match(re_expr: str, text: str) -> bool:
         True if the regular expression matches the text, False otherwise.
     """
     re_expr = _get_basic_re_expr(re_expr)
-    re_patt = compile_patt(re_expr)
-    return re_patt.match(text)
+    re_patt = _build_automata(re_expr).flat()
+    return re_patt.run(text)
