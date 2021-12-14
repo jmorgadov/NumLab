@@ -288,18 +288,12 @@ def _process_or_operator(a_atmt: Automata, b_atmt: Automata) -> Automata:
     #              `-- > -- (b0) --..--> (bf) -- > --'
     #
     new_atmt = Automata()
-    b_atmt = b_atmt.flat()
-    q_0 = a_atmt.start_state.merge(b_atmt.start_state)
-    for state in b_atmt.states.values():
-        for trans in state.transitions:
-            if trans.to_state == b_atmt.start_state:
-                trans.to_state = q_0
-    b_end_state = q_0 if b_atmt.end_state == b_atmt.start_state else b_atmt.end_state
-    new_atmt.states["q0"] = q_0
-    new_atmt.start_states = [q_0]
+    new_atmt.add_state("q0", start=True)
     new_atmt.add_state("qf", end=True)
-    new_atmt.add_transition(a_atmt.end_state, new_atmt.end_state)
-    new_atmt.add_transition(b_end_state, new_atmt.end_state)
+    new_atmt.add_transition(new_atmt.q0, a_atmt.start_state)
+    new_atmt.add_transition(new_atmt.q0, b_atmt.start_state)
+    new_atmt.add_transition(a_atmt.end_state, new_atmt.qf)
+    new_atmt.add_transition(b_atmt.end_state, new_atmt.qf)
     return new_atmt
 
 

@@ -484,13 +484,12 @@ class Automata:
         inv_states = {v: k for k, v in self.states.items()}
 
         for name, state in self.states.items():
-            print(name, f"({state.name})", f"Final: {state in self.end_states}")
+            print(name, f"Final: {state in self.end_states}")
             for transition in state.transitions:
                 neg = "^" if transition.negated else ""
                 print(
                     f"  ({neg}{transition.str_cond}) "
                     f"-> {inv_states[transition.to_state]}"
-                    f"({state.name})"
                 )
 
     def _eps_closure_single(self, state: Union[str, State]) -> Set[State]:
