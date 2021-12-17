@@ -17,6 +17,7 @@ import logging
 
 from automata import Automata
 
+ASCII = list(map(chr, range(128)))
 SPECIAL_CHARS = ["(", ")", "|", "*", "^"]
 DIGITS = list("0123456789")
 LOWER_CASE_CHARS = list("abcdefghijklmnopqrstuvwxyz")
@@ -212,12 +213,6 @@ def _process_single_char(re_expr: str, negated: bool) -> Automata:
             cond = "\t"
         elif cond == "r":
             cond = "\r"
-        elif cond == "f":
-            cond = "\f"
-        elif cond =="v":
-            cond = "\v"
-        elif cond == "b":
-            cond = "\b"
         elif cond == "d":
             cond = DIGITS
         elif cond == "a":
@@ -227,10 +222,13 @@ def _process_single_char(re_expr: str, negated: bool) -> Automata:
     elif cond == ".":
         cond = None
 
+    if negated:
+        cond = [c for c in ASCII if c not in cond]
+
     new_atmt = Automata()
     from_st = new_atmt.add_state("q0", start=True)
     to_st = new_atmt.add_state("q1", end=True)
-    new_atmt.add_transition(from_st, to_st, cond, negated=negated, action=1)
+    new_atmt.add_transition(from_st, to_st, cond, action=1)
     logging.debug(f"Condition: {new_atmt.q0.transitions[0].str_cond}")
     new_atmt, changed = _check_special_char(re_expr, 1, new_atmt)
     logging.debug(f"Especial char found after {changed}")
@@ -385,3 +383,33 @@ def check(re_expr: str, text: str) -> bool:
     re_expr = _get_basic_re_expr(re_expr)
     re_patt = _build_automata(re_expr).flat()
     return re_patt.run(text)
+
+
+def match(re_expr: str, text: str):
+    """
+    Matches a regular expression against a text.
+
+    Parameters
+    ----------
+    re_expr : str
+        Regular expression.
+    text : str
+        Text.
+
+    Returns
+    -------
+    Match
+        Match.
+    """
+    re_expr = _get_basic_re_expr(re_expr)
+    re_patt = _build_automata(re_expr).flat().to_dfa()
+    last_pos = -1
+    def set_last_pos():
+        nonlocal last_pos
+        last_pos = re_patt.pos
+    for state in re_patt.end_states:
+        state.on_visited = set_last_pos
+    re_patt.run(text)
+    if last_pos == -1:
+        return None
+    return RegexMatch(re_expr, text[:last_pos], last_pos)

@@ -4,7 +4,7 @@ This module contains the structs necessary to represent an automata.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Set, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Set, Tuple, Union
 
 _ATMT_COUNT = 0
 
@@ -21,10 +21,18 @@ class State:
         The transitions of the state.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, on_visited: Callable = None) -> None:
         self.name = name
         self.transitions: List[Transition] = []
         self.automata = None
+        self.on_visited = on_visited
+
+    def visited(self):
+        """
+        Calls the ``on_visited`` callback if it is defined.
+        """
+        if self.on_visited:
+            self.on_visited()
 
     def substitute(self, other_state: State) -> State:
         """
@@ -159,13 +167,16 @@ class Transition:
         """
 
         if self.condition is None:
-            ret_val = True
-        elif isinstance(self.condition, list):
+            return True
+        if isinstance(self.condition, list):
             ret_val = value in self.condition
         else:
             ret_val = value == self.condition
         ret_val = not ret_val if self.negated else ret_val
-        logging.debug(f"Checking condition {self.str_cond} against {value} ({ret_val})")
+        neg = "^" if self.negated else ""
+        logging.debug(
+            f"Checking condition {neg}{self.str_cond} against {value} ({ret_val})"
+        )
         return ret_val
 
     @property
@@ -192,11 +203,11 @@ class Transition:
         if isinstance(self.condition, list):
             cond = self.condition
             return (
-                cond.__repr__
+                cond.__repr__()
                 if len(cond) <= 10
-                else (f"[{cond[0]}, {cond[1]}, ..., {cond[-1]}]")
+                else (f"[{cond[0].__repr__()}, ..., {cond[-1].__repr__()}]")
             )
-        return str(self.condition)
+        return self.condition.__repr__()
 
 
 class Automata:
@@ -240,6 +251,28 @@ class Automata:
         if item in self.states:
             return self.states[item]
         raise AttributeError(f"No attribute {item}")
+
+    @property
+    def alphabet(self) -> Set[Tuple[Any, bool]]:
+        """
+        Get the alphabet of the automata.
+
+        Returns
+        -------
+        List[Any]
+            The alphabet of the automata.
+        """
+
+        alphabet = set()
+        for state in self.states.values():
+            for transition in state.transitions:
+                if transition.is_epsilon:
+                    continue
+                if isinstance(transition.condition, str):
+                    alphabet.add(transition.condition)
+                else:
+                    alphabet.update(transition.condition)
+        return alphabet
 
     def concatenate(self, other: Automata, set_single: bool = False) -> Automata:
         """
@@ -290,6 +323,11 @@ class Automata:
                     trans.to_state = self.end_state
         self.end_states = [other_last_state]
         return self
+
+    @property
+    def pos(self) -> int:
+        """Position of the automata on the input"""
+        return self._pos
 
     @property
     def start_state(self) -> State:
@@ -593,7 +631,7 @@ class Automata:
         st_esp_closure = self.eps_closure(state)
         for current_state in st_esp_closure:
             for transition in current_state.transitions:
-                if transition.check_condition(symbol) and not transition.is_epsilon:
+                if not transition.is_epsilon and transition.check_condition(symbol):
                     answer.add(transition.to_state)
         return answer
 
@@ -639,15 +677,7 @@ class Automata:
         """
 
         get_name = lambda states: "".join(sorted(x.name for x in states))
-        alphabet = set()
-        for state in self.states.values():
-            for transition in state.transitions:
-                if transition.is_epsilon:
-                    continue
-                if isinstance(transition.condition, str):
-                    alphabet.add(transition.condition)
-                else:
-                    alphabet.update(transition.condition)
+        alphabet = self.alphabet
         dfa = Automata(self.name)
         start_state = self.eps_closure(self.start_states)
         start_name = get_name(start_state)
@@ -677,10 +707,7 @@ class Automata:
                     else:
                         dfa_state = dfa.states[next_name]
                     dfa.add_transition(current_state.name, next_name, symbol)
-                    if (
-                        next_state not in new_non_visited
-                        and next_state not in visited
-                    ):
+                    if next_state not in new_non_visited and next_state not in visited:
                         new_non_visited.append(dfa_state)
             non_visited = new_non_visited
         return dfa
@@ -734,6 +761,7 @@ class Automata:
 
     def _step(self):
         self._current_state, self._pos = self._processes[self._processes_idx]
+        self._current_state.visited()
         if self._pos > len(self._input):
             self._processes.pop(self._processes_idx)
             return False

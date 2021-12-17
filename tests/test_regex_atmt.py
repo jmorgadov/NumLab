@@ -1,9 +1,9 @@
 import pytest
 from automata import Automata
-from regex_atmt import check
+from regex_atmt import check, match
 
 
-def test_simple_match():
+def test_simple_check():
     assert check("a", "a")
     assert check("a", "b") == False
     assert check("a", "aa") == False
@@ -44,8 +44,6 @@ def test_special_chars():
     assert check(r"a\nb", "a\nb")
     assert check(r"a\tb", "a\tb")
     assert check(r"a\rb", "a\rb")
-    assert check(r"a\fb", "a\fb")
-    assert check(r"a\vb", "a\vb")
     assert check(r"a\a*b", "afoob")
     assert check(r"a\a*b", "aFoob") == False
     assert check(r"a\A*b", "aFOOb")
@@ -71,7 +69,34 @@ def test_negation():
     assert check(r"(^a)", "b")
     assert check(r"(^a)", "a") == False
     assert check(r"(^a)(^a)*", "bcdef")
-    assert check(r"'(^')*(^\\)'", "'asfew'")
-    assert check(r"'(^')*(^\\)'", "'ab\\'") == False
-    assert check(r"'(^')*(^\\)'", "'asfew\\'a") == False
-    assert check(r"'(^')*(^\\)'", "'asfew' foo 'bar'") == False
+    assert check(r"'((^')|(\\'))*(^\\)'", "'asfew'")
+    assert check(r"'((^')|(\\'))*(^\\)'", "'ab\\'") == False
+    assert check(r"'((^')|(\\'))*(^\\)'", "'asfew\\'a") == False
+    assert check(r"'((^')|(\\'))*(^\\)'", "'asfew\\'a'")
+    assert check(r"'((^')|(\\'))*(^\\)'", "'asfew' foo 'bar'") == False
+    assert check(r"'((^')|(\\'))*(^\\)'", "'asfew\\' foo \\'bar'")
+
+
+def test_match():
+    assert match("a", "a")
+    assert match("a", "b") is None
+
+    re_match = match("a", "aaaa")
+    assert re_match
+    assert re_match.end == 1
+
+    re_match = match(r"'((^')|(\\'))*(^\\)'", "'aaa'")
+    assert re_match
+    assert re_match.end == 5
+
+    re_match = match(r"'((^')|(\\'))*(^\\)'", "'aaa' foo")
+    assert re_match
+    assert re_match.end == 5
+
+    re_match = match(r"'((^')|(\\'))*(^\\)'", "'aaa' foo 'bar'")
+    assert re_match
+    assert re_match.end == 5
+
+    re_match = match(r"'((^')|(\\'))*(^\\)'", "'aaa\\' foo \\'bar'")
+    assert re_match
+    assert re_match.end == 17
