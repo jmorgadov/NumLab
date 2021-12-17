@@ -84,7 +84,7 @@ class RegexPattern:
 
     def __init__(self, re_expr: str):
         self.re_expr = re_expr
-        self.atmt = _build_automata(self.re_expr).flat()
+        self.atmt = _build_automata(self.re_expr).flat().to_dfa()
 
     def match(self, text: str) -> RegexMatch:
         """
@@ -101,8 +101,16 @@ class RegexPattern:
             The RegexMatch object containing the result of the match.
         """
 
-        val = self.atmt.run(text)
-        return RegexMatch(self.re_expr, text, self.atmt._pos) if val else None
+        last_pos = -1
+        def set_last_pos():
+            nonlocal last_pos
+            last_pos = self.atmt.pos
+        for state in self.atmt.end_states:
+            state.on_visited = set_last_pos
+        self.atmt.run(text)
+        if last_pos == -1:
+            return None
+        return RegexMatch(self.re_expr, text, last_pos)
 
 
 def _find_matching_paren(text: str, start: int = 0) -> int:
@@ -412,4 +420,4 @@ def match(re_expr: str, text: str):
     re_patt.run(text)
     if last_pos == -1:
         return None
-    return RegexMatch(re_expr, text[:last_pos], last_pos)
+    return RegexMatch(re_expr, text, last_pos)

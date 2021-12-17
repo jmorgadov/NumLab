@@ -11,12 +11,12 @@ from tokenizer import Token, Tokenizer
 
 # Tokenizer for grammars
 TKNZ = Tokenizer()
-TKNZ.add_pattern("NEWLINE", r"[ \n]*\n+[ \n]*", lambda l: "NEWLINE")
-TKNZ.add_pattern("SPACE", r"[ \t]+", lambda t: None)
-TKNZ.add_pattern("LITERAL", r"'(.*?)[^\\]'", lambda l: l[1:-1])
+TKNZ.add_pattern("NEWLINE", r"( |\n)*\n\n*( |\n)*", lambda l: "NEWLINE")
+TKNZ.add_pattern("SPACE", r"( |\t)( |\t)*", lambda t: None)
+TKNZ.add_pattern("LITERAL", r"'((^')|(\\'))*(^\\)'", lambda l: l[1:-1])
 TKNZ.add_pattern("SPECIAL", r"EPS")
-TKNZ.add_pattern("ID", r"[a-zA-Z_][a-zA-Z0-9_]*")
-TKNZ.add_pattern("OP", r"[|:]")
+TKNZ.add_pattern("ID", r"(\a|\A|_)(\a|\A|\d|_)*")
+TKNZ.add_pattern("OP", r"\||:")
 
 
 @TKNZ.process_tokens
