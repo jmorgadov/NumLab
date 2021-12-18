@@ -130,7 +130,38 @@ def _get_basic_re_expr(re_expr: str) -> str:
     str
         Basic regular expression.
     """
-    return re_expr
+    
+    if re_expr[0] == "[":
+        return _convert_square_bracket_expr(re_expr)
+    if re_expr[-1] == "+":
+        return _convert_plus_expr(re_expr)
+
+
+def _convert_square_bracket_expr(expr: str) -> str:
+    basic_expr = ""
+    ranges = {"a-z": "\\a", "A-Z": "\A", "0-9": "\d"}
+
+    for i in range(len(expr)):
+        if i+2 <= len(expr): #ranges
+            if expr[i: i+2] in ranges:
+                basic_expr += ranges[expr[i:i+2]]
+                i += 2
+                continue
+        if expr[i] == "\\":
+            continue
+        else: basic_expr += expr[i]
+        basic_expr += "|"
+    
+    return basic_expr
+            
+
+def _convert_plus_expr(expr: str) -> str:
+    plus = expr[-2] + "|" + expr[-2] + "*"
+    lexem = expr[0:len(expr)-2] 
+
+    if lexem == "": 
+        return plus
+    return lexem + "(" + plus + ")"
 
 
 def _apply_star_op(atmt: Automata) -> Automata:
