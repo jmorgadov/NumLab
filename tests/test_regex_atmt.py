@@ -1,6 +1,6 @@
 import pytest
 from automata import Automata
-from regex_atmt import check, match
+from regex_atmt import check, match, _get_basic_re_expr
 
 
 def test_simple_check():
@@ -100,3 +100,14 @@ def test_match():
     re_match = match(r"'((^')|(\\'))*(^\\)'", "'aaa\\' foo \\'bar'")
     assert re_match
     assert re_match.end == 17
+
+
+def test_advance_to_basic():
+    patterns = {
+        "a": "a",
+        "a+": "aa*",
+        "[0-9]": "(0|1|2|3|4|5|6|7|8|9)",
+    }
+
+    for adv, basic in patterns.items():
+        assert _get_basic_re_expr(adv) == basic
