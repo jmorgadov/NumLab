@@ -17,10 +17,11 @@ Example of use:
     > [Tok('aaaba'), Tok(23), Tok('bba'), Tok(34)]
 """
 
-import re
+import logging
 from typing import Any, Callable, Dict, List
 
 from exceptions import TokenizationError
+from regex_atmt import RegexPattern, check, compile_patt
 
 
 class Token:
@@ -85,7 +86,7 @@ class Tokenizer:
     """Tokenizer"""
 
     def __init__(self):
-        self.token_patterns: Dict[str, re.Pattern] = {}
+        self.token_patterns: Dict[str, RegexPattern] = {}
         self._token_found_functions = {}
         self._process_tokens = lambda tk: tk
 
@@ -110,11 +111,10 @@ class Tokenizer:
         """
         if token_type in self.token_patterns:
             raise TokenizationError(f"Token type {token_type} already exists.")
-        self.token_patterns[token_type] = re.compile(pattern)
+        self.token_patterns[token_type] = compile_patt(pattern)
         if func is None:
             func = lambda lex: lex
         self._token_found_functions[token_type] = func
-
 
     def add_patterns(self, **kwargs: str):
         """Adds a list of patterns for recognizing tokens
@@ -137,7 +137,6 @@ class Tokenizer:
         """
         for token_type, patt in kwargs.items():
             self.add_pattern(token_type, patt)
-
 
     def process_tokens(self, func: Callable[[List[Token]], List[Token]]):
         """Decorator for processing the tokens after tokenization process.
@@ -219,12 +218,17 @@ class Tokenizer:
         i = 0
         while i < len(text):
             for token_type, patt in self.token_patterns.items():
-                match = patt.match(text, pos=i)
-                if match is not None:
-                    lexem = match.group()
+                print("matching", token_type, patt.re_expr)
+                re_match = patt.match(text[i:])
+                if re_match is not None:
+                    print(re_match)
+                    print(re_match.re_expr)
+                    lexem = re_match.matched_text
+                    print(lexem)
                     tok_lexem = self._token_found_functions[token_type](lexem)
                     if tok_lexem is not None:
                         tok = Token(token_type, tok_lexem, line, col)
+                        print(tok)
                         tokens.append(tok)
                     i += len(lexem)
                     line_breaks = lexem.count("\n")
@@ -235,7 +239,7 @@ class Tokenizer:
                     break
             else:
                 raise TokenizationError(
-                    f"No match found. Line: {line}, Col{col}.\n"
+                    f"No match found. Line: {line}, Col: {col}.\n"
                     f"Text: {text[i:i+10]}..."
                 )
 

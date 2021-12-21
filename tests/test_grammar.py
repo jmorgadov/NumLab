@@ -58,7 +58,7 @@ def test_all_productions(example_grm_4):
 
 
 def test_assign_matches(example_grm_4):
-    matches = {"int": r"\d+", "str": r"\w+"}
+    matches = {"int": r"\d\d*", "str": r"\w+"}
     example_grm_4.assign_term_matches(**matches)
 
     # check int match is correct according to matches dict
