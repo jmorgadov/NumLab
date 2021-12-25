@@ -104,9 +104,13 @@ def test_match():
 
 def test_advance_to_basic():
     patterns = {
+        "": "",
         "a": "a",
-        "a+": "aa*",
-        "[0-9]": "(0|1|2|3|4|5|6|7|8|9)",
+        "a+": "a|a*",
+        "[0-9]": "\d",
+        "a|a*": "a|a*",
+        "[abc*d+]": "(a|b|c|*|d|+)",
+        "ab+[cde]": "a(b|b*)(c|d|e)"       
     }
 
     for adv, basic in patterns.items():

@@ -139,38 +139,55 @@ def _get_basic_re_expr(re_expr: str) -> str:
     str
         Basic regular expression.
     """
-    
-    if re_expr[0] == "[":
-        return _convert_square_bracket_expr(re_expr)
-    if re_expr[-1] == "+":
-        return _convert_plus_expr(re_expr)
+
+    basic_expr = []
+    i = 0
+    while i < len(re_expr):
+        if re_expr[i] == '+':
+            
+            if i-1 < 0: return "No valid expression"
+
+            c = basic_expr.pop()
+            basic_expr.append(_convert_plus_expr(basic_expr, c))
+
+        elif re_expr[i] == '[':
+            
+            s_bracket = ""
+            i += 1
+            while i < len(re_expr) and re_expr[i] != ']':
+                s_bracket += re_expr[i]
+                i += 1
+            basic_expr.append(_convert_square_bracket_expr(s_bracket))
+
+        else: basic_expr.append(re_expr[i])
+        i += 1
+
+    return "".join(basic_expr)
 
 
 def _convert_square_bracket_expr(expr: str) -> str:
     basic_expr = ""
     ranges = {"a-z": "\\a", "A-Z": "\A", "0-9": "\d"}
 
-    for i in range(len(expr)):
-        if i+2 <= len(expr): #ranges
-            if expr[i: i+2] in ranges:
-                basic_expr += ranges[expr[i:i+2]]
-                i += 2
-                continue
-        if expr[i] == "\\":
+    i = 0
+    while i < len(expr):
+        if i != 0 : basic_expr += "|"
+        if i+2 <= len(expr) and ranges.__contains__(expr[i:i+3]): #ranges
+            basic_expr += ranges[expr[i:i+3]]
+            i += 3
+        elif expr[i] == "\\":
+            i += 1
             continue
-        else: basic_expr += expr[i]
-        basic_expr += "|"
-    
+        else: 
+            basic_expr += expr[i]
+            i += 1
+        
     return basic_expr
-            
 
-def _convert_plus_expr(expr: str) -> str:
-    plus = expr[-2] + "|" + expr[-2] + "*"
-    lexem = expr[0:len(expr)-2] 
-
-    if lexem == "": 
-        return plus
-    return lexem + "(" + plus + ")"
+def _convert_plus_expr(expr: [], c) -> str:
+    plus = c + '|' + c + '*'
+    if len(expr) >= 1: return '(' + plus + ')'
+    return plus
 
 
 def _apply_star_op(atmt: Automata) -> Automata:
