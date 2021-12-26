@@ -4,8 +4,8 @@ This module contains the structures for representing grammars.
 
 from __future__ import annotations
 
-from abc import ABCMeta
-from typing import Iterator, List, Optional, Set, Tuple, Union
+from abc import ABCMeta, abstractmethod
+from typing import Callable, Iterator, List, Optional, Set, Tuple, Union, Any
 
 from tokenizer import Token, Tokenizer
 
@@ -103,6 +103,17 @@ class Item(metaclass=ABCMeta):
             return self.name == other
         return self is other
 
+    @abstractmethod
+    def copy(self) -> Item:
+        """Creates a copy of the grammar item.
+
+        Returns
+        -------
+        Item
+            Copy of the grammar item.
+        """
+        pass
+
     def __hash__(self):
         return hash(self.name)
 
@@ -117,7 +128,49 @@ class Production:
     """
 
     def __init__(self, items: List[Item]):
+        self.head = None
         self.items = items
+        self.synt_attrs = []
+        self.inhe_attrs = []
+
+    def add_synt_attr(self, func: Callable):
+        """Adds a syntetized attribute to the production.
+
+        Parameters
+        ----------
+        func : Callable
+            Function that will be called to compute the syntetized attribute.
+        """
+        if self.head is None:
+            raise ValueError("Production head missing.")
+        if func not in self.synt_attrs:
+            self.synt_attrs.append(func)
+
+    def add_heri_attr(self, func: Callable):
+        """Adds a inhereditated attribute to the production.
+
+        Parameters
+        ----------
+        func : Callable
+            Function that will be called to compute the inhereditated attribute.
+        """
+        if self.head is None:
+            raise ValueError("Production head missing.")
+        if func not in self.inhe_attrs:
+            self.inhe_attrs.append(func)
+
+    def copy(self) -> Tuple[NonTerminal, List[Item]]:
+        """Creates a copy of the production.
+
+        Returns
+        -------
+        Tuple[NonTerminal, List[Item]]
+            Copy of the production.
+        """
+        if self.head is None:
+            raise ValueError("Production head missing.")
+        new_items = [item.copy() for item in self.items]
+        return self.head, new_items
 
     @property
     def is_eps(self) -> bool:
@@ -159,7 +212,20 @@ class NonTerminal(Item):
 
     def __init__(self, name, prods: Optional[List[Production]] = None):
         super().__init__(name)
+        self.ast = None
         self.prods = [] if prods is None else prods
+        for prod in self.prods:
+            prod.head = self
+
+    def copy(self):
+        """Creates a copy of the non terminal.
+
+        Returns
+        -------
+        NonTerminal
+            Copy of the non terminal.
+        """
+        return NonTerminal(self.name, self.prods)
 
     def __getitem__(self, index):
         return self.prods[index]
@@ -191,10 +257,23 @@ class Terminal(Item):
         Regex pattern used to check if a token lexem match in parsing process.
     """
 
-    def __init__(self, name: str, match: str = None, is_literal=False):
+    def __init__(
+        self, name: str, match: str = None, is_literal=False, value: Any = None
+    ):
         super().__init__(name)
         self.match = match
         self.is_literal = is_literal
+        self.value = value
+
+    def copy(self):
+        """Creates a copy of the terminal.
+
+        Returns
+        -------
+        Terminal
+            Copy of the terminal.
+        """
+        return Terminal(self.name, self.match, self.is_literal)
 
     def __repr__(self):
         return f"T({self.name})"
