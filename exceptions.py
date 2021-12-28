@@ -14,11 +14,11 @@ class ParsingError(CompilationError):
     This class represents an error that occurs during the parsing of a
     program.
     """
-    def __init__(self, message, line, column):
+    def __init__(self, message, token):
         super().__init__(message)
         self.message = message
-        self.line = line
-        self.column = column
+        self.line = token.line
+        self.column = token.col
 
     def __str__(self):
         return "Parsing error: {} at line {} column {}".format(

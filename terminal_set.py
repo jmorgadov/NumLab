@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Set
 
 from grammar import Terminal
+from tokenizer import Token
 
 
 class TerminalSet:
@@ -78,6 +79,21 @@ class TerminalSet:
             f"unsupported operand type(s) for &: "
             f"'{type(self).__name__}' and '{type(other).__name__}'"
         )
+
+    def has_token(self, token: Token):
+        """Checks if the set contains a token.
+
+        Parameters
+        ----------
+        token : str
+            token to check.
+
+        Returns
+        -------
+        bool
+            ``True`` if the set contains the token, ``False`` otherwise.
+        """
+        return any(terminal.name == token.token_type for terminal in self.terminals)
 
     def __len__(self):
         return len(self.terminals)

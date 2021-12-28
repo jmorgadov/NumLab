@@ -55,16 +55,3 @@ def test_all_productions(example_grm_4):
 
         assert c_expr_name == expr_name
         assert all(x1 == x2 for x1, x2 in zip(c_prod_items, prod_items))
-
-
-def test_assign_matches(example_grm_4):
-    matches = {"int": r"\d\d*", "str": r"\w+"}
-    example_grm_4.assign_term_matches(**matches)
-
-    # check int match is correct according to matches dict
-    int_term = example_grm_4.expr3.prod_0.items[0]
-    assert int_term.match == matches["int"]
-
-    # check str match is correct according to matches dict
-    str_term = example_grm_4.expr3.prod_1.items[0]
-    assert str_term.match == matches["str"]

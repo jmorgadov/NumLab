@@ -50,7 +50,9 @@ class Token:
         Column token position.
     """
 
-    def __init__(self, token_type: str, lexem: str, line: int = 0, col: int = 0):
+    def __init__(
+        self, token_type: str, lexem: str, line: int = 0, col: int = 0
+    ):
         self.token_type = token_type
         self.lexem = lexem
         self.line = line
@@ -218,17 +220,12 @@ class Tokenizer:
         i = 0
         while i < len(text):
             for token_type, patt in self.token_patterns.items():
-                print("matching", token_type, patt.re_expr)
                 re_match = patt.match(text[i:])
                 if re_match is not None:
-                    print(re_match)
-                    print(re_match.re_expr)
                     lexem = re_match.matched_text
-                    print(lexem)
                     tok_lexem = self._token_found_functions[token_type](lexem)
                     if tok_lexem is not None:
                         tok = Token(token_type, tok_lexem, line, col)
-                        print(tok)
                         tokens.append(tok)
                     i += len(lexem)
                     line_breaks = lexem.count("\n")

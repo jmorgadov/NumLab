@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from typing import Callable, Iterator, List, Optional, Set, Tuple, Union, Any
+from generic_ast import AST
 
 from tokenizer import Token, Tokenizer
 
@@ -128,49 +129,45 @@ class Production:
     """
 
     def __init__(self, items: List[Item]):
-        self.head = None
         self.items = items
-        self.synt_attrs = []
-        self.inhe_attrs = []
+        self._head: NonTerminal = None
+        self._builder: Callable = None
 
-    def add_synt_attr(self, func: Callable):
-        """Adds a syntetized attribute to the production.
-
-        Parameters
-        ----------
-        func : Callable
-            Function that will be called to compute the syntetized attribute.
-        """
-        if self.head is None:
-            raise ValueError("Production head missing.")
-        if func not in self.synt_attrs:
-            self.synt_attrs.append(func)
-
-    def add_heri_attr(self, func: Callable):
-        """Adds a inhereditated attribute to the production.
+    def set_builder(self, func: Callable):
+        """Sets the builder function for the production.
 
         Parameters
         ----------
         func : Callable
-            Function that will be called to compute the inhereditated attribute.
+            Function that builds the AST.
         """
-        if self.head is None:
-            raise ValueError("Production head missing.")
-        if func not in self.inhe_attrs:
-            self.inhe_attrs.append(func)
+        self._builder = func
 
-    def copy(self) -> Tuple[NonTerminal, List[Item]]:
-        """Creates a copy of the production.
+    @property
+    def builder(self):
+        """Returns the builder function for the production.
 
         Returns
         -------
-        Tuple[NonTerminal, List[Item]]
-            Copy of the production.
+        Callable
+            Builder function.
         """
-        if self.head is None:
+        if self._builder is None:
+            raise ValueError("Builder function not set.")
+        return self.set_builder
+
+    @property
+    def head(self):
+        """Gets the head of the production.
+
+        Returns
+        -------
+        NonTerminal
+            Head of the production.
+        """
+        if self._head is None:
             raise ValueError("Production head missing.")
-        new_items = [item.copy() for item in self.items]
-        return self.head, new_items
+        return self._head
 
     @property
     def is_eps(self) -> bool:
@@ -182,6 +179,23 @@ class Production:
             True if the production is the empty production.
         """
         return len(self.items) == 1 and self.items[0] == "EPS"
+
+    def build_ast(self, items: List[Item]) -> AST:
+        """Builds the AST for the production.
+
+        Parameters
+        ----------
+        items : List[Item]
+            List of grammar items that compose the production.
+
+        Returns
+        -------
+        AST
+            AST for the production.
+        """
+        if self._builder is None:
+            raise ValueError("Builder function not set.")
+        return self._builder(*items)
 
     def __getitem__(self, index):
         return self.items[index]
@@ -212,10 +226,10 @@ class NonTerminal(Item):
 
     def __init__(self, name, prods: Optional[List[Production]] = None):
         super().__init__(name)
-        self.ast = None
+        self.ast: AST = None
         self.prods = [] if prods is None else prods
         for prod in self.prods:
-            prod.head = self
+            prod._head = self
 
     def copy(self):
         """Creates a copy of the non terminal.
@@ -226,6 +240,22 @@ class NonTerminal(Item):
             Copy of the non terminal.
         """
         return NonTerminal(self.name, self.prods)
+
+    def check_token(self, token: Token) -> bool:
+        """Checks if the token matches the non terminal.
+
+        Parameters
+        ----------
+        token : Token
+            Token to be checked.
+
+        Returns
+        -------
+        bool
+            True if the token matches the non terminal.
+        """
+        return self.name == token.token_type
+
 
     def __getitem__(self, index):
         return self.prods[index]
@@ -258,11 +288,9 @@ class Terminal(Item):
     """
 
     def __init__(
-        self, name: str, match: str = None, is_literal=False, value: Any = None
+        self, name: str, value: Any = None
     ):
         super().__init__(name)
-        self.match = match
-        self.is_literal = is_literal
         self.value = value
 
     def copy(self):
@@ -273,7 +301,22 @@ class Terminal(Item):
         Terminal
             Copy of the terminal.
         """
-        return Terminal(self.name, self.match, self.is_literal)
+        return Terminal(self.name)
+
+    def check_token(self, token: Token) -> bool:
+        """Checks if the token matches the terminal.
+
+        Parameters
+        ----------
+        token : Token
+            Token to be checked.
+
+        Returns
+        -------
+        bool
+            True if the token matches the terminal.
+        """
+        return self.name == token.token_type
 
     def __repr__(self):
         return f"T({self.name})"
@@ -304,6 +347,19 @@ class Grammar:
         if item in self.exprs_dict:
             return self.exprs_dict[item]
         raise AttributeError()
+
+    def add_expr(self, expr: NonTerminal):
+        """Adds a grammar expression to the grammar.
+
+        Parameters
+        ----------
+        expr : NonTerminal
+            Grammar expression to be added.
+        """
+        if expr.name in self.exprs_dict:
+            raise ValueError(f"Grammar expression {expr.name} already exists.")
+        self.exprs.append(expr)
+        self.exprs_dict[expr.name] = expr
 
     @property
     def start_expr(self):
@@ -350,27 +406,6 @@ class Grammar:
         for expr in self.exprs:
             for prod in expr.prods:
                 yield (expr, prod)
-
-    def assign_term_matches(self, **matches: str):
-        """Assigns a set of matches for serveral terminals.
-
-        Example:
-
-        This assigns a match pattern for the terminal `i` on a grammar `grm`:
-
-            >>> grm.assign_term_matches(i=r"[0-9]+")
-
-        Parameters
-        ----------
-        matches : Dict[str, str]
-            Kwargs containing the match patterns (values) for each terminal
-            (keys).
-        """
-        for term in self.all_terminals():
-            if term.name in matches:
-                term.match = matches[term.name]
-            elif term.match is None:
-                print(f"[WARNING] Terminal {term.name} not found in match dictionary")
 
     @staticmethod
     def open(file_path: str) -> Grammar:
@@ -606,14 +641,10 @@ class _GrammarParser:
         """
         self._check_token(["ID", "LITERAL", "SPECIAL"])
         name = self._ctoken.lexem
-        match = None
-        if self._ctoken.LITERAL:
-            match = name
-            name = f"'{match}'"
 
         # It always returns a Terminal but after parsing all terminals with
         # non terminal names will be replaced by the non terminal items.
-        term = Terminal(name, match, self._ctoken.LITERAL)
+        term = Terminal(name)
         self._cursor += 1
         return term
 
