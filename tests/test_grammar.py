@@ -25,24 +25,18 @@ def test_exprs_field(example_grm_4):
 
 def test_all_terminals(example_grm_4):
     all_terms = example_grm_4.all_terminals()
-    term_matches = {term.name: term.match for term in all_terms}
+    term_names = [term.name for term in all_terms]
 
-    terms = [
-        ("'foo'", "foo"),
-        ("'bar'", "bar"),
-        ("int", None),
-        ("str", None),
-    ]
+    terms = [ "foo", "bar", "int", "str" ]
 
-    for name, match in terms:
-        assert name in term_matches
-        assert term_matches[name] == match
+    for name in terms:
+        assert name in term_names
 
 
 def test_all_productions(example_grm_4):
     correct_prods = [
-        ("expr1", ["'foo'", "expr2"]),
-        ("expr2", ["'bar'"]),
+        ("expr1", ["foo", "expr2"]),
+        ("expr2", ["bar"]),
         ("expr2", ["expr3"]),
         ("expr2", ["EPS"]),
         ("expr3", ["int", "str"]),
@@ -55,16 +49,3 @@ def test_all_productions(example_grm_4):
 
         assert c_expr_name == expr_name
         assert all(x1 == x2 for x1, x2 in zip(c_prod_items, prod_items))
-
-
-def test_assign_matches(example_grm_4):
-    matches = {"int": r"\d\d*", "str": r"\w+"}
-    example_grm_4.assign_term_matches(**matches)
-
-    # check int match is correct according to matches dict
-    int_term = example_grm_4.expr3.prod_0.items[0]
-    assert int_term.match == matches["int"]
-
-    # check str match is correct according to matches dict
-    str_term = example_grm_4.expr3.prod_1.items[0]
-    assert str_term.match == matches["str"]

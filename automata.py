@@ -80,6 +80,26 @@ class State:
             self.transitions.append(new_t)
         return self
 
+    def next_state(self, cond: Any):
+        """
+        Get the next state given a condition.
+
+        Parameters
+        ----------
+        cond : Any
+            The condition.
+
+        Returns
+        -------
+        State
+            The next state.
+        """
+
+        for trans in self.transitions:
+            if trans.check_condition(cond):
+                return trans.to_state
+        return None
+
     def show(self) -> None:
         """
         Show the state.
@@ -666,13 +686,19 @@ class Automata:
             whole_goto.update(self._goto_single(current_state, symbol))
         return whole_goto
 
-    def to_dfa(self) -> Automata:
+    def to_dfa(self, dfa2nfa: bool = False) -> Union[Automata, Tuple[Automata, Dict]]:
         """
         Convert the automata to a DFA.
 
+        Parameters
+        ----------
+        dfa2nfa : bool
+            If True, the return value will be a tuple of the DFA and the dfa2nfa
+            dictionary, otherwise only the DFA will be returned. By default, False.
+
         Returns
         -------
-        Automata
+        Union[Automata, Tuple[Automata, Dict]]
             The DFA.
         """
 
@@ -681,7 +707,7 @@ class Automata:
         dfa = Automata(self.name)
         start_state = self.eps_closure(self.start_states)
         start_name = get_name(start_state)
-        q_0 = dfa.add_state(start_name, start=True)
+        q_0 = dfa.add_state(start_name, start=True, end=start_state in self.end_states)
         dfa_to_nfa = {q_0: start_state}
         visited = set()
         non_visited = [q_0]
@@ -710,7 +736,7 @@ class Automata:
                     if next_state not in new_non_visited and next_state not in visited:
                         new_non_visited.append(dfa_state)
             non_visited = new_non_visited
-        return dfa
+        return dfa if not dfa2nfa else (dfa, dfa_to_nfa)
 
     def run(
         self,

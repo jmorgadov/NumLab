@@ -4,13 +4,52 @@ This module contains the basic structures for parsing.
 
 from __future__ import annotations
 
-from typing import List
+import logging
+from typing import Dict, List, Tuple
 
+from automata import Automata, State
 from exceptions import ParsingError
 from generic_ast import AST
-from grammar import Grammar, Terminal
+from grammar import Grammar, Item, NonTerminal, Production, Terminal
 from terminal_set import TerminalSet
 from tokenizer import Token, Tokenizer
+
+_REDUCE_ACTION = 0
+_SHIFT_ACTION = 1
+
+
+class SLRItem:
+    """
+    This class represents a single item in the LR(0) state machine.
+    """
+
+    def __init__(self, prod: Production, dot_pos: int):
+        """
+        Initializes a new SLRItem.
+
+        Parameters
+        ----------
+        production : Production
+            Production that will be used.
+        dot_pos : int
+            Position of the dot in the production.
+        """
+        self.prod = prod
+        self.dot_pos = dot_pos
+
+    def __repr__(self):
+        """
+        Returns a string representation of the item.
+
+        Returns
+        -------
+        str
+            String representation of the item.
+        """
+        head = f"{self.prod.head} -> "
+        body_before_dot = " ".join(str(i) for i in self.prod.items[: self.dot_pos])
+        body_after_dot = " ".join(str(i) for i in self.prod.items[self.dot_pos :])
+        return f"{head}{body_before_dot} . {body_after_dot}"
 
 
 class Parser:
@@ -30,52 +69,76 @@ class Parser:
         self._first = None
         self._prod_first = None
         self._follow = None
-        self._ll_one_table = None
         self.token_to_term = {}
+        self._slr_atmt_nfa = None
+        self._stt2item = None
 
-    def _calcule_first_and_follow(self):
+    def _calculate_first_and_follow(self):
         """Recalculates the `first` and `follow` sets of the grammar."""
         self.calculate_follow()
 
-    def _build_ll_one_table(self):
-        """Builds the LL(1) table."""
-        table = self._ll_one_table = {}
+    def _build_slr_atmt(self):
+        if self._slr_atmt_nfa is not None and self._stt2item is not None:
+            return self._slr_atmt_nfa, self._stt2item
 
-        all_terminals = self.grammar.all_terminals()
-        all_terminals.add(Terminal("$"))
-        for expr, prod in self.grammar.all_productions():
-            if prod.is_eps:
+        logging.debug("Building SLR automata")
+
+        # Prepare grammar
+        logging.debug("Preparing grammar (adding S')")
+        if "S`" not in self.grammar.exprs_dict:
+            non_ter_prod = Production([self.grammar.start])
+            non_ter = NonTerminal("S`", [non_ter_prod])
+            self.grammar.add_expr(non_ter)
+            self.grammar.start = non_ter
+            self.grammar.start.prod_0.set_builder(lambda s: s.ast)
+
+        # Extract all slr items
+        logging.debug("Extracting all SLR items")
+        slr_items = []
+        slr_item_dict = {}
+        for _, prod in self.grammar.all_productions():
+            for dot_pos in range(len(prod.items) + 1):
+                slr_item = SLRItem(prod, dot_pos)
+                slr_items.append(slr_item)
+                slr_item_dict[prod, dot_pos] = slr_item
+        logging.debug(f"Found {len(slr_items)} SLR items")
+        logging.debug("Exacted items in the SLR automata:")
+        for slr_item in slr_items:
+            logging.debug(f"  {slr_item}")
+
+        # Build the SLR state machine
+        logging.debug("Adding states to automata")
+        stt2item, item2stt = {}, {}
+        atmt = Automata()
+        for i, slr_item in enumerate(slr_items):
+            stt = atmt.add_state(
+                f"q{i}",
+                start=slr_item.prod.head.name == "S`" and slr_item.dot_pos == 0,
+                end=True,
+                name=str(slr_item),
+            )
+            stt2item[stt] = slr_item
+            item2stt[slr_item] = stt
+
+        logging.debug("Adding transitions to automata")
+        for stt in atmt.states.values():
+            slr_item = stt2item[stt]
+            if slr_item.dot_pos == len(slr_item.prod.items):
                 continue
-            for terminal in all_terminals:
-                if terminal == "EPS":
-                    continue
-                if terminal in self._prod_first[prod]:
-                    if (expr, terminal) in table and table[expr, terminal] is not None:
-                        raise ValueError(
-                            f"Ambiguity in the LL(1) table: \n"
-                            f"{expr} {prod}\n"
-                            f"{expr} {table[expr, terminal]}"
-                        )
-                    table[expr, terminal] = prod
-                elif "EPS" in self._first[expr] and terminal.name in self._follow[expr]:
-                    table[expr, terminal] = "EPS"
-                elif (expr, terminal) not in table:
-                    table[expr, terminal] = None
+            gm_item = slr_item.prod.items[slr_item.dot_pos]
+            next_item = slr_item_dict[slr_item.prod, slr_item.dot_pos + 1]
+            atmt.add_transition(stt, item2stt[next_item], gm_item.name)
+            all_slr_items_head_gm = [
+                slr_item_dict[p, 0]
+                for _, p in self.grammar.all_productions()
+                if p.head == gm_item
+            ]
+            for slr_item_gm in all_slr_items_head_gm:
+                atmt.add_transition(stt, item2stt[slr_item_gm])
 
-    def _build_token_to_term_dict(self):
-        """
-        Builds a dictionary that maps a token from the tokenizer to a
-        grammar terminal.
-        """
-        all_terminals = self.grammar.all_terminals()
-        for token_type, patt in self.tokenizer.token_patterns.items():
-            for term in all_terminals:
-                if term.is_literal and patt.match(term.match):
-                    self.token_to_term[token_type] = term
-                    break
-                if not term.is_literal and token_type == term.name:
-                    self.token_to_term[token_type] = term
-                    break
+        self._slr_atmt_nfa = atmt
+        self._stt2item = stt2item
+        return atmt, stt2item
 
     def parse_file(self, file_path: str) -> AST:
         """Opens a file and parses it contents.
@@ -117,71 +180,117 @@ class Parser:
         ----------
         tokens : List[Token]
             List of tokens to be parsed.
+        method : str
+            Method used for parsing.
 
         Returns
         -------
         AST
             AST generated by the parser.
         """
-        self.calculate_follow()
-        self._build_ll_one_table()
-        last_line, last_col = (tokens[-1].line, tokens[-1].col) if tokens else (0, 0)
-        tokens.append(Token("$", "$", last_line, last_col))
-        derivation_root = AST(self.grammar.start_expr)
-        derivation_stack = [derivation_root]
-        self._build_token_to_term_dict()
+        tokens += [Token("$", "'$'")]
+        return self._slr_parse_tokens(tokens)
 
-        last_token = None
-        for token in tokens:
-            last_token = token
-            if token.token_type == "$":
-                while (
-                    len(derivation_stack) > 0
-                    and "EPS" in self._first[derivation_stack[-1].item]
-                ):
-                    derivation_stack.pop()
-                if len(derivation_stack) != 0:
-                    raise ParsingError(
-                        "Unexpected end of file",
-                        last_line,
-                        last_col,
-                    )
-                return derivation_root
+    def _slr_parse_tokens(self, tokens: List[Token]) -> AST:
+        """Parses a list of tokens.
 
-            while True:
-                if len(derivation_stack) == 0:
-                    raise ParsingError("Unespected ending", token.line, token.col)
-                derivation = derivation_stack.pop()
-                if derivation.item.is_terminal:
-                    derivation.value = token.lexem
+        Parameters
+        ----------
+        tokens : List[Token]
+            List of tokens to be parsed.
+
+        Returns
+        -------
+        AST
+            AST generated by the parser.
+        """
+        logging.debug("Parsing tokens using SLR method")
+
+        # Build slr nfa automata
+        slr_atmt_nfa, stt2item = self._build_slr_atmt()
+
+        # Calculate first and follows
+        self._calculate_first_and_follow()
+
+        # Build slr dfa automata from slr nfa automata
+        logging.debug("Building SLR DFA automata")
+        slr_atmt, dfa2nfa = slr_atmt_nfa.to_dfa(dfa2nfa=True)
+        current_state = slr_atmt.start_state
+
+        # State to SRL items dictionary
+        logging.debug("Building state to SRL items dictionary")
+        state_items: Dict[State, List[SLRItem]] = {}
+        for state, old_states in dfa2nfa.items():
+            state_items[state] = []
+            for old_state in old_states:
+                state_items[state].append(stt2item[old_state])
+
+        # Initialize stack
+        logging.debug("Initializing stack")
+        stack: List[Tuple[Item, State]] = []
+
+        i = 0
+        logging.debug("Parsing tokens")
+        while i < len(tokens):
+            token = tokens[i]
+            current_state = slr_atmt.start_state if not stack else stack[-1][1]
+            action: int = None
+            reduce_prod: Production = None
+
+            # Decide between shift and reduce
+            posible_items = state_items[current_state]
+            for item in posible_items:
+                if item.dot_pos == len(item.prod.items) and self._follow[
+                    item.prod.head.name
+                ].has_token(token):
+                    if action is None or action == _REDUCE_ACTION:
+                        action = _REDUCE_ACTION
+                        reduce_prod = item.prod
+                    else:
+                        raise ParsingError("Ambiguity in the SLR", token)
+                elif item.dot_pos < len(item.prod.items) and item.prod.items[
+                    item.dot_pos
+                ].check_token(token):
+                    if action is None:
+                        action = _SHIFT_ACTION
+                    else:
+                        raise ParsingError("Ambiguity in the SLR", token)
+
+            if action == _REDUCE_ACTION:
+                # Pop from stack the necessary items
+                items_needed = len(reduce_prod.items)
+                stack, items = stack[:-items_needed], stack[-items_needed:]
+                items = [item[0] for item in items]
+
+                # Apply reduction
+                new_head = reduce_prod.head.copy()
+                new_head.ast = reduce_prod.build_ast(items)
+
+                # Check next state
+                current_state = slr_atmt.start_state if not stack else stack[-1][1]
+                next_state = current_state.next_state(new_head.name)
+
+                # Push to stack the new item
+                stack.append((new_head, next_state))
+                if new_head.name == "S`":
                     break
-
-                term_name = self.token_to_term[token.token_type]
-                prod_to_apply = self._ll_one_table[derivation.item, term_name]
-                if prod_to_apply is None:
-                    raise ParsingError(
-                        f"Unexpected '{token}'",
-                        token.line,
-                        token.col,
-                    )
-                if prod_to_apply == "EPS":
-                    continue
-
-                for item in prod_to_apply.items[::-1]:
-                    new_derivation = AST(item, derivation)
-                    derivation.children.insert(0, new_derivation)
-                    derivation_stack.append(new_derivation)
-        if len(derivation_stack) != 0:
-            raise ParsingError(
-                f"Unexpected {last_token.lexem}", last_token.line, last_token.col
-            )
-
-        return derivation_root
+            elif action == _SHIFT_ACTION:
+                i += 1
+                next_state = current_state.next_state(token.token_type)
+                term = Terminal(token.token_type, value=token.lexem)
+                if next_state is None:
+                    raise ParsingError("Invalid token", token)
+                stack.append((term, next_state))
+            else:
+                raise ParsingError("Invalid token", token)
+        if len(stack) != 1:
+            raise ParsingError("Invalid tokens", tokens[-1])
+        return stack[0][0].ast
 
     def calculate_first(self):
         """Calculates the `first` set of the grammar."""
 
-        self._first = {expr: TerminalSet() for expr in self.grammar.exprs}
+        self._first = {expr.name: TerminalSet() for expr in self.grammar.exprs}
         self._prod_first = {
             prod: TerminalSet() for _, prod in self.grammar.all_productions()
         }
@@ -193,13 +302,13 @@ class Parser:
             for expr, prod in self.grammar.all_productions():
                 for item in prod.items:
                     if item.is_terminal:
-                        change |= self._first[expr].add(item)
+                        change |= self._first[expr.name].add(item)
                         self._prod_first[prod].add(item)
                         break
                     if item != expr:
-                        change |= self._first[expr].update(self._first[item])
-                        self._prod_first[prod].update(self._first[item])
-                        if "EPS" not in self._first[item].terminals:
+                        change |= self._first[expr.name].update(self._first[item.name])
+                        self._prod_first[prod].update(self._first[item.name])
+                        if "EPS" not in self._first[item.name].terminals:
                             break
 
     def calculate_follow(self):
@@ -208,8 +317,8 @@ class Parser:
         # First is needed to calculate follow
         self.calculate_first()
 
-        follow = {expr: TerminalSet() for expr in self.grammar.exprs}
-        follow[self.grammar.start_expr].add(Terminal("$"))
+        follow = {expr.name: TerminalSet() for expr in self.grammar.exprs}
+        follow[self.grammar.start_expr.name].add(Terminal("$"))
 
         change = True
         while change:
@@ -220,11 +329,13 @@ class Parser:
                     if item.is_terminal:
                         continue
                     if next_item is None:
-                        change |= follow[item].update(follow[expr] - "EPS")
+                        change |= follow[item.name].update(follow[expr] - "EPS")
                     elif next_item.is_terminal:
-                        change |= follow[item].add(next_item)
+                        change |= follow[item.name].add(next_item)
                     else:
-                        change |= follow[item].update(self._first[next_item] - "EPS")
+                        change |= follow[item.name].update(
+                            self._first[next_item] - "EPS"
+                        )
                         if "EPS" not in self._first[next_item].terminals:
                             break
         self._follow = follow

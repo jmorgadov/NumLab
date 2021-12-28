@@ -167,15 +167,11 @@ def _apply_star_op(atmt: Automata) -> Automata:
     flat_atmt = atmt.flat()
     q_0 = flat_atmt.start_state
     q_f = flat_atmt.end_state
-    print(q_0, q_f)
     flat_atmt.states.pop(q_f.name)
     for state in list(flat_atmt.states.values()):
         for trans in state.transitions:
-            print(f"Checking {trans}")
             if trans.to_state == q_f:
                 trans.to_state = q_0
-                print(f"Changing final transition to {trans.to_state}")
-                print(trans)
     flat_atmt.end_states = [flat_atmt.start_state]
     return flat_atmt
 
