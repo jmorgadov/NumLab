@@ -17,9 +17,10 @@ class ParsingError(CompilationError):
     def __init__(self, message, token):
         super().__init__(message)
         self.message = message
+        self.token = token
         self.line = token.line
         self.column = token.col
 
     def __str__(self):
-        return "Parsing error: {} at line {} column {}".format(
-            self.message, self.line, self.column)
+        return "Parsing error: {} at line {} column {}\n{}".format(
+            self.message, self.line, self.column, self.token)

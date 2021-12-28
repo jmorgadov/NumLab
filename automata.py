@@ -736,7 +736,7 @@ class Automata:
                     if next_state not in new_non_visited and next_state not in visited:
                         new_non_visited.append(dfa_state)
             non_visited = new_non_visited
-        return dfa if not dfa2nfa else dfa, dfa_to_nfa
+        return dfa if not dfa2nfa else (dfa, dfa_to_nfa)
 
     def run(
         self,
