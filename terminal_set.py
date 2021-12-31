@@ -43,7 +43,7 @@ class TerminalSet:
 
         Parameters
         ----------
-        terminal_set : ItemSet
+        terminal_set : SymbolSet
             terminal set to update with.
         """
         last_len = len(self.terminals)
@@ -58,7 +58,7 @@ class TerminalSet:
         if isinstance(other, set):
             return TerminalSet(terminals=self.terminals - other)
         if isinstance(other, str):
-            new_set = {item for item in self.terminals if item.name != other}
+            new_set = {symbol for symbol in self.terminals if symbol.name != other}
             return TerminalSet(terminals=new_set)
         raise TypeError(
             f"unsupported operand type(s) for -: "
@@ -73,7 +73,7 @@ class TerminalSet:
         if isinstance(other, set):
             return TerminalSet(terminals=self.terminals & other)
         if isinstance(other, str):
-            new_set = {item for item in self.terminals if item.name == other}
+            new_set = {symbol for symbol in self.terminals if symbol.name == other}
             return TerminalSet(terminals=new_set)
         raise TypeError(
             f"unsupported operand type(s) for &: "
@@ -98,8 +98,8 @@ class TerminalSet:
     def __len__(self):
         return len(self.terminals)
 
-    def __contains__(self, item: Terminal):
-        return item in self.terminals
+    def __contains__(self, symbol: Terminal):
+        return symbol in self.terminals
 
     def __repr__(self):
         return list(self.terminals).__repr__()

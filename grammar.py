@@ -5,9 +5,10 @@ This module contains the structures for representing grammars.
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Iterator, List, Optional, Set, Tuple, Union, Any
-from generic_ast import AST
+from typing import (Any, Callable, Dict, Iterator, List, Optional, Set, Tuple,
+                    Union)
 
+from generic_ast import AST
 from tokenizer import Token, Tokenizer
 
 # Tokenizer for grammars
@@ -68,18 +69,18 @@ def _process_tokens(tokens: List[Token]) -> List[Token]:
     return new_tokens
 
 
-class Item(metaclass=ABCMeta):
+class Symbol(metaclass=ABCMeta):
     """Abstract class for representing either a Terminal or a NonTerminal.
 
     Parameters
     ----------
     name :
-        Name of the grammar item.
+        Name of the grammar symbol.
 
     Attributes
     ----------
     name :
-        Name of the grammar item.
+        Name of the grammar symbol.
     """
 
     def __init__(self, name):
@@ -87,12 +88,12 @@ class Item(metaclass=ABCMeta):
 
     @property
     def is_terminal(self) -> bool:
-        """Checks if the grammar item is a terminal or not.
+        """Checks if the grammar symbol is a terminal or not.
 
         Returns
         -------
         bool
-            True if the grammar item is a Terminal.
+            True if the grammar symbol is a Terminal.
         """
         return isinstance(self, Terminal)
 
@@ -105,13 +106,13 @@ class Item(metaclass=ABCMeta):
         return self is other
 
     @abstractmethod
-    def copy(self) -> Item:
-        """Creates a copy of the grammar item.
+    def copy(self) -> Symbol:
+        """Creates a copy of the grammar symbol.
 
         Returns
         -------
-        Item
-            Copy of the grammar item.
+        Symbol
+            Copy of the grammar symbol.
         """
         pass
 
@@ -124,12 +125,12 @@ class Production:
 
     Parameters
     ----------
-    items : List[Item]
-        List of grammar items that compose the production.
+    symbols : List[Symbo]
+        List of grammar symbols that compose the production.
     """
 
-    def __init__(self, items: List[Item]):
-        self.items = items
+    def __init__(self, symbols: List[Symbol]):
+        self.symbols = symbols
         self._head: NonTerminal = None
         self._builder: Callable = None
 
@@ -178,15 +179,15 @@ class Production:
         bool
             True if the production is the empty production.
         """
-        return len(self.items) == 1 and self.items[0] == "EPS"
+        return len(self.symbols) == 1 and self.symbols[0] == "EPS"
 
-    def build_ast(self, items: List[Item]) -> AST:
+    def build_ast(self, symbols: List[Symbol]) -> AST:
         """Builds the AST for the production.
 
         Parameters
         ----------
-        items : List[Item]
-            List of grammar items that compose the production.
+        symbols : List[Symbol]
+            List of grammar symbols that compose the production.
 
         Returns
         -------
@@ -195,25 +196,23 @@ class Production:
         """
         if self._builder is None:
             raise ValueError("Builder function not set.")
-        return self._builder(*items)
+        return self._builder(*symbols)
 
     def __getitem__(self, index):
-        return self.items[index]
+        return self.symbols[index]
 
     def __setitem__(self, index, item):
-        self.items[index] = item
+        self.symbols[index] = item
 
     def __repr__(self):
-        prod_str = "-> "
-        for item in self.items:
-            prod_str += f"{item} "
+        prod_str = "-> " + " ".join(str(symbol) for symbol in self.symbols)
         return prod_str
 
     def __str__(self):
         return self.__repr__()
 
 
-class NonTerminal(Item):
+class NonTerminal(Symbol):
     """Represents a non terminal (a grammar expression).
 
     Parameters
@@ -256,7 +255,6 @@ class NonTerminal(Item):
         """
         return self.name == token.token_type
 
-
     def __getitem__(self, index):
         return self.prods[index]
 
@@ -269,7 +267,7 @@ class NonTerminal(Item):
         return f"NT({self.name})"
 
 
-class Terminal(Item):
+class Terminal(Symbol):
     """Terminal.
 
     Parameters
@@ -287,9 +285,7 @@ class Terminal(Item):
         Regex pattern used to check if a token lexem match in parsing process.
     """
 
-    def __init__(
-        self, name: str, value: Any = None
-    ):
+    def __init__(self, name: str, value: Any = None):
         super().__init__(name)
         self.value = value
 
@@ -348,6 +344,19 @@ class Grammar:
             return self.exprs_dict[item]
         raise AttributeError()
 
+    def assign_builders(self, builders: Dict[str, Callable]) -> None:
+        """Assigns the builders for the productions.
+
+        Parameters
+        ----------
+        builders : Dict[str, Callable]
+            Dictionary of builders.
+        """
+        for expr in self.exprs:
+            for prod in expr.prods:
+                builder_name = f"{expr.name} {prod}"
+                prod.set_builder(builders[builder_name])
+
     def add_expr(self, expr: NonTerminal):
         """Adds a grammar expression to the grammar.
 
@@ -385,11 +394,11 @@ class Grammar:
         terminals = []
         for exp in self.exprs_dict.values():
             for prod in exp.prods:
-                for item in prod.items:
-                    if isinstance(item, Terminal) and item.name not in [
+                for symbol in prod.symbols:
+                    if isinstance(symbol, Terminal) and symbol.name not in [
                         "EPS",
                     ]:
-                        terminals.append(item)
+                        terminals.append(symbol)
         return set(terminals)
 
     def all_productions(self) -> Iterator[Tuple[NonTerminal, Production]]:
@@ -553,13 +562,13 @@ class _GrammarParser:
         terminals = {}
         for exp in exprs:
             for prod in exp.prods:
-                for i, item in enumerate(prod.items):
-                    if item.name in exprs_dict:
-                        prod[i] = exprs_dict[item.name]
-                    elif item.name in terminals:
-                        prod[i] = terminals[item.name]
+                for i, symbol in enumerate(prod.symbols):
+                    if symbol.name in exprs_dict:
+                        prod[i] = exprs_dict[symbol.name]
+                    elif symbol.name in terminals:
+                        prod[i] = terminals[symbol.name]
                     else:
-                        terminals[item.name] = item
+                        terminals[symbol.name] = symbol
         return Grammar(exprs)
 
     def _parse_expr_list(self) -> List[NonTerminal]:
@@ -610,40 +619,40 @@ class _GrammarParser:
         Production
             Resulting production.
         """
-        prod_items = self._parse_prod_items()
-        return Production(prod_items)
+        prod_symbols = self._parse_prod_symbols()
+        return Production(prod_symbols)
 
-    def _parse_prod_items(self) -> List[Item]:
-        """Parses all the items of a production.
+    def _parse_prod_symbols(self) -> List[Symbol]:
+        """Parses all the symbols of a production.
 
         Returns
         -------
-        List[Item]
-            Resulting items.
+        List[Symbol]
+            Resulting symbols.
         """
         if self._ctoken.OP:
             return None
         if self._ctoken.NEWLINE:
             return None
-        item = self._parse_item()
-        prod_items = self._parse_prod_items()
-        if prod_items is None:
-            return [item]
-        return [item] + prod_items
+        symbol = self._parse_symbol()
+        prod_symbols = self._parse_prod_symbols()
+        if prod_symbols is None:
+            return [symbol]
+        return [symbol] + prod_symbols
 
-    def _parse_item(self) -> Item:
-        """Parses a grammar item.
+    def _parse_symbol(self) -> Symbol:
+        """Parses a grammar symbol.
 
         Returns
         -------
-        Item
-            Resulting item.
+        Symbol
+            Resulting symbol.
         """
         self._check_token(["ID", "LITERAL", "SPECIAL"])
         name = self._ctoken.lexem
 
         # It always returns a Terminal but after parsing all terminals with
-        # non terminal names will be replaced by the non terminal items.
+        # non terminal names will be replaced by the non terminal symbols.
         term = Terminal(name)
         self._cursor += 1
         return term
