@@ -15,6 +15,7 @@ from tokenizer import Token, Tokenizer
 TKNZ = Tokenizer()
 TKNZ.add_pattern("NEWLINE", r"( |\n)*\n\n*( |\n)*", lambda l: "NEWLINE")
 TKNZ.add_pattern("SPACE", r"( |\t)( |\t)*", lambda t: None)
+TKNZ.add_pattern("COMMENT", r"#.*\n", lambda t: None)
 TKNZ.add_pattern("LITERAL", r"'((^')|(\\'))*(^\\)'", lambda l: l[1:-1])
 TKNZ.add_pattern("SPECIAL", r"EPS")
 TKNZ.add_pattern("ID", r"(\a|\A|_)(\a|\A|\d|_)*")
@@ -85,6 +86,20 @@ class Symbol(metaclass=ABCMeta):
 
     def __init__(self, name):
         self.name = name
+        self._ast = None
+
+    @property
+    def ast(self):
+        """Return the abstract syntax tree of the grammar symbol.
+
+        Returns
+        -------
+        AST
+            Abstract syntax tree of the grammar symbol.
+        """
+        if self.is_terminal:
+            return self
+        return self._ast
 
     @property
     def is_terminal(self) -> bool:
@@ -195,7 +210,7 @@ class Production:
             AST for the production.
         """
         if self._builder is None:
-            raise ValueError("Builder function not set.")
+            raise ValueError(f"Builder function not set on production {self}.")
         return self._builder(*symbols)
 
     def __getitem__(self, index):
@@ -225,10 +240,23 @@ class NonTerminal(Symbol):
 
     def __init__(self, name, prods: Optional[List[Production]] = None):
         super().__init__(name)
-        self.ast: AST = None
         self.prods = [] if prods is None else prods
         for prod in self.prods:
             prod._head = self
+
+    def set_ast(self, ast: AST):
+        """Sets the abstract syntax tree for the expression.
+
+        Parameters
+        ----------
+        ast : AST
+            Abstract syntax tree for the expression.
+
+        Returns
+        -------
+        None
+        """
+        self._ast = ast
 
     def copy(self):
         """Creates a copy of the non terminal.

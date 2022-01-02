@@ -26,6 +26,9 @@ class TerminalSet:
     def __init__(self, terminals: Set[Terminal] = None):
         self.terminals = set() if terminals is None else terminals
 
+    def __iter__(self):
+        return iter(self.terminals)
+
     def add(self, terminal: Terminal):
         """Adds a terminal to the set.
 
@@ -100,6 +103,9 @@ class TerminalSet:
 
     def __contains__(self, symbol: Terminal):
         return symbol in self.terminals
+
+    def __getitem__(self, index):
+        return list(self.terminals)[index]
 
     def __repr__(self):
         return list(self.terminals).__repr__()
