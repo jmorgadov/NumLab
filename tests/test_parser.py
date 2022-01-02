@@ -6,7 +6,7 @@ from typing import List
 import pytest
 from exceptions import ParsingError
 from generic_ast import AST
-from grammar import Grammar, Item
+from grammar import Grammar, Symbol
 from tokenizer import Tokenizer
 
 
@@ -49,23 +49,18 @@ class Factor(AST):
 
 builders = {
     "F -> i": lambda x: Factor(value=int(x.value)),
-    "F -> ( E )": lambda p1, x, p2: Factor(expr=x.ast),
-    "T -> F": lambda x: Term(factor=x.ast),
-    "T -> T * F": lambda x, t, y: Term(term=x.ast, factor=y.ast),
-    "E -> T": lambda x: Expr(term=x.ast),
-    "E -> E + T": lambda x, p, y: Expr(expr=x.ast, term=y.ast),
+    "F -> ( E )": lambda p1, x, p2: Factor(expr=x),
+    "T -> F": lambda x: Term(factor=x),
+    "T -> T * F": lambda x, t, y: Term(term=x, factor=y),
+    "E -> T": lambda x: Expr(term=x),
+    "E -> E + T": lambda x, p, y: Expr(expr=x, term=y),
 }
 
 
 @pytest.fixture
 def parser():
-    gm = Grammar.open("./tests/grammars/math_expr_slr.gm")
-    gm.Expr.prod_0.set_builder(builders["E -> E + T"])
-    gm.Expr.prod_1.set_builder(builders["E -> T"])
-    gm.Term.prod_0.set_builder(builders["T -> T * F"])
-    gm.Term.prod_1.set_builder(builders["T -> F"])
-    gm.Factor.prod_0.set_builder(builders["F -> ( E )"])
-    gm.Factor.prod_1.set_builder(builders["F -> i"])
+    gm = Grammar.open("./tests/grammars/math_expr_lr.gm")
+    gm.assign_builders(builders)
 
     tokenizer = Tokenizer()
     tokenizer.add_pattern("NEWLINE", r"( |\n)*\n\n*( |\n)*", lambda l: None)

@@ -45,7 +45,7 @@ def test_all_productions(example_grm_4):
     for item1, item2 in zip(correct_prods, example_grm_4.all_productions()):
         c_expr_name, c_prod_items = item1
         expr, prod = item2
-        expr_name, prod_items = expr.name, [item.name for item in prod.items]
+        expr_name, prod_items = expr.name, [item.name for item in prod.symbols]
 
         assert c_expr_name == expr_name
         assert all(x1 == x2 for x1, x2 in zip(c_prod_items, prod_items))

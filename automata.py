@@ -717,8 +717,8 @@ class Automata:
                 if current_state in visited:
                     continue
                 visited.add(current_state)
-                for symbol in alphabet:
-                    goto_states = self.goto(dfa_to_nfa[current_state], symbol)
+                for char in alphabet:
+                    goto_states = self.goto(dfa_to_nfa[current_state], char)
                     if not goto_states:
                         continue
                     next_state = self.eps_closure(goto_states)
@@ -732,7 +732,7 @@ class Automata:
                         new_non_visited.append(dfa_state)
                     else:
                         dfa_state = dfa.states[next_name]
-                    dfa.add_transition(current_state.name, next_name, symbol)
+                    dfa.add_transition(current_state.name, next_name, char)
                     if next_state not in new_non_visited and next_state not in visited:
                         new_non_visited.append(dfa_state)
             non_visited = new_non_visited
