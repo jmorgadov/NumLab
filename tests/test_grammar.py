@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from grammar import Grammar
+from numlab.compiler import Grammar
 
 
 def test_grammar_parser():
@@ -27,7 +27,7 @@ def test_all_terminals(example_grm_4):
     all_terms = example_grm_4.all_terminals()
     term_names = [term.name for term in all_terms]
 
-    terms = [ "foo", "bar", "int", "str" ]
+    terms = ["foo", "bar", "int", "str"]
 
     for name in terms:
         assert name in term_names

@@ -17,11 +17,10 @@ Example of use:
     > [Tok('aaaba'), Tok(23), Tok('bba'), Tok(34)]
 """
 
-import logging
 from typing import Any, Callable, Dict, List
 
-from exceptions import TokenizationError
-from regex_atmt import RegexPattern, check, compile_patt
+from numlab.exceptions import TokenizationError
+from numlab.nlre import RegexPattern, compile_patt
 
 
 class Token:

@@ -8,12 +8,13 @@ import logging
 from functools import lru_cache
 from typing import Dict, List, Tuple
 
-from automata import Automata, State
-from exceptions import ParsingError
-from generic_ast import AST
-from grammar import Grammar, NonTerminal, Production, Symbol, Terminal
-from terminal_set import TerminalSet
-from tokenizer import Token, Tokenizer
+from numlab.automata import Automata, State
+from numlab.compiler.generic_ast import AST
+from numlab.compiler.grammar import (Grammar, NonTerminal, Production, Symbol,
+                                     Terminal)
+from numlab.compiler.terminal_set import TerminalSet
+from numlab.compiler.tokenizer import Token, Tokenizer
+from numlab.exceptions import ParsingError
 
 _REDUCE_ACTION = 0
 _SHIFT_ACTION = 1
