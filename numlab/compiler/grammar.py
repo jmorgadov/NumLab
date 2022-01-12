@@ -8,8 +8,8 @@ from abc import ABCMeta, abstractmethod
 from typing import (Any, Callable, Dict, Iterator, List, Optional, Set, Tuple,
                     Union)
 
-from generic_ast import AST
-from tokenizer import Token, Tokenizer
+from numlab.compiler.generic_ast import AST
+from numlab.compiler.tokenizer import Token, Tokenizer
 
 # Tokenizer for grammars
 TKNZ = Tokenizer()

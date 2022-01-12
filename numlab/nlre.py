@@ -15,7 +15,7 @@ Exmaple:
 
 import logging
 
-from automata import Automata
+from numlab.automata import Automata
 
 ASCII = list(map(chr, range(128)))
 SPECIAL_CHARS = ["(", ")", "|", "*", "^"]
@@ -102,9 +102,11 @@ class RegexPattern:
         """
 
         last_pos = -1
+
         def set_last_pos():
             nonlocal last_pos
             last_pos = self.atmt.pos
+
         for state in self.atmt.end_states:
             state.on_visited = set_last_pos
         self.atmt.run(text)
@@ -408,9 +410,11 @@ def match(re_expr: str, text: str):
     re_expr = _get_basic_re_expr(re_expr)
     re_patt = _build_automata(re_expr).flat().to_dfa()
     last_pos = -1
+
     def set_last_pos():
         nonlocal last_pos
         last_pos = re_patt.pos
+
     for state in re_patt.end_states:
         state.on_visited = set_last_pos
     re_patt.run(text)

@@ -1,10 +1,9 @@
+import logging
 import re
 
 import pytest
-from exceptions import TokenizationError
-from tokenizer import Tokenizer
-import logging
-
+from numlab.compiler import Tokenizer
+from numlab.exceptions import TokenizationError
 
 
 @pytest.fixture
@@ -21,12 +20,13 @@ def test_add_pattern(tokenizer: Tokenizer):
     assert ttype in tokenizer.token_patterns
     assert tokenizer.token_patterns[ttype].re_expr == patt
 
+
 def test_add_patterns(tokenizer: Tokenizer):
     patterns = {
         "AB": r"(a|b)(a|b)*",
         "ABC": r"(a|b|c)(a|b|c)*",
         "ABCD": r"(a|b|c|d)(a|b|c|d)*",
-        "SPACE": r"( |\t)"
+        "SPACE": r"( |\t)",
     }
     tokenizer.add_patterns(**patterns)
     for token_type, patt in patterns.items():
@@ -49,7 +49,7 @@ def test_tokenizer(tokenizer: Tokenizer):
         "AB": r"(a|b)(a|b)*",
         "ABC": r"(a|b|c)(a|b|c)*",
         "ABCD": r"(a|b|c|d)(a|b|c|d)*",
-        "SPACE": r"( |\t)"
+        "SPACE": r"( |\t)",
     }
 
     for token_type, patt in patterns.items():

@@ -1,13 +1,10 @@
 import logging
 import sys
-from parser import Parser
 from typing import List
 
 import pytest
-from exceptions import ParsingError
-from generic_ast import AST
-from grammar import Grammar, Symbol
-from tokenizer import Tokenizer
+from numlab.compiler import AST, Grammar, Parser, Symbol, Tokenizer
+from numlab.exceptions import ParsingError
 
 
 # Math ast
@@ -92,6 +89,7 @@ def test_parse(parser: Parser):
 
     with pytest.raises(ParsingError):
         parser.parse("")
+
 
 def test_parse_file(parser: Parser):
     ast = parser.parse_file("./tests/grammars/math_file")

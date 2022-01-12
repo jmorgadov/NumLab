@@ -1,8 +1,10 @@
 import pytest
-from automata import Automata
+from numlab.automata import Automata
 
 
 def test_add_state():
+    """test_add_state.
+    """
     a = Automata()
 
     q_0 = a.add_state("q0", start=True)
