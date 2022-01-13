@@ -17,9 +17,7 @@ Example:
     ...         # some code
 """
 
-from inspect import signature
-from typing import Callable, Dict, Tuple
-
+from typing import Callable, Dict, Tuple, get_type_hints
 
 class Visitor:
     """
@@ -39,8 +37,7 @@ class Visitor:
         The decorator is intended to be used as a decorator for methods.
         The method will be registered in the ``cases`` dictionary.
         """
-        func_sig = signature(func)
-        case_key = tuple(p.annotation for p in func_sig.parameters.values())[1:]
+        case_key = tuple(get_type_hints(func).values())
         if case_key in self.cases:
             raise ValueError(f"Duplicate visitor: {case_key}")
 
