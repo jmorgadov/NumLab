@@ -15,7 +15,7 @@ from numlab.compiler.tokenizer import Token, Tokenizer
 TKNZ = Tokenizer()
 TKNZ.add_pattern("NEWLINE", r"( |\n)*\n\n*( |\n)*", lambda l: "NEWLINE")
 TKNZ.add_pattern("SPACE", r"( |\t)( |\t)*", lambda t: None)
-TKNZ.add_pattern("COMMENT", r"#.*\n", lambda t: None)
+TKNZ.add_pattern("COMMENT", r"#(^\n)*\n", lambda t: None)
 TKNZ.add_pattern("LITERAL", r"'((^')|(\\'))*(^\\)'", lambda l: l[1:-1])
 TKNZ.add_pattern("SPECIAL", r"EPS")
 TKNZ.add_pattern("ID", r"(\a|\A|_)(\a|\A|\d|_)*")
