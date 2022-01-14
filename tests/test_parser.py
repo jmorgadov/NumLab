@@ -3,9 +3,8 @@ import sys
 from typing import List
 
 import pytest
-from numlab.compiler import AST, Grammar, Parser, Symbol, Tokenizer
+from numlab.compiler import AST, Grammar, ParserManager, Symbol, Tokenizer
 from numlab.exceptions import ParsingError
-
 
 # Math ast
 class Expr(AST):
@@ -67,11 +66,11 @@ def parser():
     tokenizer.add_pattern("*", r"\*")
     tokenizer.add_pattern("(", r"\(")
     tokenizer.add_pattern(")", r"\)")
-    return Parser(gm, tokenizer)
+    return ParserManager(gm, tokenizer)
 
 
 # Test parsing
-def test_parse(parser: Parser):
+def test_parse(parser: ParserManager):
     ast = parser.parse("(1+2)*3")
     assert ast.eval() == 9
 
@@ -91,6 +90,6 @@ def test_parse(parser: Parser):
         parser.parse("")
 
 
-def test_parse_file(parser: Parser):
+def test_parse_file(parser: ParserManager):
     ast = parser.parse_file("./tests/grammars/math_file")
     assert ast.eval() == 54
