@@ -8,6 +8,4 @@ from abc import ABCMeta, abstractmethod
 from typing import List, Optional, Any
 
 class AST(metaclass=ABCMeta):
-    @abstractmethod
-    def eval(self) -> Any:
-        pass
+    pass

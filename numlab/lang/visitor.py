@@ -19,6 +19,7 @@ Example:
 
 from typing import Callable, Dict, Tuple, get_type_hints
 
+
 class Visitor:
     """
     Visitor class.

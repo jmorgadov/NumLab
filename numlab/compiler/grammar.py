@@ -66,6 +66,9 @@ def _process_tokens(tokens: List[Token]) -> List[Token]:
             and next_tok.lexem == "|"
         ):
             continue
+        if tok.NEWLINE and new_tokens and new_tokens[-1].NEWLINE:
+            continue
+
         new_tokens.append(tok)
     return new_tokens
 
