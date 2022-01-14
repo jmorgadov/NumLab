@@ -189,6 +189,17 @@ class Production:
         return self._head
 
     @property
+    def head_str(self) -> str:
+        """Gets the head of the production as a string.
+
+        Returns
+        -------
+        str
+            Head of the production.
+        """
+        return f"{self.head.name} {str(self)}"
+
+    @property
     def is_eps(self) -> bool:
         """Checks if the production is the empty production.
 
@@ -374,6 +385,19 @@ class Grammar:
         if item in self.exprs_dict:
             return self.exprs_dict[item]
         raise AttributeError()
+
+    @property
+    def symbols(self) -> List[Symbol]:
+        """Returns the list of symbols.
+
+        Returns
+        -------
+        List[Symbol]
+            List of symbols.
+        """
+        non_term = [expr for expr in self.exprs]
+        term = list(self.all_terminals())
+        return non_term + term
 
     def assign_builders(self, builders: Dict[str, Callable]) -> None:
         """Assigns the builders for the productions.

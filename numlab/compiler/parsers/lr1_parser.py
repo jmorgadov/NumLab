@@ -1,6 +1,7 @@
 import logging
 from functools import lru_cache
-from typing import Dict, List, Tuple
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
 
 from numlab.compiler.generic_ast import AST
 from numlab.compiler.grammar import (Grammar, NonTerminal, Production, Symbol,
@@ -17,7 +18,7 @@ class LR1Table:
     This class represents the LR1 table.
     """
 
-    def __init__(self, grammar: Grammar):
+    def __init__(self, grammar: Grammar, table_file: str = None):
         """
         Initializes a new LR1 table.
 
@@ -25,17 +26,79 @@ class LR1Table:
         ----------
         grammar : Grammar
             Grammar that will be used.
+        table_file : str, optional
+            File to load the table from.
+
+            If file does not the table will be created and saved to this file.
+            If not given, the table will be generated.
         """
         self.grammar = grammar
-        self._first = None
-        self._follow = None
+        self._prepare_grammar()
+        self._symbols = {sym.name: sym for sym in grammar.symbols}
+        self._symbols["$"] = Terminal("$")
+        self._productions = {
+            prod.head_str: prod for _, prod in grammar.all_productions()
+        }
 
         # [state, symbol] -> [next_state, production]
-        self._table: Dict[Tuple[int, Symbol], Tuple[int, Production]] = {}
-        self._build_table()
+        self._table: Dict[Tuple[int, str], Union[str, int, Production]] = {}
+
+        if table_file is not None:
+            table_file_path = Path(table_file)
+            if table_file_path.exists():
+                self._load_table(table_file)
+                return
+
+        self._first = None
+        self._follow = None
         self._states_by_id: Dict[int, List[LRItem]] = None
         self._lr_items: Dict[Production, int, Terminal] = None
         self._item_prods: Dict[NonTerminal, Production] = None
+        self._build_table(table_file)
+
+    def _load_table(self, table_file: str):
+        """Loads the table from a file.
+
+        Parameters
+        ----------
+        table_file : str
+            Path to the file.
+        """
+        logging.info(f"Loading table from {table_file}")
+        with open(str(table_file), "r", encoding="utf-8") as table_f:
+            file_lines = table_f.readlines()
+
+        assert len(file_lines) % 3 == 0, "Invalid table file"
+
+        for i in range(0, len(file_lines), 3):
+            state = int(file_lines[i])
+            symbol = self._symbols[file_lines[i + 1].strip()]
+            str_t_val = file_lines[i + 2].strip()
+            t_val = str_t_val
+            if "->" in str_t_val:
+                t_val = self._productions[str_t_val]
+            elif str_t_val.isnumeric():
+                t_val = int(str_t_val)
+            self._table[(state, symbol)] = t_val
+
+    def save_table(self, table_file: str):
+        """Saves the table to a file.
+
+        Parameters
+        ----------
+        table_file : str
+            Path to the file.
+        """
+        logging.info(f"Saving table to {table_file}")
+        with open(table_file, "w", encoding="utf-8") as table_f:
+            for key, value in self._table.items():
+                state, symbol = key
+                t_val = "" if value is None else str(value)
+                if isinstance(value, Production):
+                    t_val = value.head_str
+                table_f.write(f"{state}\n")
+                table_f.write(f"{symbol}\n")
+                table_f.write(f"{t_val}\n")
 
     def _prepare_grammar(self):
         logging.info("Preparing grammar (adding S')")
@@ -97,8 +160,7 @@ class LR1Table:
                 break
         return False
 
-    def _build_table(self):
-        self._prepare_grammar()
+    def _build_table(self, table_file: str = None):
         self._first = calculate_first(self.grammar)
         self._follow = calculate_follow(self.grammar, self._first)
         items = self._extract_grammar_lr_items()
@@ -122,10 +184,10 @@ class LR1Table:
         self._states_by_id = {0: init_state}
 
         logging.info("Building LR1 table")
-        lr1_table: Dict[Tuple[int, str], Tuple[int, Production]] = {}
+        lr1_table: Dict[Tuple[int, str], Union[str, int, Production]] = {}
         current_state = 0
         while current_state < len(self._states_by_id):
-            logging.debug(f"Building state {current_state}")
+            logging.info(f"Building state {current_state} of {len(self._states_by_id)}")
             state = self._states_by_id[current_state]
             for item in state:
                 if item.at_symbol is None:
@@ -138,6 +200,8 @@ class LR1Table:
             current_state += 1
         self._table = lr1_table
         logging.info("LR1 table built")
+        if table_file is not None:
+            self.save_table(table_file)
 
     def get_state_number(self, items: List[LRItem]) -> int:
         """Returns the state number for a list of LR items.
@@ -230,11 +294,21 @@ class LR1Parser(Parser):
     ----------
     grammar : Grammar
         Grammar to be used.
+    table_file : str
+        Path to the file containing the LR1 table.
+
+        If the file does not exist, it will be created.
+        If not specified, the table will be built automatically from
+        the grammar.
     """
 
-    def __init__(self, grammar: Grammar, lr1_table: LR1Table = None):
+    def __init__(self, grammar: Grammar, table_file: str = None):
         super().__init__(grammar)
-        self.lr1_table = LR1Table(grammar) if lr1_table is None else lr1_table
+        self.lr1_table = LR1Table(grammar, table_file)
+
+    def save_table(self, table_file: str):
+        """Saves the LR1 table."""
+        self.lr1_table.save_table(table_file)
 
     def parse(self, tokens: List[Token]) -> AST:
         logging.debug(f"Parsing {len(tokens)} tokens (LR1)")
