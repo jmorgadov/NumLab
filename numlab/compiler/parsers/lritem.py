@@ -20,6 +20,7 @@ class LRItem:
         self.prod = prod
         self.lah = lookahead
         self.dot_pos = dot_pos
+        self._repr = None
 
     @property
     def at_symbol(self) -> Symbol:
@@ -59,6 +60,9 @@ class LRItem:
         str
             String representation of the item.
         """
+
+        if self._repr is not None:
+            return self._repr
         head = f"{self.prod.head} -> "
         body_before_dot = " ".join(str(i) for i in self.prod.symbols[: self.dot_pos])
         body_after_dot = " ".join(str(i) for i in self.prod.symbols[self.dot_pos :])
@@ -67,7 +71,8 @@ class LRItem:
             text = f"{head}{body} [{self.lah}]"
         else:
             text = f"{head}{body}"
-        return f"LRItem({text})"
+        self._repr = f"LRItem({text})"
+        return self._repr
 
     def __eq__(self, other):
         if isinstance(other, tuple):
@@ -80,6 +85,9 @@ class LRItem:
         same_dot = self.dot_pos == dot
         same_lah = self.lah == lah
         return same_prod and same_dot and same_lah
+
+    def __hash__(self):
+        return hash(self.__repr__())
 
     def __lt__(self, other):
         return str(self.prod) < str(other.prod)

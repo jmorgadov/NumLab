@@ -1,7 +1,7 @@
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Set
 
 from numlab.compiler.generic_ast import AST
 from numlab.compiler.grammar import (Grammar, NonTerminal, Production, Symbol,
@@ -46,6 +46,8 @@ class LR1Table:
         self._first = None
         self._follow = None
         self._states_by_id: Dict[int, List[LRItem]] = None
+        self._id_by_hashsum: Dict[int, int] = {}
+        self._closure_cache: Dict[int, List[LRItem]] = {}
         self._lr_items: Dict[Production, int, Terminal] = None
         self._item_prods: Dict[NonTerminal, Production] = None
 
@@ -76,6 +78,8 @@ class LR1Table:
             str_t_val = file_lines[i + 2].strip()
             t_val = str_t_val
             if "->" in str_t_val:
+                if str_t_val.endswith("->"):
+                    str_t_val += " EPS"
                 t_val = self._productions[str_t_val]
             elif str_t_val.isnumeric():
                 t_val = int(str_t_val)
@@ -136,6 +140,7 @@ class LR1Table:
             logging.debug(f"  {lr_item}")
         return lr_items
 
+    @lru_cache(maxsize=None)
     def _contained_in_first(self, terminal: Terminal, *symbols):
         """Checks if a terminal is contained in the first set of a set of symbols.
 
@@ -172,13 +177,13 @@ class LR1Table:
                 self._lr_items[item.prod, item.dot_pos, follow] = new_lr_item
 
         init_state = self._closure(
-            [
+            {
                 self._lr_items[
                     self.grammar.start_expr.prod_0,
                     0,
                     self._follow[self.grammar.start_expr][0],
                 ]
-            ]
+            }
         )
 
         self._states_by_id = {0: init_state}
@@ -203,7 +208,7 @@ class LR1Table:
         if table_file is not None:
             self.save_table(table_file)
 
-    def get_state_number(self, items: List[LRItem]) -> int:
+    def get_state_number(self, items: Set[LRItem]) -> int:
         """Returns the state number for a list of LR items.
 
         Parameters
@@ -216,15 +221,31 @@ class LR1Table:
         int
             State number.
         """
-        for i, state in self._states_by_id.items():
-            if state == items:
-                return i
-        i = len(self._states_by_id)
-        self._states_by_id[i] = items
-        return i
+        hashsum = self.items_hashsum(items)
+        if hashsum in self._id_by_hashsum:
+            return self._id_by_hashsum[hashsum]
+        number = len(self._states_by_id)
+        self._states_by_id[number] = items
+        self._id_by_hashsum[hashsum] = number
+        return number
 
     def __getitem__(self, index):
         return self._table.get(index, None)
+
+    def items_hashsum(self, items: List[LRItem]) -> int:
+        """Returns the hash sum of a list of LR items.
+
+        Parameters
+        ----------
+        items : List[LRItem]
+            List of LR items.
+
+        Returns
+        -------
+        int
+            Hash sum.
+        """
+        return sum(hash(item) for item in items)
 
     @lru_cache(maxsize=None)
     def _goto(self, state: int, symbol: Symbol) -> int:
@@ -243,15 +264,15 @@ class LR1Table:
             State number.
         """
         state_items = self._states_by_id[state]
-        filtered_items = [
+        filtered_items = {
             self._lr_items[item.prod, item.dot_pos + 1, item.lah]
             for item in state_items
             if item.at_symbol == symbol
-        ]
-        clausure = sorted(self._closure(filtered_items))
+        }
+        clausure = self._closure(filtered_items)
         return self.get_state_number(clausure)
 
-    def _closure(self, items: List[LRItem]) -> List[LRItem]:
+    def _closure(self, items: Set[LRItem]) -> Set[LRItem]:
         """Returns the closure of a list of LR items.
 
         Parameters
@@ -264,11 +285,15 @@ class LR1Table:
         List[LRItem]
             Closure of the list of LR items.
         """
+        hashsum = self.items_hashsum(items)
+        if hashsum in self._closure_cache:
+            return self._closure_cache[hashsum]
         logging.debug(f"Calculating closure of {items}")
         closure = items
         change = True
         while change:
             change = False
+            new = set()
             for item in closure:
                 next_item = item.at_symbol
                 if next_item is None or next_item.is_terminal:
@@ -282,8 +307,10 @@ class LR1Table:
                             continue
                         lr_item = self._lr_items[prod, 0, fol]
                         if lr_item not in closure:
-                            closure.append(lr_item)
+                            new.add(lr_item)
                             change = True
+            closure.update(new)
+        self._closure_cache[hashsum] = closure
         return closure
 
 
