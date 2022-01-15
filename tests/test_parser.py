@@ -1,10 +1,13 @@
 import logging
 import sys
+from pathlib import Path
 from typing import List
 
 import pytest
-from numlab.compiler import AST, Grammar, ParserManager, Symbol, Tokenizer
+from numlab.compiler import (AST, Grammar, LR1Parser, ParserManager, Symbol,
+                             Tokenizer)
 from numlab.exceptions import ParsingError
+
 
 # Math ast
 class Expr(AST):
@@ -54,10 +57,14 @@ builders = {
 
 
 @pytest.fixture
-def parser():
+def grammar():
     gm = Grammar.open("./tests/grammars/math_expr_lr.gm")
     gm.assign_builders(builders)
+    return gm
 
+
+@pytest.fixture
+def tokenizer():
     tokenizer = Tokenizer()
     tokenizer.add_pattern("NEWLINE", r"( |\n)*\n\n*( |\n)*", lambda l: None)
     tokenizer.add_pattern("SPACE", r"( |\t)( \t)*", lambda t: None)
@@ -66,7 +73,12 @@ def parser():
     tokenizer.add_pattern("*", r"\*")
     tokenizer.add_pattern("(", r"\(")
     tokenizer.add_pattern(")", r"\)")
-    return ParserManager(gm, tokenizer)
+    return tokenizer
+
+
+@pytest.fixture
+def parser(grammar, tokenizer):
+    return ParserManager(grammar, tokenizer)
 
 
 # Test parsing
@@ -93,3 +105,25 @@ def test_parse(parser: ParserManager):
 def test_parse_file(parser: ParserManager):
     ast = parser.parse_file("./tests/grammars/math_file")
     assert ast.eval() == 54
+
+
+def test_save_and_load_lrtable(grammar, tokenizer):
+    table_file = Path("./tests/grammars/math_expr_lr_table")
+
+    if table_file.exists():
+        table_file.unlink()
+
+    parser = LR1Parser(grammar, str(table_file))
+
+    assert table_file.exists()
+    assert parser.lr1_table._first is not None
+
+    parser = LR1Parser(grammar, str(table_file))
+
+    assert parser.lr1_table._first is None
+
+    parser_man = ParserManager(grammar, tokenizer, parser)
+
+    assert parser_man.parse("1 + 2").eval() == 3
+
+    table_file.unlink()

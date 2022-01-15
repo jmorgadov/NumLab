@@ -43,17 +43,17 @@ class LR1Table:
         # [state, symbol] -> [next_state, production]
         self._table: Dict[Tuple[int, str], Union[str, int, Production]] = {}
 
-        if table_file is not None:
-            table_file_path = Path(table_file)
-            if table_file_path.exists():
-                self._load_table(table_file)
-                return
-
         self._first = None
         self._follow = None
         self._states_by_id: Dict[int, List[LRItem]] = None
         self._lr_items: Dict[Production, int, Terminal] = None
         self._item_prods: Dict[NonTerminal, Production] = None
+
+        if table_file is not None:
+            table_file_path = Path(table_file)
+            if table_file_path.exists():
+                self._load_table(table_file)
+                return
         self._build_table(table_file)
 
     def _load_table(self, table_file: str):
