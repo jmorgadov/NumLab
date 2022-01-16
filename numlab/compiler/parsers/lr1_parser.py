@@ -1,7 +1,8 @@
 import logging
+from pprint import pprint
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Tuple, Union, Set
+from typing import Any, Dict, List, Set, Tuple, Union
 
 from numlab.compiler.generic_ast import AST
 from numlab.compiler.grammar import (Grammar, NonTerminal, Production, Symbol,
@@ -48,6 +49,7 @@ class LR1Table:
         self._states_by_id: Dict[int, List[LRItem]] = None
         self._id_by_hashsum: Dict[int, int] = {}
         self._closure_cache: Dict[int, List[LRItem]] = {}
+        self._goto_cache: Dict[Tuple[int, str], int] = {}
         self._lr_items: Dict[Production, int, Terminal] = None
         self._item_prods: Dict[NonTerminal, Production] = None
 
@@ -78,9 +80,16 @@ class LR1Table:
             str_t_val = file_lines[i + 2].strip()
             t_val = str_t_val
             if "->" in str_t_val:
+                is_eps = False
                 if str_t_val.endswith("->"):
+                    is_eps = True
                     str_t_val += " EPS"
                 t_val = self._productions[str_t_val]
+                if is_eps:
+                    item_prod = Production([])
+                    item_prod._head = t_val.head
+                    item_prod._builder = t_val._builder
+                    t_val = item_prod
             elif str_t_val.isnumeric():
                 t_val = int(str_t_val)
             self._table[(state, symbol)] = t_val
@@ -140,7 +149,6 @@ class LR1Table:
             logging.debug(f"  {lr_item}")
         return lr_items
 
-    @lru_cache(maxsize=None)
     def _contained_in_first(self, terminal: Terminal, *symbols):
         """Checks if a terminal is contained in the first set of a set of symbols.
 
@@ -197,11 +205,20 @@ class LR1Table:
             for item in state:
                 if item.at_symbol is None:
                     val = "OK" if item.prod.head.name == "S`" else item.prod
-                    lr1_table[current_state, item.lah.name] = val
+                    table_key = (current_state, item.lah.name)
                 else:
-                    lr1_table[current_state, item.at_symbol.name] = self._goto(
-                        current_state, item.at_symbol
+                    val = self._goto(current_state, item.at_symbol)
+                    table_key = (current_state, item.at_symbol.name)
+
+                cont_val = lr1_table.get(table_key, None)
+
+                if cont_val is not None and cont_val != val:
+                    print(item)
+                    raise ValueError(
+                        f"LR1 table already contains "
+                        f"{table_key} -> {cont_val.__repr__()}  *** {val.__repr__()}"
                     )
+                lr1_table[table_key] = val
             current_state += 1
         self._table = lr1_table
         logging.info("LR1 table built")
@@ -221,7 +238,7 @@ class LR1Table:
         int
             State number.
         """
-        hashsum = self.items_hashsum(items)
+        hashsum = self.items_hash(items)
         if hashsum in self._id_by_hashsum:
             return self._id_by_hashsum[hashsum]
         number = len(self._states_by_id)
@@ -232,19 +249,20 @@ class LR1Table:
     def __getitem__(self, index):
         return self._table.get(index, None)
 
-    def items_hashsum(self, items: List[LRItem]) -> int:
-        """Returns the hash sum of a list of LR items.
+    def items_hash(self, items: Set[LRItem]) -> Any:
+        """Returns a unique value for a list of LR items.
 
         Parameters
         ----------
-        items : List[LRItem]
-            List of LR items.
+        items : Set[LRItem]
+            Set of LR items.
 
         Returns
         -------
-        int
+        Any
             Hash sum.
         """
+        # return "".join([item.__repr__() for item in items])
         return sum(hash(item) for item in items)
 
     @lru_cache(maxsize=None)
@@ -263,6 +281,7 @@ class LR1Table:
         int
             State number.
         """
+        logging.debug(f"Goto({state}, {symbol})")
         state_items = self._states_by_id[state]
         filtered_items = {
             self._lr_items[item.prod, item.dot_pos + 1, item.lah]
@@ -285,7 +304,7 @@ class LR1Table:
         List[LRItem]
             Closure of the list of LR items.
         """
-        hashsum = self.items_hashsum(items)
+        hashsum = self.items_hash(items)
         if hashsum in self._closure_cache:
             return self._closure_cache[hashsum]
         logging.debug(f"Calculating closure of {items}")

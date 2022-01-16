@@ -9,8 +9,8 @@ stmt: simple_stmt
 	| compound_stmt
 
 stmt_list:
+    | stmt
 	| stmt stmt_list
-	| EPS
 
 simple_stmt:
 	| small_stmt NEWLINE
@@ -106,9 +106,12 @@ compound_stmt:
 	| decorated
 
 if_stmt:
-	| 'if' test ':' suite
-	| 'if' test ':' suite 'elif' test ':' suite
-	| 'if' test ':' suite 'else' ':' suite
+	| 'if' test ':' suite elif_clause
+	| 'if' test ':' suite elif_clause 'else' ':' suite
+
+elif_clause:
+	| 'elif' test ':' suite elif_clause
+	| EPS
 
 while_stmt:
 	| 'while' test ':' suite
@@ -119,7 +122,6 @@ for_stmt:
 	| 'for' exprlist 'in' test_list ':' suite 'else' ':' suite
 
 try_stmt:
-	| 'try' ':' suite
 	| 'try' ':' suite except_clause ':' suite
 	| 'try' ':' suite except_clause ':' suite 'else' ':' suite
 	| 'try' ':' suite except_clause ':' suite 'finally' ':' suite
@@ -150,8 +152,8 @@ decorated:
 	| decorators classdef
 
 decorators:
+  	| decorator
 	| decorator decorators
-	| EPS
 
 decorator:
 	| '@' dotted_name NEWLINE
@@ -180,10 +182,13 @@ comp_iter:
 	| EPS
 
 expr_stmt:
-	| testlist_star_expr
 	| testlist_star_expr annassign
 	| testlist_star_expr augassign yield_or_testlist
 	| testlist_star_expr assign
+
+testlist_star_expr:
+    | test_or_star_expr
+	| test_or_star_expr ',' testlist_star_expr
 
 yield_or_testlist:
 	| yield_expr
@@ -194,7 +199,8 @@ yield_expr: 'yield' | 'yield' yield_arg
 yield_arg: 'from' test | test_list
 
 assign:
-    | '=' yield_or_testlist assign
+    | '=' yield_expr assign
+    | '=' testlist_star_expr assign
 	| EPS
 
 annassign: ':' test '=' test

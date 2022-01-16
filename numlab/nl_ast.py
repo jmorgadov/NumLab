@@ -18,6 +18,11 @@ class Stmt(AST):
         self.stmt = stmt
 
 
+class StmtList(AST):
+    def __init__(self, stmts):
+        self.stmts = stmts
+
+
 class SimpleStmt(AST):
     def __init__(self, small_stmt):
         self.small_stmt = small_stmt
@@ -68,18 +73,23 @@ class DoubleStarParam(AST):
         self.tfpdef = tfpdef
 
 
+class VarArgList(AST):
+    def __init__(self, var_args):
+        self.var_args = var_args
+
+
 class TFPDef(AST):
     def __init__(self, name, test=None):
         self.name = name
         self.test = test
 
 
-class VFPVarArg(AST):
+class VFPDefVarArg(AST):
     def __init__(self, vfpdef):
         self.vfpdef = vfpdef
 
 
-class VFPDefEq(AST):
+class VFPDefEqVarArg(AST):
     def __init__(self, vfpdef, test):
         self.vfpdef = vfpdef
         self.test = test
@@ -100,33 +110,38 @@ class VFPDef(AST):
         self.name = name
 
 
-class ExprStmt(AST):
+class ExprSmallStmt(AST):
     def __init__(self, expr):
         self.expr = expr
 
 
-class DelStmt(AST):
+class DelSmallStmt(AST):
     def __init__(self, expr_list):
         self.expr_list = expr_list
 
 
-class PassStmt(AST):
+class PassSmallStmt(AST):
     pass
 
 
-class GlobalStmt(AST):
+class GlobalSmallStmt(AST):
     def __init__(self, name_list):
         self.name_list = name_list
 
 
-class NonlocalStmt(AST):
+class NonlocalSmallStmt(AST):
     def __init__(self, name_list):
         self.name_list = name_list
 
 
-class AssertStmt(AST):
+class AssertSmallStmt(AST):
     def __init__(self, test_list):
         self.test_list = test_list
+
+
+class NameList(AST):
+    def __init__(self, name_list):
+        self.name_list = name_list
 
 
 class FlowStmt(AST):
@@ -143,17 +158,17 @@ class ContinueStmt(AST):
 
 
 class ReturnStmt(AST):
-    def __init__(self, expr_list):
+    def __init__(self, expr_list=None):
         self.expr_list = expr_list
 
 
 class YieldStmt(AST):
-    def __init__(self, expr_list):
+    def __init__(self, expr_list=None):
         self.expr_list = expr_list
 
 
 class RaiseStmt(AST):
-    def __init__(self, test, from_test=None):
+    def __init__(self, test=None, from_test=None):
         self.test = test
         self.from_test = from_test
 
@@ -164,12 +179,17 @@ class CompoundStmt(AST):
 
 
 class IfStmt(AST):
-    def __init__(self, test, suite, elif_test=None, elif_suite=None, else_suite=None):
+    def __init__(self, test, suite, elif_list, else_suite=None):
         self.test = test
         self.suite = suite
-        self.elif_test = elif_test
-        self.elif_suite = elif_suite
+        self.elif_list = elif_list
         self.else_suite = else_suite
+
+
+class ElifClause(AST):
+    def __init__(self, test_list, suite_list):
+        self.test_list = test_list
+        self.suite_list = suite_list
 
 
 class WhileStmt(AST):
@@ -204,7 +224,7 @@ class TryStmt(AST):
 
 
 class ExceptClause(AST):
-    def __init__(self, test, as_name=None):
+    def __init__(self, test=None, as_name=None):
         self.test = test
         self.as_name = as_name
 
@@ -213,6 +233,11 @@ class WithStmt(AST):
     def __init__(self, with_item_list, suite):
         self.with_item_list = with_item_list
         self.suite = suite
+
+
+class WithItemList(AST):
+    def __init__(self, items):
+        self.items = items
 
 
 class WithItem(AST):
@@ -227,8 +252,8 @@ class SimpleStmtSuite(AST):
 
 
 class StmtListSuite(AST):
-    def __init__(self, stmt_list):
-        self.stmt_list = stmt_list
+    def __init__(self, stmts):
+        self.stmts = stmts
 
 
 class DecoratedFunc(AST):
@@ -241,6 +266,11 @@ class DecoratedClass(AST):
     def __init__(self, decorator_list, classdef):
         self.decorator_list = decorator_list
         self.classdef = classdef
+
+
+class DecoratorList(AST):
+    def __init__(self, decorators):
+        self.decorators = decorators
 
 
 class Decorator(AST):
@@ -257,6 +287,10 @@ class DottedName(AST):
 class ArgList(AST):
     def __init__(self, arguments):
         self.arguments = arguments
+
+
+class EmptyTest(AST):
+    pass
 
 
 class TestCompForArg(AST):
@@ -281,20 +315,24 @@ class DoubleStarTestArg(AST):
         self.test = test
 
 
+class EmptyCompIter(AST):
+    pass
+
+
 class CompFor(AST):
-    def __init__(self, expr_list, or_test, comp_iter=None):
+    def __init__(self, expr_list, or_test, comp_iter):
         self.expr_list = expr_list
         self.or_test = or_test
         self.comp_iter = comp_iter
 
 
 class CompIf(AST):
-    def __init__(self, test_no_cond, comp_iter=None):
+    def __init__(self, test_no_cond, comp_iter):
         self.test_no_cond = test_no_cond
         self.comp_iter = comp_iter
 
 
-class SimpleExprStm(AST):
+class SimpleExprStmt(AST):
     def __init__(self, test_list_star_expr):
         self.test_list_star_expr = test_list_star_expr
 
@@ -318,6 +356,11 @@ class AssignExprStmt(AST):
         self.assign = assign
 
 
+class TestListStarExpr(AST):
+    def __init__(self, test_star_exprs):
+        self.test_star_exprs = test_star_exprs
+
+
 class YieldExpr(AST):
     def __init__(self, yield_arg=None):
         self.yield_arg = yield_arg
@@ -326,6 +369,11 @@ class YieldExpr(AST):
 class FromTestYieldArg(AST):
     def __init__(self, from_test):
         self.from_test = from_test
+
+
+class TestListYieldArg(AST):
+    def __init__(self, test_list):
+        self.test_list = test_list
 
 
 class Assign(AST):
@@ -357,6 +405,11 @@ class CondOrTestTest(AST):
 
 
 class LambdaDefTest(AST):
+    def __init__(self, lambda_def):
+        self.lambda_def = lambda_def
+
+
+class LambdaDef(AST):
     def __init__(self, test, var_arg_list=None):
         self.test = test
         self.var_arg_list = var_arg_list
@@ -433,20 +486,67 @@ class Term(AST):
 
 
 class Factor(AST):
-    def __init__(self, power, factor_op_list):
-        self.power = power
-        self.factor_op_list = factor_op_list
+    def __init__(self, factor, op=None):
+        self.factor = factor
+        self.op = op
 
 
 class Power(AST):
-    def __init__(self, atom_expr_list):
-        self.atom_expr_list = atom_expr_list
+    def __init__(self, atom_expr, factor=None):
+        self.atom_expr = atom_expr
+        self.factor = factor
 
 
 class AtomExpr(AST):
     def __init__(self, atom, trailer_expr):
         self.atom = atom
         self.trailer_expr = trailer_expr
+
+
+class TrailerExpr(AST):
+    def __init__(self, trailer_list):
+        self.trailer_list = trailer_list
+
+
+class ParenTrailer(AST):
+    def __init__(self, arg_list):
+        self.arg_list = arg_list
+
+
+class BracketTrailer(AST):
+    def __init__(self, subscript_list):
+        self.subscript_list = subscript_list
+
+
+class DotNameTrailer(AST):
+    def __init__(self, name):
+        self.name = name
+
+
+class SubscriptList(AST):
+    def __init__(self, subscript_list):
+        self.subscript_list = subscript_list
+
+
+class TestSubscript(AST):
+    def __init__(self, test):
+        self.test = test
+
+
+class SliceSubscript(AST):
+    def __init__(self, test_a=None, test_b=None, slice_op=None):
+        self.test_a = test_a
+        self.test_b = test_b
+        self.slice_op = slice_op
+
+
+class SliceOp(AST):
+    def __init__(self, test=None):
+        self.test = test
+
+
+class EmptySliceOp(AST):
+    pass
 
 
 class ParYieldAtom(AST):
@@ -459,7 +559,7 @@ class TestListCompParAtom(AST):
         self.test_list_comp = test_list_comp
 
 
-class TestListCompBrackAtom(AST):
+class TestListCompBracketAtom(AST):
     def __init__(self, test_list_comp):
         self.test_list_comp = test_list_comp
 
@@ -468,7 +568,7 @@ class EmptyParAtom(AST):
     pass
 
 
-class EmptyBrackAtom(AST):
+class EmptyBracketAtom(AST):
     pass
 
 
