@@ -293,6 +293,10 @@ class EmptyTest(AST):
     pass
 
 
+class TestArg(AST):
+    def __init__(self, test):
+        self.test = test
+
 class TestCompForArg(AST):
     def __init__(self, test, comp_for):
         self.test = test

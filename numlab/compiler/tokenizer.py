@@ -17,7 +17,7 @@ Example of use:
     > [Tok('aaaba'), Tok(23), Tok('bba'), Tok(34)]
 """
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union, Tuple
 
 from numlab.exceptions import TokenizationError
 from numlab.nlre import RegexPattern, compile_patt
@@ -90,6 +90,7 @@ class Tokenizer:
         self.token_patterns: Dict[str, RegexPattern] = {}
         self._token_found_functions = {}
         self._process_tokens = lambda tk: tk
+        self._keywords = {}
 
     def add_pattern(
         self, token_type: str, pattern: str, func: Callable[[str], Any] = None
@@ -116,6 +117,34 @@ class Tokenizer:
         if func is None:
             func = lambda lex: lex
         self._token_found_functions[token_type] = func
+
+    def add_keyword(self, keyword: str, token_type: str = None):
+        """Adds a keyword to the tokenizer.
+
+        Parameters
+        ----------
+        keyword : str
+            Keyword to be added.
+        token_type : str
+            Token type name for the keyword.
+        """
+        if token_type is None:
+            token_type = keyword
+        self._keywords[keyword] = token_type
+
+    def add_keywords(self, *keywords: Union[str, Tuple[str, str]]):
+        """Adds a list of keywords to the tokenizer.
+
+        Parameters
+        ----------
+        *keywords : Union[str, Tuple[str, str]]
+            Keywords to be added.
+        """
+        for keyword in keywords:
+            if isinstance(keyword, str):
+                self.add_keyword(keyword)
+            else:
+                self.add_keyword(*keyword)
 
     def add_patterns(self, **kwargs: str):
         """Adds a list of patterns for recognizing tokens
@@ -223,6 +252,8 @@ class Tokenizer:
                 if re_match is not None:
                     lexem = re_match.matched_text
                     tok_lexem = self._token_found_functions[token_type](lexem)
+                    if tok_lexem in self._keywords:
+                        token_type = self._keywords[tok_lexem]
                     if tok_lexem is not None:
                         tok = Token(token_type, tok_lexem, line, col)
                         tokens.append(tok)

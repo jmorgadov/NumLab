@@ -14,8 +14,8 @@ builders = {
     # -------------------------------------------------------------------------
     "simple_stmt -> small_stmt NEWLINE": lambda s, n: ast.SimpleStmt(s),
     # -------------------------------------------------------------------------
-    "funcdef -> def NAME ( ) : suite": lambda d, n, p, c, s: ast.FuncDef(n, s),
-    "funcdef -> def NAME ( parameters ) : suite": lambda d, n, p, par, c, s: ast.FuncDef(
+    "funcdef -> def NAME ( ) : suite": lambda d, n, p, p2, c, s: ast.FuncDef(n, s),
+    "funcdef -> def NAME ( parameters ) : suite": lambda d, n, p, par, p2, c, s: ast.FuncDef(
         n, s, par
     ),
     # -------------------------------------------------------------------------
@@ -178,6 +178,7 @@ builders = {
     "arglist -> argument": lambda a: ast.ArgList([a]),
     "arglist -> argument , arglist": (lambda a, c, a2: ast.ArgList([a] + a2.arguments)),
     # -------------------------------------------------------------------------
+    "argument -> test": lambda t: ast.TestArg(t),
     "argument -> test comp_for": lambda t, c: ast.TestCompForArg(t, c),
     "argument -> test = test": lambda t, e, t2: ast.TestEqTestArg(t, t2),
     "argument -> * test": lambda a, t: ast.StarTestArg(t),
@@ -215,11 +216,9 @@ builders = {
     "yield_arg -> from test": lambda f, t: ast.FromTestYieldArg(t),
     "yield_arg -> test_list": lambda t: ast.TestListYieldArg(t),
     # -------------------------------------------------------------------------
-    "assign -> = yield_expr assign": (
-        lambda e, y, a: ast.Assign([a] + a.assignements),
-    ),
+    "assign -> = yield_expr assign": (lambda e, y, a: ast.Assign([a] + a.assignements)),
     "assign -> = testlist_star_expr assign": (
-        lambda e, y, a: ast.Assign([a] + a.assignements),
+        lambda e, y, a: ast.Assign([a] + a.assignements)
     ),
     "assign -> EPS": lambda: ast.Assign([]),
     # -------------------------------------------------------------------------
@@ -352,9 +351,9 @@ builders = {
     ),
     "trailer_expr -> EPS": lambda: ast.TrailerExpr([]),
     # -------------------------------------------------------------------------
-    "trailer -> ( arglist )": lambda a: ast.ParenTrailer(a),
-    "trailer -> [ subscriptlist ]": lambda s: ast.BracketTrailer(s),
-    "trailer -> . NAME": lambda n: ast.DotNameTrailer(n),
+    "trailer -> ( arglist )": lambda p, a, p2: ast.ParenTrailer(a),
+    "trailer -> [ subscriptlist ]": lambda b, s, b2: ast.BracketTrailer(s),
+    "trailer -> . NAME": lambda d, n: ast.DotNameTrailer(n),
     # -------------------------------------------------------------------------
     "subscriptlist -> subscript": lambda s: ast.SubscriptList([s]),
     "subscriptlist -> subscript , subscriptlist": (

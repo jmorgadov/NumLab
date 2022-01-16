@@ -167,6 +167,7 @@ arglist:
 	| argument ',' arglist
 
 argument:
+	| test
 	| test comp_for
 	| test '=' test
 	| '*' test
