@@ -436,8 +436,9 @@ class AndTest(AST):
 
 
 class NotTest(AST):
-    def __init__(self, not_test):
+    def __init__(self, not_test=None, comparison=None):
         self.not_test = not_test
+        self.comparison = comparison
 
 
 class Comparison(AST):

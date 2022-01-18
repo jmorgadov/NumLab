@@ -265,8 +265,8 @@ builders = {
         lambda n, a, a2: ast.AndTest([n] + a2.and_test_list)
     ),
     # -------------------------------------------------------------------------
-    "not_test -> not not_test": lambda n, t: ast.NotTest(t),
-    "not_test -> comparison": lambda c: ast.NotTest(c),
+    "not_test -> not not_test": lambda n, t: ast.NotTest(not_test=t),
+    "not_test -> comparison": lambda c: ast.NotTest(comparison=c),
     # -------------------------------------------------------------------------
     "comparison -> expr": lambda e: ast.Comparison(e, []),
     "comparison -> expr comp_op comparison": (
