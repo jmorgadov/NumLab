@@ -363,6 +363,7 @@ class LR1Parser(Parser):
         i = 0
         while i < len(tokens):
             token = tokens[i]
+            logging.info(f"----------------------------------------------------")
             logging.info(f"Parsing token {token}. Stack: {stack}")
             current_state = stack[-1][1] if stack else 0
             table_val = table[current_state, token.token_type]
@@ -390,7 +391,6 @@ class LR1Parser(Parser):
                 new_head = reduce_prod.head.copy()
                 new_head.set_ast(reduce_prod.build_ast(items))
                 logging.info(f"Reduced to {new_head}")
-                logging.info(f"{new_head} AST = {new_head.ast}")
 
                 # Check next state
                 left_state = stack[-1][1] if stack else 0
