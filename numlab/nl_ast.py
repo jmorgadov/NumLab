@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import List
+import enum
+from typing import Any, List
 
 from numlab.compiler import AST
 
@@ -14,608 +15,378 @@ class Program(AST):
 
 
 class Stmt(AST):
-    def __init__(self, stmt):
-        self.stmt = stmt
-
-
-class StmtList(AST):
-    def __init__(self, stmts):
-        self.stmts = stmts
-
-
-class SimpleStmt(AST):
-    def __init__(self, small_stmt):
-        self.small_stmt = small_stmt
-
-
-class FuncDef(AST):
-    def __init__(self, name, suite, parameters=None):
-        self.name = name
-        self.suite = suite
-        self.parameters = parameters
-
-
-class ClassDef(AST):
-    def __init__(self, name, suite, arg_list=None):
-        self.name = name
-        self.suite = suite
-        self.arg_list = arg_list
-
-
-class Parameters(AST):
-    def __init__(self, parameters):
-        self.parameters = parameters
-
-
-class TFPDefParam(AST):
-    def __init__(self, tfpdef):
-        self.tfpdef = tfpdef
-
-
-class TFPDefEqParam(AST):
-    def __init__(self, tfpdef, test):
-        self.tfpdef = tfpdef
-        self.test = test
-
-
-class StarParam(AST):
-    def __init__(self, tfpdef):
-        self.tfpdef = tfpdef
-
-
-class SmallStmt(AST):
-    def __init__(self, stmt):
-        self.stmt = stmt
-
-
-class DoubleStarParam(AST):
-    def __init__(self, tfpdef):
-        self.tfpdef = tfpdef
-
-
-class VarArgList(AST):
-    def __init__(self, var_args):
-        self.var_args = var_args
-
-
-class TFPDef(AST):
-    def __init__(self, name, test=None):
-        self.name = name
-        self.test = test
-
-
-class VFPDefVarArg(AST):
-    def __init__(self, vfpdef):
-        self.vfpdef = vfpdef
-
-
-class VFPDefEqVarArg(AST):
-    def __init__(self, vfpdef, test):
-        self.vfpdef = vfpdef
-        self.test = test
-
-
-class StarVarArg(AST):
-    def __init__(self, vfpdef):
-        self.vfpdef = vfpdef
-
-
-class DoubleStarVarArg(AST):
-    def __init__(self, vfpdef):
-        self.vfpdef = vfpdef
-
-
-class VFPDef(AST):
-    def __init__(self, name):
-        self.name = name
-
-
-class ExprSmallStmt(AST):
-    def __init__(self, expr):
-        self.expr = expr
-
-
-class DelSmallStmt(AST):
-    def __init__(self, expr_list):
-        self.expr_list = expr_list
-
-
-class PassSmallStmt(AST):
     pass
 
 
-class GlobalSmallStmt(AST):
-    def __init__(self, name_list):
-        self.name_list = name_list
+class FuncDefStmt(Stmt):
+    def __init__(self, name: str, args: Args, body: List[Stmt]):
+        self.name = name
+        self.args = args
+        self.body = body
 
 
-class NonlocalSmallStmt(AST):
-    def __init__(self, name_list):
-        self.name_list = name_list
-
-
-class AssertSmallStmt(AST):
-    def __init__(self, test_list):
-        self.test_list = test_list
-
-
-class NameList(AST):
-    def __init__(self, name_list):
-        self.name_list = name_list
-
-
-class FlowStmt(AST):
-    def __init__(self, flow_stmt):
-        self.flow_stmt = flow_stmt
-
-
-class BreakStmt(AST):
-    pass
-
-
-class ContinueStmt(AST):
-    pass
-
-
-class ReturnStmt(AST):
-    def __init__(self, expr_list=None):
-        self.expr_list = expr_list
-
-
-class YieldStmt(AST):
-    def __init__(self, expr_list=None):
-        self.expr_list = expr_list
-
-
-class RaiseStmt(AST):
-    def __init__(self, test=None, from_test=None):
-        self.test = test
-        self.from_test = from_test
-
-
-class CompoundStmt(AST):
-    def __init__(self, comp_stmt):
-        self.comp_stmt = comp_stmt
-
-
-class IfStmt(AST):
-    def __init__(self, test, suite, elif_list, else_suite=None):
-        self.test = test
-        self.suite = suite
-        self.elif_list = elif_list
-        self.else_suite = else_suite
-
-
-class ElifClause(AST):
-    def __init__(self, test_list, suite_list):
-        self.test_list = test_list
-        self.suite_list = suite_list
-
-
-class WhileStmt(AST):
-    def __init__(self, test, suite, else_suite=None):
-        self.test = test
-        self.suite = suite
-        self.else_suite = else_suite
-
-
-class ForStmt(AST):
-    def __init__(self, expr_list, test_list, suite, else_suite=None):
-        self.expr_list = expr_list
-        self.test_list = test_list
-        self.suite = suite
-        self.else_suite = else_suite
-
-
-class TryStmt(AST):
+class ClassDefStmt(Stmt):
     def __init__(
         self,
-        suite,
-        except_clause=None,
-        except_clause_suite=None,
-        else_suite=None,
-        finally_suite=None,
+        name: str,
+        bases: List[Expr],
+        body: List[Stmt],
+        decorators: List[Expr] = None,
     ):
-        self.suite = suite
-        self.except_clause = except_clause
-        self.except_clause_suite = except_clause_suite
-        self.else_suite = else_suite
-        self.finally_suite = finally_suite
-
-
-class ExceptClause(AST):
-    def __init__(self, test=None, as_name=None):
-        self.test = test
-        self.as_name = as_name
-
-
-class WithStmt(AST):
-    def __init__(self, with_item_list, suite):
-        self.with_item_list = with_item_list
-        self.suite = suite
-
-
-class WithItemList(AST):
-    def __init__(self, items):
-        self.items = items
-
-
-class WithItem(AST):
-    def __init__(self, test, as_expr=None):
-        self.test = test
-        self.as_expr = as_expr
-
-
-class SimpleStmtSuite(AST):
-    def __init__(self, simple_stmt):
-        self.simple_stmt = simple_stmt
-
-
-class StmtListSuite(AST):
-    def __init__(self, stmts):
-        self.stmts = stmts
-
-
-class DecoratedFunc(AST):
-    def __init__(self, decorator_list, funcdef):
-        self.decorator_list = decorator_list
-        self.funcdef = funcdef
-
-
-class DecoratedClass(AST):
-    def __init__(self, decorator_list, classdef):
-        self.decorator_list = decorator_list
-        self.classdef = classdef
-
-
-class DecoratorList(AST):
-    def __init__(self, decorators):
+        self.name = name
+        self.bases = bases
+        self.body = body
         self.decorators = decorators
 
 
-class Decorator(AST):
-    def __init__(self, dotted_name, arg_list=None):
-        self.dotted_name = dotted_name
-        self.arg_list = arg_list
-
-
-class DottedName(AST):
-    def __init__(self, name_list):
-        self.name_list = name_list
-
-
-class ArgList(AST):
-    def __init__(self, arguments):
-        self.arguments = arguments
-
-
-class EmptyTest(AST):
-    pass
-
-
-class TestArg(AST):
-    def __init__(self, test):
-        self.test = test
-
-class TestCompForArg(AST):
-    def __init__(self, test, comp_for):
-        self.test = test
-        self.comp_for = comp_for
-
-
-class TestEqTestArg(AST):
-    def __init__(self, test, eq_test):
-        self.test = test
-        self.eq_test = eq_test
-
-
-class StarTestArg(AST):
-    def __init__(self, test):
-        self.test = test
-
-
-class DoubleStarTestArg(AST):
-    def __init__(self, test):
-        self.test = test
-
-
-class EmptyCompIter(AST):
-    pass
-
-
-class CompFor(AST):
-    def __init__(self, expr_list, or_test, comp_iter):
-        self.expr_list = expr_list
-        self.or_test = or_test
-        self.comp_iter = comp_iter
-
-
-class CompIf(AST):
-    def __init__(self, test_no_cond, comp_iter):
-        self.test_no_cond = test_no_cond
-        self.comp_iter = comp_iter
-
-
-class SimpleExprStmt(AST):
-    def __init__(self, test_list_star_expr):
-        self.test_list_star_expr = test_list_star_expr
-
-
-class AnnassignExprStmt(AST):
-    def __init__(self, test_list_star_expr, annassign):
-        self.test_list_star_expr = test_list_star_expr
-        self.annassign = annassign
-
-
-class AugassignExprStmt(AST):
-    def __init__(self, test_list_star_expr, augassign, yield_or_test_list):
-        self.test_list_star_expr = test_list_star_expr
-        self.augassign = augassign
-        self.yield_or_test_list = yield_or_test_list
-
-
-class AssignExprStmt(AST):
-    def __init__(self, test_list_star_expr, assign):
-        self.test_list_star_expr = test_list_star_expr
-        self.assign = assign
-
-
-class TestListStarExpr(AST):
-    def __init__(self, test_star_exprs):
-        self.test_star_exprs = test_star_exprs
-
-
-class YieldExpr(AST):
-    def __init__(self, yield_arg=None):
-        self.yield_arg = yield_arg
-
-
-class FromTestYieldArg(AST):
-    def __init__(self, from_test):
-        self.from_test = from_test
-
-
-class TestListYieldArg(AST):
-    def __init__(self, test_list):
-        self.test_list = test_list
-
-
-class Assign(AST):
-    def __init__(self, assignements):
-        self.assignements = assignements
-
-
-class Annassign(AST):
-    def __init__(self, annotation, test):
-        self.annotation = annotation
-        self.test = test
-
-
-class Augassign(AST):
-    def __init__(self, sign):
-        self.sign = sign
-
-
-class OrTestTest(AST):
-    def __init__(self, or_test):
-        self.or_test = or_test
-
-
-class CondOrTestTest(AST):
-    def __init__(self, or_test, if_or_test, else_or_test):
-        self.or_test = or_test
-        self.if_or_test = if_or_test
-        self.else_or_test = else_or_test
-
-
-class LambdaDefTest(AST):
-    def __init__(self, lambda_def):
-        self.lambda_def = lambda_def
-
-
-class LambdaDef(AST):
-    def __init__(self, test, var_arg_list=None):
-        self.test = test
-        self.var_arg_list = var_arg_list
-
-
-class NoCondLambdaDefTest(AST):
-    def __init__(self, test_no_cond, var_arg_list=None):
-        self.test_no_cond = test_no_cond
-        self.var_arg_list = var_arg_list
-
-
-class OrTest(AST):
-    def __init__(self, and_test_list):
-        self.and_test_list = and_test_list
-
-
-class AndTest(AST):
-    def __init__(self, not_test_list):
-        self.not_test_list = not_test_list
-
-
-class NotTest(AST):
-    def __init__(self, not_test=None, comparison=None):
-        self.not_test = not_test
-        self.comparison = comparison
-
-
-class Comparison(AST):
-    def __init__(self, expr_list, comp_op_list):
-        self.expr_list = expr_list
-        self.comp_op_list = comp_op_list
-
-
-class CompOp(AST):
-    def __init__(self, sign):
-        self.sign = sign
-
-
-class StarExpr(AST):
-    def __init__(self, expr):
+class ReturnStmt(Stmt):
+    def __init__(self, expr: Expr = None):
         self.expr = expr
 
 
-class Expr(AST):
-    def __init__(self, xor_expr_list):
-        self.xor_expr_list = xor_expr_list
+class DeleteStmt(Stmt):
+    def __init__(self, targets: List[Expr]):
+        self.targets = targets
 
 
-class XorExpr(AST):
-    def __init__(self, and_expr_list):
-        self.and_expr_list = and_expr_list
+class AssignStmt(Stmt):
+    def __init__(self, targets: List[Expr], value: Expr):
+        self.targets = targets
+        self.value = value
 
 
-class AndExpr(AST):
-    def __init__(self, shift_expr_list):
-        self.shift_expr_list = shift_expr_list
-
-
-class ShiftExpr(AST):
-    def __init__(self, arith_expr_list, shift_op_list):
-        self.arith_expr_list = arith_expr_list
-        self.shift_op_list = shift_op_list
-
-
-class ArithExpr(AST):
-    def __init__(self, term_list, arith_op_list):
-        self.term_list = term_list
-        self.arith_op_list = arith_op_list
-
-
-class Term(AST):
-    def __init__(self, factor_list, term_op_list):
-        self.factor_list = factor_list
-        self.term_op_list = term_op_list
-
-
-class Factor(AST):
-    def __init__(self, factor, op=None):
-        self.factor = factor
+class AugAssignStmt(Stmt):
+    def __init__(self, target: Expr, op: str, value: Expr):
+        self.target = target
         self.op = op
+        self.value = value
 
 
-class Power(AST):
-    def __init__(self, atom_expr, factor=None):
-        self.atom_expr = atom_expr
-        self.factor = factor
+class AnnAssignStmt(Stmt):
+    def __init__(self, target: Expr, annotation: Expr, value: Expr):
+        self.target = target
+        self.annotation = annotation
+        self.value = value
 
 
-class AtomExpr(AST):
-    def __init__(self, atom, trailer_expr):
-        self.atom = atom
-        self.trailer_expr = trailer_expr
+class ForStmt(Stmt):
+    def __init__(self, target: Expr, iter: Expr, body: List[Stmt], orelse: List[Stmt]):
+        self.target = target
+        self.iter = iter
+        self.body = body
+        self.orelse = orelse
 
 
-class TrailerExpr(AST):
-    def __init__(self, trailer_list):
-        self.trailer_list = trailer_list
-
-
-class ParenTrailer(AST):
-    def __init__(self, arg_list):
-        self.arg_list = arg_list
-
-
-class BracketTrailer(AST):
-    def __init__(self, subscript_list):
-        self.subscript_list = subscript_list
-
-
-class DotNameTrailer(AST):
-    def __init__(self, name):
-        self.name = name
-
-
-class SubscriptList(AST):
-    def __init__(self, subscript_list):
-        self.subscript_list = subscript_list
-
-
-class TestSubscript(AST):
-    def __init__(self, test):
+class WhileStmt(Stmt):
+    def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt]):
         self.test = test
+        self.body = body
+        self.orelse = orelse
 
 
-class SliceSubscript(AST):
-    def __init__(self, test_a=None, test_b=None, slice_op=None):
-        self.test_a = test_a
-        self.test_b = test_b
-        self.slice_op = slice_op
-
-
-class SliceOp(AST):
-    def __init__(self, test=None):
+class IfStmt(Stmt):
+    def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt]):
         self.test = test
+        self.body = body
+        self.orelse = orelse
 
 
-class EmptySliceOp(AST):
-    pass
+class WithStmt(Stmt):
+    def __init__(self, items: List[WithItem], body: List[Stmt]):
+        self.items = items
+        self.body = body
 
 
-class ParYieldAtom(AST):
-    def __init__(self, yield_expr):
-        self.yield_expr = yield_expr
+class WithItem(AST):
+    def __init__(self, context_expr: Expr, optional_vars: List[Expr]):
+        self.context_expr = context_expr
+        self.optional_vars = optional_vars
 
 
-class TestListCompParAtom(AST):
-    def __init__(self, test_list_comp):
-        self.test_list_comp = test_list_comp
+class RaiseStmt(Stmt):
+    def __init__(self, exc: Expr = None, cause: Expr = None):
+        self.exc = exc
+        self.cause = cause
 
 
-class TestListCompBracketAtom(AST):
-    def __init__(self, test_list_comp):
-        self.test_list_comp = test_list_comp
+class TryStmt(Stmt):
+    def __init__(
+        self,
+        body: List[Stmt],
+        handlers: List[ExceptHandler],
+        orelse: List[Stmt],
+        finalbody: List[Stmt],
+    ):
+        self.body = body
+        self.handlers = handlers
+        self.orelse = orelse
+        self.finalbody = finalbody
 
 
-class EmptyParAtom(AST):
-    pass
-
-
-class EmptyBracketAtom(AST):
-    pass
-
-
-class EmptyBraceAtom(AST):
-    pass
-
-
-class NameAtom(AST):
-    def __init__(self, name):
+class ExceptHandler(AST):
+    def __init__(self, hand_type: Expr, name: Expr, body: List[Stmt]):
+        self.hand_type = hand_type
         self.name = name
+        self.body = body
 
 
-class NumberAtom(AST):
-    def __init__(self, number):
-        self.number = number
+class AssertStmt(Stmt):
+    def __init__(self, test: Expr, msg: Expr = None):
+        self.test = test
+        self.msg = msg
 
 
-class StringAtom(AST):
-    def __init__(self, string):
-        self.string = string
+class GlobalStmt(Stmt):
+    def __init__(self, names: List[str]):
+        self.names = names
 
 
-class NoneAtom(AST):
+class NonlocalStmt(Stmt):
+    def __init__(self, names: List[str]):
+        self.names = names
+
+
+class ExprStmt(Stmt):
+    def __init__(self, expr: Expr):
+        self.expr = expr
+
+
+class PassStmt(Stmt):
     pass
 
 
-class BooleanAtom(AST):
-    def __init__(self, boolean):
-        self.boolean = boolean
+class BreakStmt(Stmt):
+    pass
 
 
-class TestListComp(AST):
-    def __init__(self, test_or_star_expr_list, comp_for):
-        self.test_or_star_expr_list = test_or_star_expr_list
-        self.comp_for = comp_for
+class ContinueStmt(Stmt):
+    pass
 
 
-class ExprList(AST):
-    def __init__(self, expr_or_star_expr_list):
-        self.expr_or_star_expr_list = expr_or_star_expr_list
+class Expr(AST):
+    pass
 
 
-class TestList(AST):
-    def __init__(self, test_list):
-        self.test_list = test_list
+class BoolOpExpr(Expr):
+    def __init__(self, op: str, values: List[Expr]):
+        self.op = op
+        self.values = values
+
+
+class BinOpExpr(Expr):
+    def __init__(self, left: Expr, op: str, right: Expr):
+        self.op = op
+        self.left = left
+        self.right = right
+
+
+class UnaryOpExpr(Expr):
+    def __init__(self, op: str, operand: Expr):
+        self.op = op
+        self.operand = operand
+
+
+class LambdaExpr(Expr):
+    def __init__(self, args: Args, body: Expr):
+        self.args = args
+        self.body = body
+
+
+class IfExpr(Expr):
+    def __init__(self, test: Expr, body: Expr, orelse: Expr):
+        self.test = test
+        self.body = body
+        self.orelse = orelse
+
+
+class DictExpr(Expr):
+    def __init__(self, keys: List[Expr], values: List[Expr]):
+        self.keys = keys
+        self.values = values
+
+
+class SetExpr(Expr):
+    def __init__(self, elts: List[Expr]):
+        self.elts = elts
+
+
+class ListCompExpr(Expr):
+    def __init__(self, elt: Expr, generators: List[Comprehension]):
+        self.elt = elt
+        self.generators = generators
+
+
+class SetCompExpr(Expr):
+    def __init__(self, elt: Expr, generators: List[Comprehension]):
+        self.elt = elt
+        self.generators = generators
+
+
+class DictCompExpr(Expr):
+    def __init__(self, key: Expr, value: Expr, generators: List[Comprehension]):
+        self.key = key
+        self.value = value
+        self.generators = generators
+
+
+class GeneratorExpr(Expr):
+    def __init__(self, elt: Expr, generators: List[Comprehension]):
+        self.elt = elt
+        self.generators = generators
+
+
+class Comprehension(AST):
+    def __init__(self, target: Expr, comp_iter: Expr, ifs: List[Expr]):
+        self.target = target
+        self.comp_iter = comp_iter
+        self.ifs = ifs
+
+
+class YieldExpr(Expr):
+    def __init__(self, value: Expr = None):
+        self.value = value
+
+
+class YieldFromExpr(Expr):
+    def __init__(self, value: Expr):
+        self.value = value
+
+
+class CompareExpr(Expr):
+    def __init__(self, left: Expr, ops: List[CmpOp], comparators: List[Expr]):
+        self.left = left
+        self.ops = ops
+        self.comparators = comparators
+
+
+class CallExpr(Expr):
+    def __init__(self, func: Expr, args: List[Expr], keywords: List[Keyword]):
+        self.func = func
+        self.args = args
+        self.keywords = keywords
+
+
+class Keyword(AST):
+    def __init__(self, arg: str, value: Expr):
+        self.arg = arg
+        self.value = value
+
+
+class ConstantExpr(Expr):
+    def __init__(self, value: Any):
+        self.value = value
+
+
+class AttributeExpr(Expr):
+    def __init__(self, value: Expr, attr: str, ctx: ExprCtx):
+        self.value = value
+        self.attr = attr
+        self.ctx = ctx
+
+
+class SubscriptExpr(Expr):
+    def __init__(self, value: Expr, slice_expr: SliceExpr, ctx: ExprCtx):
+        self.value = value
+        self.slice_expr = slice_expr
+        self.ctx = ctx
+
+
+class StarredExpr(Expr):
+    def __init__(self, value: Expr, ctx: ExprCtx):
+        self.value = value
+        self.ctx = ctx
+
+
+class NameExpr(Expr):
+    def __init__(self, name_id: str, ctx: ExprCtx):
+        self.name_id = name_id
+        self.ctx = ctx
+
+
+class ListExpr(Expr):
+    def __init__(self, elts: List[Expr], ctx: ExprCtx):
+        self.elts = elts
+        self.ctx = ctx
+
+
+class TupleExpr(Expr):
+    def __init__(self, elts: List[Expr], ctx: ExprCtx):
+        self.elts = elts
+        self.ctx = ctx
+
+
+class SliceExpr(Expr):
+    def __init__(self, lower: Expr = None, upper: Expr = None, step: Expr = None):
+        self.lower = lower
+        self.upper = upper
+        self.step = step
+
+
+class Args(AST):
+    def __init__(
+        self,
+        args: List[Arg] = None,
+        keyword_args: List[Arg] = None,
+        vararg=None,
+        kwarg=None,
+        defaults: List[Expr] = None,
+        kw_defaults: List[Expr] = None,
+    ):
+        self.args = args if args is not None else []
+        self.keyword_args = keyword_args if keyword_args is not None else []
+        self.vararg = vararg
+        self.kwarg = kwarg
+        self.defaults = defaults if defaults is not None else []
+        self.kw_defaults = kw_defaults if kw_defaults is not None else []
+
+
+class Arg(AST):
+    def __init__(self, arg: str, annotation: Expr = None):
+        self.arg = arg
+        self.annotation = annotation
+
+
+class ExprCtx(enum.Enum):
+    LOAD = enum.auto()
+    STORE = enum.auto()
+    DEL = enum.auto()
+
+
+class BoolOp(enum.Enum):
+    AND = enum.auto()
+    OR = enum.auto()
+
+
+class Operator(enum.Enum):
+    ADD = enum.auto()
+    SUB = enum.auto()
+    MUL = enum.auto()
+    DIV = enum.auto()
+    MOD = enum.auto()
+    POW = enum.auto()
+    LSHIFT = enum.auto()
+    RSHIFT = enum.auto()
+    BIT_AND = enum.auto()
+    BIT_XOR = enum.auto()
+    BIT_OR = enum.auto()
+    FLOORDIV = enum.auto()
+
+
+class CmpOp(enum.Enum):
+    IN = enum.auto()
+    NOT_IN = enum.auto()
+    IS = enum.auto()
+    IS_NOT = enum.auto()
+    EQ = enum.auto()
+    NOT_EQ = enum.auto()
+    LT = enum.auto()
+    LTE = enum.auto()
+    GT = enum.auto()
+    GTE = enum.auto()
+
+
+class UnaryOp(enum.Enum):
+    UADD = enum.auto()
+    USUB = enum.auto()
+    NOT = enum.auto()
+    INVERT = enum.auto()
