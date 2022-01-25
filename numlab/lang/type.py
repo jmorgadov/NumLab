@@ -7,18 +7,14 @@ class Type:
     def __init__(self, type_name: str, parent: Type = None):
         self.type_name = type_name
         self.attributes: Dict[str, Any] = {}
-        self.methods: Dict[str, Callable] = {}
         self.parent = parent
 
     def add_attribute(self, attribute: str, default: Any = None):
         self.attributes[attribute] = default
 
-    def add_method(self, method_name: str, method_func: Callable):
-        self.methods[method_name] = method_func
-
     def method(self, method_name: str):
         def method_wrapper(func):
-            self.add_method(method_name, func)
+            self.add_attribute(method_name, func)
             return func
         return method_wrapper
 
@@ -28,18 +24,11 @@ class Type:
                 return attribute
         return None
 
-    def get_func(self, func_name: str):
-        for func in self.methods:
-            if func.name == func_name:
-                return func
-        return None
-
     def get_attr_dict(self):
         all_attrs = {}
         if self.parent:
             all_attrs.update(self.parent.get_all())
         all_attrs.update(self.attributes)
-        all_attrs.update(self.methods)
         return all_attrs
 
 

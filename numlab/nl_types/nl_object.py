@@ -8,7 +8,7 @@ def nl__new__():
     return Instance(nl_object)
 
 nl_object.method('__init__')
-def nl__init__(*args, **kwargs):
+def nl__init__(self):
     pass
 
 nl_object.method('__str__')
