@@ -9,6 +9,50 @@ from numlab.compiler import AST
 # pylint: disable=missing-class-docstring
 
 
+class ExprCtx(enum.Enum):
+    LOAD = enum.auto()
+    STORE = enum.auto()
+    DEL = enum.auto()
+
+
+class Operator(enum.Enum):
+    ADD = enum.auto()
+    SUB = enum.auto()
+    MUL = enum.auto()
+    DIV = enum.auto()
+    MOD = enum.auto()
+    POW = enum.auto()
+    AND = enum.auto()
+    OR = enum.auto()
+    LSHIFT = enum.auto()
+    RSHIFT = enum.auto()
+    BIT_AND = enum.auto()
+    BIT_XOR = enum.auto()
+    BIT_OR = enum.auto()
+    FLOORDIV = enum.auto()
+    MATMUL = enum.auto()
+
+
+class CmpOp(enum.Enum):
+    IN = enum.auto()
+    NOT_IN = enum.auto()
+    IS = enum.auto()
+    IS_NOT = enum.auto()
+    EQ = enum.auto()
+    NOT_EQ = enum.auto()
+    LT = enum.auto()
+    LTE = enum.auto()
+    GT = enum.auto()
+    GTE = enum.auto()
+
+
+class UnaryOp(enum.Enum):
+    UADD = enum.auto()
+    USUB = enum.auto()
+    NOT = enum.auto()
+    INVERT = enum.auto()
+
+
 class Program(AST):
     def __init__(self, stmts: List[Stmt]):
         self.stmts = stmts
@@ -19,10 +63,21 @@ class Stmt(AST):
 
 
 class FuncDefStmt(Stmt):
-    def __init__(self, name: str, args: Args, body: List[Stmt]):
+    def __init__(
+        self,
+        name: str,
+        args: Args,
+        body: List[Stmt],
+        decorators: List[Expr] = None,
+    ):
         self.name = name
         self.args = args
         self.body = body
+        self.decorators = decorators or []
+
+    def add_decorators(self, decorators: List[Expr]) -> FuncDefStmt:
+        self.decorators = decorators
+        return self
 
 
 class ClassDefStmt(Stmt):
@@ -36,7 +91,11 @@ class ClassDefStmt(Stmt):
         self.name = name
         self.bases = bases
         self.body = body
+        self.decorators = decorators or []
+
+    def add_decorators(self, decorators: List[Expr]) -> ClassDefStmt:
         self.decorators = decorators
+        return self
 
 
 class ReturnStmt(Stmt):
@@ -56,10 +115,14 @@ class AssignStmt(Stmt):
 
 
 class AugAssignStmt(Stmt):
-    def __init__(self, target: Expr, op: str, value: Expr):
+    def __init__(self, target: Expr, op: Operator, value: Expr):
         self.target = target
         self.op = op
         self.value = value
+
+    def set_target(self, target: Expr) -> AugAssignStmt:
+        self.target = target
+        return self
 
 
 class AnnAssignStmt(Stmt):
@@ -68,17 +131,23 @@ class AnnAssignStmt(Stmt):
         self.annotation = annotation
         self.value = value
 
+    def set_target(self, target: Expr) -> AnnAssignStmt:
+        self.target = target
+        return self
+
 
 class ForStmt(Stmt):
-    def __init__(self, target: Expr, iter: Expr, body: List[Stmt], orelse: List[Stmt]):
+    def __init__(
+        self, target: Expr, iter_expr: Expr, body: List[Stmt], orelse: List[Stmt] = None
+    ):
         self.target = target
-        self.iter = iter
+        self.iter_expr = iter_expr
         self.body = body
         self.orelse = orelse
 
 
 class WhileStmt(Stmt):
-    def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt]):
+    def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt] = None):
         self.test = test
         self.body = body
         self.orelse = orelse
@@ -98,7 +167,7 @@ class WithStmt(Stmt):
 
 
 class WithItem(AST):
-    def __init__(self, context_expr: Expr, optional_vars: List[Expr]):
+    def __init__(self, context_expr: Expr, optional_vars: List[Expr] = None):
         self.context_expr = context_expr
         self.optional_vars = optional_vars
 
@@ -114,8 +183,8 @@ class TryStmt(Stmt):
         self,
         body: List[Stmt],
         handlers: List[ExceptHandler],
-        orelse: List[Stmt],
-        finalbody: List[Stmt],
+        orelse: List[Stmt] = None,
+        finalbody: List[Stmt] = None,
     ):
         self.body = body
         self.handlers = handlers
@@ -167,12 +236,6 @@ class Expr(AST):
     pass
 
 
-class BoolOpExpr(Expr):
-    def __init__(self, op: str, values: List[Expr]):
-        self.op = op
-        self.values = values
-
-
 class BinOpExpr(Expr):
     def __init__(self, left: Expr, op: str, right: Expr):
         self.op = op
@@ -193,21 +256,21 @@ class LambdaExpr(Expr):
 
 
 class IfExpr(Expr):
-    def __init__(self, test: Expr, body: Expr, orelse: Expr):
+    def __init__(self, test: Expr, body: Expr, orelse: Expr = None):
         self.test = test
         self.body = body
         self.orelse = orelse
 
 
 class DictExpr(Expr):
-    def __init__(self, keys: List[Expr], values: List[Expr]):
-        self.keys = keys
-        self.values = values
+    def __init__(self, keys: List[Expr] = None, values: List[Expr] = None):
+        self.keys = keys or []
+        self.values = values or []
 
 
 class SetExpr(Expr):
-    def __init__(self, elts: List[Expr]):
-        self.elts = elts
+    def __init__(self, elts: List[Expr] = None):
+        self.elts = elts or []
 
 
 class ListCompExpr(Expr):
@@ -234,16 +297,20 @@ class GeneratorExpr(Expr):
         self.elt = elt
         self.generators = generators
 
+    def add_elt(self, elt: Expr) -> GeneratorExpr:
+        self.elt = elt
+        return self
+
 
 class Comprehension(AST):
-    def __init__(self, target: Expr, comp_iter: Expr, ifs: List[Expr]):
+    def __init__(self, target: Expr, comp_iter: Expr, ifs: List[Expr] = None):
         self.target = target
         self.comp_iter = comp_iter
-        self.ifs = ifs
+        self.ifs = ifs or []
 
 
 class YieldExpr(Expr):
-    def __init__(self, value: Expr = None):
+    def __init__(self, value: List[Expr] = None):
         self.value = value
 
 
@@ -267,9 +334,16 @@ class CallExpr(Expr):
 
 
 class Keyword(AST):
-    def __init__(self, arg: str, value: Expr):
+    def __init__(self, arg: Expr, value: Expr):
         self.arg = arg
         self.value = value
+
+
+class StarredExpr(Expr):
+    def __init__(self, value: Expr, ctx: ExprCtx = ExprCtx.LOAD, stars: int = 1):
+        self.value = value
+        self.ctx = ctx
+        self.stars = stars
 
 
 class ConstantExpr(Expr):
@@ -278,39 +352,42 @@ class ConstantExpr(Expr):
 
 
 class AttributeExpr(Expr):
-    def __init__(self, value: Expr, attr: str, ctx: ExprCtx):
+    def __init__(self, value: Expr, attr: str, ctx: ExprCtx = ExprCtx.LOAD):
         self.value = value
         self.attr = attr
         self.ctx = ctx
 
+    def insert_name_at_start(self, name: str) -> AttributeExpr:
+        if isinstance(self.value, AttributeExpr):
+            self.value.insert_name_at_start(name)
+        elif isinstance(self.value, NameExpr):
+            new_name_val = NameExpr(name)
+            name_val = self.value.name_id
+            self.value = AttributeExpr(new_name_val, name_val)
+        return self
+
 
 class SubscriptExpr(Expr):
-    def __init__(self, value: Expr, slice_expr: SliceExpr, ctx: ExprCtx):
+    def __init__(self, value: Expr, slice_expr: SliceExpr, ctx: ExprCtx = ExprCtx.LOAD):
         self.value = value
         self.slice_expr = slice_expr
         self.ctx = ctx
 
 
-class StarredExpr(Expr):
-    def __init__(self, value: Expr, ctx: ExprCtx):
-        self.value = value
-        self.ctx = ctx
-
-
 class NameExpr(Expr):
-    def __init__(self, name_id: str, ctx: ExprCtx):
+    def __init__(self, name_id: str, ctx: ExprCtx = ExprCtx.LOAD):
         self.name_id = name_id
         self.ctx = ctx
 
 
 class ListExpr(Expr):
-    def __init__(self, elts: List[Expr], ctx: ExprCtx):
+    def __init__(self, elts: List[Expr] = None, ctx: ExprCtx = ExprCtx.LOAD):
         self.elts = elts
         self.ctx = ctx
 
 
 class TupleExpr(Expr):
-    def __init__(self, elts: List[Expr], ctx: ExprCtx):
+    def __init__(self, elts: List[Expr] = None, ctx: ExprCtx = ExprCtx.LOAD):
         self.elts = elts
         self.ctx = ctx
 
@@ -341,52 +418,28 @@ class Args(AST):
 
 
 class Arg(AST):
-    def __init__(self, arg: str, annotation: Expr = None):
+    def __init__(
+        self,
+        arg: str,
+        annotation: Expr = None,
+        default: Expr = None,
+        is_arg: bool = False,
+        is_kwarg: bool = False,
+    ):
         self.arg = arg
         self.annotation = annotation
+        self.default = default
+        self.is_arg = is_arg
+        self.is_kwarg = is_kwarg
 
+    def set_default(self, default: Expr) -> Arg:
+        self.default = default
+        return self
 
-class ExprCtx(enum.Enum):
-    LOAD = enum.auto()
-    STORE = enum.auto()
-    DEL = enum.auto()
+    def set_arg(self, is_arg: bool) -> Arg:
+        self.is_arg = is_arg
+        return self
 
-
-class BoolOp(enum.Enum):
-    AND = enum.auto()
-    OR = enum.auto()
-
-
-class Operator(enum.Enum):
-    ADD = enum.auto()
-    SUB = enum.auto()
-    MUL = enum.auto()
-    DIV = enum.auto()
-    MOD = enum.auto()
-    POW = enum.auto()
-    LSHIFT = enum.auto()
-    RSHIFT = enum.auto()
-    BIT_AND = enum.auto()
-    BIT_XOR = enum.auto()
-    BIT_OR = enum.auto()
-    FLOORDIV = enum.auto()
-
-
-class CmpOp(enum.Enum):
-    IN = enum.auto()
-    NOT_IN = enum.auto()
-    IS = enum.auto()
-    IS_NOT = enum.auto()
-    EQ = enum.auto()
-    NOT_EQ = enum.auto()
-    LT = enum.auto()
-    LTE = enum.auto()
-    GT = enum.auto()
-    GTE = enum.auto()
-
-
-class UnaryOp(enum.Enum):
-    UADD = enum.auto()
-    USUB = enum.auto()
-    NOT = enum.auto()
-    INVERT = enum.auto()
+    def set_kwarg(self, is_kwarg: bool) -> Arg:
+        self.is_kwarg = is_kwarg
+        return self
