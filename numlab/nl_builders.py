@@ -2,43 +2,99 @@ import numlab.nl_ast as ast
 
 
 def build_args(arg: ast.Arg, args: ast.Args = None) -> ast.Args:
-    raise NotImplementedError()
+    if args is None:
+        args = ast.Args()
+    if arg.is_arg:
+        if args.vararg is not None:
+            raise ValueError("Only one *arg is allowed")
+        args.vararg = arg
+        return args
+
+    if arg.is_kwarg:
+        if args.kwarg is not None:
+            raise ValueError("Only one **arg is allowed")
+        args.kwarg = arg
+        return args
+
+    if arg.default is None:
+        args.args.insert(0, arg)
+        return args
+
+    args.keyword_args.insert(0, arg)
+    return args
 
 
 def build_if_stmt(test, body, elif_clauses, else_clause=None):
-    raise NotImplementedError()
+    current_if = ast.IfStmt(test, body)
+    start_if = current_if
+    for elif_clause in elif_clauses:
+        current_if.orelse = [elif_clause]
+        current_if = elif_clause
+    if else_clause is not None:
+        current_if.orelse = [else_clause]
+    return start_if
 
 
 def build_try_stmt(body, except_clauses, else_clause=None, finally_clause=None):
-    raise NotImplementedError()
-
-
-def build_class_def(name, bases, body):
-    raise NotImplementedError()
+    try_stmt = ast.TryStmt(body)
+    for h_type, h_name, h_body in except_clauses:
+        handler = ast.ExceptHandler(h_type, h_name, h_body)
+        try_stmt.handlers.append(handler)
+    if else_clause is not None:
+        try_stmt.orelse = [else_clause]
+    if finally_clause is not None:
+        try_stmt.finalbody = [finally_clause]
+    return try_stmt
 
 
 def build_atom_expr(atom, trailer_list):
-    raise NotImplementedError()
+    if not trailer_list:
+        return atom
+
+    last_trailer = trailer_list.pop()
+    while trailer_list:
+        current = trailer_list.pop()
+        last_trailer.value = current
+        last_trailer = current
+
+    last_trailer.value = atom
+    return last_trailer
 
 
 def build_call_expr(func, args=None):
-    raise NotImplementedError()
+    call: ast.CallExpr = build_call_trailer(args)
+    call.func = func
 
 
 def build_call_trailer(args=None):
-    raise NotImplementedError()
+    if args is None:
+        return ast.CallExpr(None, [], [])
+    # TODO: check correct order
+    not_keywords = [arg for arg in args.args if not isinstance(arg, ast.Keyword)]
+    keywords = [arg for arg in args.args if isinstance(arg, ast.Keyword)]
+    return ast.CallExpr(None, not_keywords, keywords)
 
 
 def build_dotted_name(names):
-    raise NotImplementedError()
-
-
-def build_slice(low, up, step):
-    raise NotImplementedError()
+    last_node = names.pop()
+    while names:
+        current = names.pop()
+        attr = ast.AttributeExpr(last_node, current.name_id)
+        last_node = attr
+    return last_node
 
 
 def build_generators(comp_iters):
-    raise NotImplementedError()
+    generators = []
+    for comp in comp_iters:
+        if not generators and not isinstance(comp, ast.Comprehension):
+            raise ValueError("First element of comp_iters must be a comprehension")
+        if isinstance(comp, ast.IfExpr):
+            generators[-1].ifs.append(comp)
+        else:
+            generators.append(comp)
+    return generators
+
 
 
 builders = {
@@ -63,13 +119,13 @@ builders = {
     ),
     # -------------------------------------------------------------------------
     "classdef -> class NAME : suite": (
-        lambda c, n, c_, s: build_class_def(ast.NameExpr(n.value), [], s)
+        lambda c, n, c_, s: ast.ClassDefStmt(ast.NameExpr(n.value), [], s)
     ),
     "classdef -> class NAME ( ) : suite": (
-        lambda c, n, c_, s: build_class_def(ast.NameExpr(n.value), [], s)
+        lambda c, n, c_, s: ast.ClassDefStmt(ast.NameExpr(n.value), [], s)
     ),
     "classdef -> class NAME ( arglist ) : suite": (
-        lambda c, n, p, a, c_, s: build_class_def(ast.NameExpr(n.value), a, s)
+        lambda c, n, p, a, c_, s: ast.ClassDefStmt(ast.NameExpr(n.value), a, s)
     ),
     # -------------------------------------------------------------------------
     "parameters -> param": lambda p: build_args(p),
@@ -223,7 +279,7 @@ builders = {
     "argument -> test comp_for": lambda t, c: ast.GeneratorExpr(t, build_generators(c)),
     "argument -> test = test": lambda t, e, t2: ast.Keyword(t, t2),
     "argument -> * test": lambda a, t: ast.StarredExpr(t),
-    "argument -> ** test": lambda a, t: ast.StarredExpr(t, stars=2),
+    "argument -> ** test": lambda a, t: ast.Keyword(None, t),
     # -------------------------------------------------------------------------
     "comp_for -> for expr_list in or_test comp_iter": (
         lambda f, e, i, o, c: [ast.Comprehension(e, o)] + c
@@ -391,9 +447,9 @@ builders = {
         lambda s, o, s2: ast.TupleExpr([s] + s2.elts)
     ),
     # -------------------------------------------------------------------------
-    "subscript -> test": lambda t: t,
+    "subscript -> test": lambda t: ast.SliceExpr(t, None, None),
     "subscript -> maybe_test : maybe_test sliceop": (
-        lambda l, c, u, s: build_slice(l, u, s)
+        lambda l, c, u, s: ast.SliceExpr(l, u, s)
     ),
     # -------------------------------------------------------------------------
     "sliceop -> : maybe_test": lambda o, t: t,

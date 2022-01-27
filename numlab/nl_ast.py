@@ -154,10 +154,10 @@ class WhileStmt(Stmt):
 
 
 class IfStmt(Stmt):
-    def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt]):
+    def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt] = None):
         self.test = test
         self.body = body
-        self.orelse = orelse
+        self.orelse = orelse or []
 
 
 class WithStmt(Stmt):
@@ -182,7 +182,7 @@ class TryStmt(Stmt):
     def __init__(
         self,
         body: List[Stmt],
-        handlers: List[ExceptHandler],
+        handlers: List[ExceptHandler] = None,
         orelse: List[Stmt] = None,
         finalbody: List[Stmt] = None,
     ):
@@ -332,6 +332,14 @@ class CallExpr(Expr):
         self.args = args
         self.keywords = keywords
 
+    @property
+    def value(self):
+        return self.func
+
+    @value.setter
+    def value(self, value):
+        self.func = value
+
 
 class Keyword(AST):
     def __init__(self, arg: Expr, value: Expr):
@@ -396,7 +404,7 @@ class SliceExpr(Expr):
     def __init__(self, lower: Expr = None, upper: Expr = None, step: Expr = None):
         self.lower = lower
         self.upper = upper
-        self.step = step
+        self.step = step or 1
 
 
 class Args(AST):
@@ -406,15 +414,11 @@ class Args(AST):
         keyword_args: List[Arg] = None,
         vararg=None,
         kwarg=None,
-        defaults: List[Expr] = None,
-        kw_defaults: List[Expr] = None,
     ):
-        self.args = args if args is not None else []
-        self.keyword_args = keyword_args if keyword_args is not None else []
+        self.args = args or []
+        self.keyword_args = keyword_args or []
         self.vararg = vararg
         self.kwarg = kwarg
-        self.defaults = defaults if defaults is not None else []
-        self.kw_defaults = kw_defaults if kw_defaults is not None else []
 
 
 class Arg(AST):
