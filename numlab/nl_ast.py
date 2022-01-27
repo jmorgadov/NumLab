@@ -54,6 +54,8 @@ class UnaryOp(enum.Enum):
 
 
 class Program(AST):
+    __slots__ = ("stmts",)
+
     def __init__(self, stmts: List[Stmt]):
         self.stmts = stmts
 
@@ -63,6 +65,8 @@ class Stmt(AST):
 
 
 class FuncDefStmt(Stmt):
+    __slots__ = ("name", "args", "body", "decorators")
+
     def __init__(
         self,
         name: str,
@@ -81,6 +85,8 @@ class FuncDefStmt(Stmt):
 
 
 class ClassDefStmt(Stmt):
+    __slots__ = ("name", "bases", "body", "decorators")
+
     def __init__(
         self,
         name: str,
@@ -99,22 +105,30 @@ class ClassDefStmt(Stmt):
 
 
 class ReturnStmt(Stmt):
+    __slots__ = ("expr",)
+
     def __init__(self, expr: Expr = None):
         self.expr = expr
 
 
 class DeleteStmt(Stmt):
+    __slots__ = ("targets",)
+
     def __init__(self, targets: List[Expr]):
         self.targets = targets
 
 
 class AssignStmt(Stmt):
+    __slots__ = ("targets", "value")
+
     def __init__(self, targets: List[Expr], value: Expr):
         self.targets = targets
         self.value = value
 
 
 class AugAssignStmt(Stmt):
+    __slots__ = ("target", "op", "value")
+
     def __init__(self, target: Expr, op: Operator, value: Expr):
         self.target = target
         self.op = op
@@ -126,6 +140,8 @@ class AugAssignStmt(Stmt):
 
 
 class AnnAssignStmt(Stmt):
+    __slots__ = ("target", "annotation", "value")
+
     def __init__(self, target: Expr, annotation: Expr, value: Expr):
         self.target = target
         self.annotation = annotation
@@ -137,6 +153,8 @@ class AnnAssignStmt(Stmt):
 
 
 class ForStmt(Stmt):
+    __slots__ = ("target", "iter_expr", "body", "orelse")
+
     def __init__(
         self, target: Expr, iter_expr: Expr, body: List[Stmt], orelse: List[Stmt] = None
     ):
@@ -147,6 +165,8 @@ class ForStmt(Stmt):
 
 
 class WhileStmt(Stmt):
+    __slots__ = ("test", "body", "orelse")
+
     def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt] = None):
         self.test = test
         self.body = body
@@ -154,6 +174,8 @@ class WhileStmt(Stmt):
 
 
 class IfStmt(Stmt):
+    __slots__ = ("test", "body", "orelse")
+
     def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt] = None):
         self.test = test
         self.body = body
@@ -161,24 +183,32 @@ class IfStmt(Stmt):
 
 
 class WithStmt(Stmt):
+    __slots__ = ("items", "body")
+
     def __init__(self, items: List[WithItem], body: List[Stmt]):
         self.items = items
         self.body = body
 
 
 class WithItem(AST):
+    __slots__ = ("context_expr", "optional_vars")
+
     def __init__(self, context_expr: Expr, optional_vars: List[Expr] = None):
         self.context_expr = context_expr
         self.optional_vars = optional_vars
 
 
 class RaiseStmt(Stmt):
+    __slots__ = ("exc", "cause")
+
     def __init__(self, exc: Expr = None, cause: Expr = None):
         self.exc = exc
         self.cause = cause
 
 
 class TryStmt(Stmt):
+    __slots__ = ("body", "handlers", "orelse", "finalbody")
+
     def __init__(
         self,
         body: List[Stmt],
@@ -193,6 +223,8 @@ class TryStmt(Stmt):
 
 
 class ExceptHandler(AST):
+    __slots__ = ("hand_type", "name", "body")
+
     def __init__(self, hand_type: Expr, name: Expr, body: List[Stmt]):
         self.hand_type = hand_type
         self.name = name
@@ -200,22 +232,30 @@ class ExceptHandler(AST):
 
 
 class AssertStmt(Stmt):
+    __slots__ = ("test", "msg")
+
     def __init__(self, test: Expr, msg: Expr = None):
         self.test = test
         self.msg = msg
 
 
 class GlobalStmt(Stmt):
+    __slots__ = ("names",)
+
     def __init__(self, names: List[str]):
         self.names = names
 
 
 class NonlocalStmt(Stmt):
+    __slots__ = ("names",)
+
     def __init__(self, names: List[str]):
         self.names = names
 
 
 class ExprStmt(Stmt):
+    __slots__ = ("expr",)
+
     def __init__(self, expr: Expr):
         self.expr = expr
 
@@ -237,6 +277,8 @@ class Expr(AST):
 
 
 class BinOpExpr(Expr):
+    __slots__ = ("left", "op", "right")
+
     def __init__(self, left: Expr, op: str, right: Expr):
         self.op = op
         self.left = left
@@ -244,18 +286,24 @@ class BinOpExpr(Expr):
 
 
 class UnaryOpExpr(Expr):
+    __slots__ = ("op", "operand")
+
     def __init__(self, op: str, operand: Expr):
         self.op = op
         self.operand = operand
 
 
 class LambdaExpr(Expr):
+    __slots__ = ("args", "body")
+
     def __init__(self, args: Args, body: Expr):
         self.args = args
         self.body = body
 
 
 class IfExpr(Expr):
+    __slots__ = ("test", "body", "orelse")
+
     def __init__(self, test: Expr, body: Expr, orelse: Expr = None):
         self.test = test
         self.body = body
@@ -263,29 +311,39 @@ class IfExpr(Expr):
 
 
 class DictExpr(Expr):
+    __slots__ = ("keys", "values")
+
     def __init__(self, keys: List[Expr] = None, values: List[Expr] = None):
         self.keys = keys or []
         self.values = values or []
 
 
 class SetExpr(Expr):
+    __slots__ = ("elts",)
+
     def __init__(self, elts: List[Expr] = None):
         self.elts = elts or []
 
 
 class ListCompExpr(Expr):
+    __slots__ = ("elt", "generators")
+
     def __init__(self, elt: Expr, generators: List[Comprehension]):
         self.elt = elt
         self.generators = generators
 
 
 class SetCompExpr(Expr):
+    __slots__ = ("elt", "generators")
+
     def __init__(self, elt: Expr, generators: List[Comprehension]):
         self.elt = elt
         self.generators = generators
 
 
 class DictCompExpr(Expr):
+    __slots__ = ("key", "value", "generators")
+
     def __init__(self, key: Expr, value: Expr, generators: List[Comprehension]):
         self.key = key
         self.value = value
@@ -293,6 +351,8 @@ class DictCompExpr(Expr):
 
 
 class GeneratorExpr(Expr):
+    __slots__ = ("elt", "generators")
+
     def __init__(self, elt: Expr, generators: List[Comprehension]):
         self.elt = elt
         self.generators = generators
@@ -303,6 +363,8 @@ class GeneratorExpr(Expr):
 
 
 class Comprehension(AST):
+    __slots__ = ("target", "comp_iter", "ifs")
+
     def __init__(self, target: Expr, comp_iter: Expr, ifs: List[Expr] = None):
         self.target = target
         self.comp_iter = comp_iter
@@ -310,16 +372,22 @@ class Comprehension(AST):
 
 
 class YieldExpr(Expr):
+    __slots__ = ("value",)
+
     def __init__(self, value: List[Expr] = None):
         self.value = value
 
 
 class YieldFromExpr(Expr):
+    __slots__ = ("value",)
+
     def __init__(self, value: Expr):
         self.value = value
 
 
 class CompareExpr(Expr):
+    __slots__ = ("left", "ops", "comparators")
+
     def __init__(self, left: Expr, ops: List[CmpOp], comparators: List[Expr]):
         self.left = left
         self.ops = ops
@@ -327,6 +395,8 @@ class CompareExpr(Expr):
 
 
 class CallExpr(Expr):
+    __slots__ = ("func", "args", "keywords")
+
     def __init__(self, func: Expr, args: List[Expr], keywords: List[Keyword]):
         self.func = func
         self.args = args
@@ -342,24 +412,31 @@ class CallExpr(Expr):
 
 
 class Keyword(AST):
+    __slots__ = ("arg", "value")
+
     def __init__(self, arg: Expr, value: Expr):
         self.arg = arg
         self.value = value
 
 
 class StarredExpr(Expr):
-    def __init__(self, value: Expr, ctx: ExprCtx = ExprCtx.LOAD, stars: int = 1):
+    __slots__ = ("value", "ctx")
+
+    def __init__(self, value: Expr, ctx: ExprCtx = ExprCtx.LOAD):
         self.value = value
         self.ctx = ctx
-        self.stars = stars
 
 
 class ConstantExpr(Expr):
+    __slots__ = ("value",)
+
     def __init__(self, value: Any):
         self.value = value
 
 
 class AttributeExpr(Expr):
+    __slots__ = ("value", "attr", "ctx")
+
     def __init__(self, value: Expr, attr: str, ctx: ExprCtx = ExprCtx.LOAD):
         self.value = value
         self.attr = attr
@@ -376,6 +453,8 @@ class AttributeExpr(Expr):
 
 
 class SubscriptExpr(Expr):
+    __slots__ = ("value", "slice_expr", "ctx")
+
     def __init__(self, value: Expr, slice_expr: SliceExpr, ctx: ExprCtx = ExprCtx.LOAD):
         self.value = value
         self.slice_expr = slice_expr
@@ -383,24 +462,32 @@ class SubscriptExpr(Expr):
 
 
 class NameExpr(Expr):
+    __slots__ = ("name_id", "ctx")
+
     def __init__(self, name_id: str, ctx: ExprCtx = ExprCtx.LOAD):
         self.name_id = name_id
         self.ctx = ctx
 
 
 class ListExpr(Expr):
+    __slots__ = ("elts", "ctx")
+
     def __init__(self, elts: List[Expr] = None, ctx: ExprCtx = ExprCtx.LOAD):
         self.elts = elts
         self.ctx = ctx
 
 
 class TupleExpr(Expr):
+    __slots__ = ("elts", "ctx")
+
     def __init__(self, elts: List[Expr] = None, ctx: ExprCtx = ExprCtx.LOAD):
         self.elts = elts
         self.ctx = ctx
 
 
 class SliceExpr(Expr):
+    __slots__ = ("lower", "upper", "step")
+
     def __init__(self, lower: Expr = None, upper: Expr = None, step: Expr = None):
         self.lower = lower
         self.upper = upper
@@ -408,6 +495,8 @@ class SliceExpr(Expr):
 
 
 class Args(AST):
+    __slots__ = ("args", "keyword_args", "vararg", "kwarg")
+
     def __init__(
         self,
         args: List[Arg] = None,
@@ -422,6 +511,8 @@ class Args(AST):
 
 
 class Arg(AST):
+    __slots__ = ("arg", "annotation", "default", "is_arg", "is_kwarg")
+
     def __init__(
         self,
         arg: str,
