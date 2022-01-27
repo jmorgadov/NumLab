@@ -4,7 +4,7 @@ from numlab.nl_types.nl_int import nl_int
 from ctypes import sizeof
 
 
-nl_string = Type('int', nl_object)
+nl_string = Type('string', nl_object)
 
 nl_string.method('__new__')
 def nl__new__(value: str):
@@ -21,15 +21,15 @@ def nl__add__(self, other: Instance):
 nl_string.method('__contains__')
 def nl__contains__(self, other: Instance):
     if other.type.subtype(nl_string):
-        return other.value in other.value
-    raise TypeError("Cant match string to non-string")
+        return self.value in other.value
+    raise TypeError("Can't match string to non-string")
 
 nl_string.method('__eq__')
 def nl__eq__(self, other: Instance):
     if other.type.subtype(nl_string):
         return self.value == other.value
     raise TypeError("Cant compare string to non-string")
-    
+   
 nl_string.method('__sizeof__')
 def nl__sizeof__(self):
     return sizeof(self.value)
