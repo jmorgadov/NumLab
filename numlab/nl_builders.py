@@ -52,13 +52,14 @@ def build_atom_expr(atom, trailer_list):
         return atom
 
     last_trailer = trailer_list.pop()
+    first_trailer = last_trailer
     while trailer_list:
         current = trailer_list.pop()
         last_trailer.value = current
         last_trailer = current
 
     last_trailer.value = atom
-    return last_trailer
+    return first_trailer
 
 
 def build_call_expr(func, args=None):
@@ -70,8 +71,8 @@ def build_call_trailer(args=None):
     if args is None:
         return ast.CallExpr(None, [], [])
     # TODO: check correct order
-    not_keywords = [arg for arg in args.args if not isinstance(arg, ast.Keyword)]
-    keywords = [arg for arg in args.args if isinstance(arg, ast.Keyword)]
+    not_keywords = [arg for arg in args if not isinstance(arg, ast.Keyword)]
+    keywords = [arg for arg in args if isinstance(arg, ast.Keyword)]
     return ast.CallExpr(None, not_keywords, keywords)
 
 
@@ -94,7 +95,6 @@ def build_generators(comp_iters):
         else:
             generators.append(comp)
     return generators
-
 
 
 builders = {
@@ -129,7 +129,7 @@ builders = {
     ),
     # -------------------------------------------------------------------------
     "parameters -> param": lambda p: build_args(p),
-    "parameters -> param , parameters": lambda p, ps: build_args(p, ps),
+    "parameters -> param , parameters": lambda p, c, ps: build_args(p, ps),
     # -------------------------------------------------------------------------
     "param -> tfpdef": lambda p: p,
     "param -> tfpdef = test": lambda p, e, t: p.set_default(t),
@@ -272,7 +272,7 @@ builders = {
     "dotted_name -> NAME": lambda n: [ast.NameExpr(n.value)],
     "dotted_name -> NAME . dotted_name": lambda n, c, n2: [ast.NameExpr(n.value)] + n2,
     # -------------------------------------------------------------------------
-    "arglist -> argument": lambda a: a,
+    "arglist -> argument": lambda a: [a],
     "arglist -> argument , arglist": lambda a, c, a2: [a] + a2,
     # -------------------------------------------------------------------------
     "argument -> test": lambda t: t,
@@ -296,7 +296,9 @@ builders = {
     "expr_stmt -> test_list augassign yield_or_testlist": (
         lambda t, a, y: ast.AugAssignStmt(t, a, y)
     ),
-    "expr_stmt -> test_list assign": lambda t, a: ast.AnnAssignStmt(t, None, a),
+    "expr_stmt -> test_list assign": (
+        lambda t, a: ast.AnnAssignStmt(t, None, a) if a is not None else t
+    ),
     # -------------------------------------------------------------------------
     "test_list -> test": lambda t: [t],
     "test_list -> test , test_list": lambda t, c, t2: [t] + t2,
@@ -437,10 +439,10 @@ builders = {
     "trailer_expr -> trailer trailer_expr": lambda t, t2: [t] + t2,
     "trailer_expr -> EPS": lambda: [],
     # -------------------------------------------------------------------------
-    "trailer -> ( )": lambda p, a, p2: build_call_trailer(),
+    "trailer -> ( )": lambda p, p2: build_call_trailer(),
     "trailer -> ( arglist )": lambda p, a, p2: build_call_trailer(a),
     "trailer -> [ subscriptlist ]": lambda b, s, b2: ast.SubscriptExpr(None, s),
-    "trailer -> . NAME": lambda d, n: ast.AttributeExpr(None, ast.NameExpr(n.value)),
+    "trailer -> . NAME": lambda d, n: ast.AttributeExpr(None, n.value),
     # -------------------------------------------------------------------------
     "subscriptlist -> subscript": lambda s: ast.TupleExpr([s]),
     "subscriptlist -> subscript , subscriptlist": (

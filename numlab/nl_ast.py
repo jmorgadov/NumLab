@@ -433,6 +433,9 @@ class ConstantExpr(Expr):
     def __init__(self, value: Any):
         self.value = value
 
+    def show(self):
+        return f"ConstantExpr({self.value})"
+
 
 class AttributeExpr(Expr):
     __slots__ = ("value", "attr", "ctx")
@@ -468,6 +471,9 @@ class NameExpr(Expr):
         self.name_id = name_id
         self.ctx = ctx
 
+    def show(self):
+        return f"NameExpr('{self.name_id}', ctx={self.ctx})"
+
 
 class ListExpr(Expr):
     __slots__ = ("elts", "ctx")
@@ -491,7 +497,7 @@ class SliceExpr(Expr):
     def __init__(self, lower: Expr = None, upper: Expr = None, step: Expr = None):
         self.lower = lower
         self.upper = upper
-        self.step = step or 1
+        self.step = step or ConstantExpr(1)
 
 
 class Args(AST):
