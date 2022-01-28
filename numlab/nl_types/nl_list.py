@@ -34,7 +34,7 @@ def nl__getitem__(self, indx: Instance):
         if not isinstance(step, int) and not step.type.subtype(nl_int):
             raise TypeError(f"Slice indices must be integers, not {step.type}")
         return self.value[low:upper:step]
-    raise TypeError(f"list indices must be integer or slice, not {indx.type}")
+    raise TypeError(f"List indices must be integer or slice, not {indx.type}")
 
 
 @nl_list.method("__delitem__")
