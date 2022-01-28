@@ -39,9 +39,12 @@ class Type:
             return False
         return self.parent.subtype(other)
 
+    def new(self, *args, **kwargs):
+        return self.attributes["__new__"](*args, **kwargs)
+
 
 class Instance:
-    def __init__(self, _type: Type):
+    def __init__(self, _type: Type, *args, **kwargs):
         self.type = _type
         self._dict = self.type.get_attr_dict()
         self._dict["__dict__"] = self._dict

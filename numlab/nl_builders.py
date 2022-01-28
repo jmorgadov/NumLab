@@ -297,7 +297,7 @@ builders = {
         lambda t, a, y: ast.AugAssignStmt(t, a, y)
     ),
     "expr_stmt -> test_list assign": (
-        lambda t, a: ast.AnnAssignStmt(t, None, a) if a is not None else t
+        lambda t, a: ast.AssignStmt(t, a) if a is not None else t
     ),
     # -------------------------------------------------------------------------
     "test_list -> test": lambda t: [t],
@@ -316,8 +316,24 @@ builders = {
     "yield_arg -> from test": lambda f, t: ast.YieldFromExpr(t),
     "yield_arg -> test_list": lambda t: t,
     # -------------------------------------------------------------------------
-    "assign -> = yield_expr assign": lambda e, y, a: ast.AnnAssignStmt(y, None, a),
-    "assign -> = test_list assign": lambda e, t, a: ast.AnnAssignStmt(t, None, a),
+    "assign -> = yield_expr assign": (
+        lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
+        if isinstance(a, ast.AssignStmt)
+        else (
+            ast.AssignStmt([], a)
+            if isinstance(a, ast.TupleExpr)
+            else t
+        )
+    ),
+    "assign -> = test_list assign": (
+        lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
+        if isinstance(a, ast.AssignStmt)
+        else (
+            ast.AssignStmt([], a)
+            if isinstance(a, ast.TupleExpr)
+            else t
+        )
+    ),
     "assign -> EPS": lambda: None,
     # -------------------------------------------------------------------------
     "annassign -> : test = test": lambda c, a, e, t: ast.AnnAssignStmt(None, a, t),
@@ -455,7 +471,7 @@ builders = {
     ),
     # -------------------------------------------------------------------------
     "sliceop -> : maybe_test": lambda o, t: t,
-    "sliceop -> EPS": lambda: None,
+    "sliceop -> EPS": lambda: ast.ConstantExpr(1),
     # -------------------------------------------------------------------------
     "maybe_test -> test": lambda t: t,
     "maybe_test -> EPS": lambda: None,
