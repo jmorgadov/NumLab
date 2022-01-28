@@ -1,5 +1,4 @@
 # NumLab Programming Language grammar.
-
 program:
 	| stmt program
 	| NEWLINE program
@@ -21,6 +20,7 @@ funcdef:
 
 classdef:
 	| 'class' NAME ':' suite
+	| 'class' NAME '(' ')' ':' suite
 	| 'class' NAME '(' arglist ')' ':' suite
 
 parameters:
@@ -57,7 +57,7 @@ small_stmt:
 	| assert_stmt
 	# | import_stmt     TODO: implement
 
-del_stmt: 'del' exprlist
+del_stmt: 'del' expr_list
 
 pass_stmt: 'pass'
 
@@ -84,11 +84,11 @@ continue_stmt: 'continue'
 
 return_stmt:
 	| 'return'
-	| 'return' exprlist
+	| 'return' expr_list
 
 yield_stmt:
 	| 'yield'
-	| 'yield' exprlist
+	| 'yield' expr_list
 
 raise_stmt:
 	| 'raise'
@@ -118,19 +118,23 @@ while_stmt:
 	| 'while' test ':' suite 'else' ':' suite
 
 for_stmt:
-	| 'for' exprlist 'in' test_list ':' suite
-	| 'for' exprlist 'in' test_list ':' suite 'else' ':' suite
+	| 'for' expr_list 'in' test_list ':' suite
+	| 'for' expr_list 'in' test_list ':' suite 'else' ':' suite
 
 try_stmt:
-	| 'try' ':' suite except_clause ':' suite
-	| 'try' ':' suite except_clause ':' suite 'else' ':' suite
-	| 'try' ':' suite except_clause ':' suite 'finally' ':' suite
-	| 'try' ':' suite except_clause ':' suite 'else' ':' suite 'finally' ':' suite
+	| 'try' ':' suite except_clause 
+	| 'try' ':' suite except_clause 'else' ':' suite
+	| 'try' ':' suite except_clause 'finally' ':' suite
+	| 'try' ':' suite except_clause 'else' ':' suite 'finally' ':' suite
 
 except_clause:
-	| 'except'
-	| 'except' test
-	| 'except' test 'as' NAME
+	| 'except' ':' suite maybe_except_clause
+	| 'except' test ':' suite maybe_except_clause
+	| 'except' test 'as' NAME ':' suite maybe_except_clause
+
+maybe_except_clause:
+	| except_clause
+	| EPS
 
 with_stmt:
 	| 'with' with_items ':' suite
@@ -173,7 +177,7 @@ argument:
 	| '*' test
 	| '**' test
 
-comp_for: 'for' exprlist 'in' or_test comp_iter
+comp_for: 'for' expr_list 'in' or_test comp_iter
 
 comp_if: 'if' test_nocond comp_iter
 
@@ -183,13 +187,9 @@ comp_iter:
 	| EPS
 
 expr_stmt:
-	| testlist_star_expr annassign
-	| testlist_star_expr augassign yield_or_testlist
-	| testlist_star_expr assign
-
-testlist_star_expr:
-    | test_or_star_expr
-	| test_or_star_expr ',' testlist_star_expr
+	| test_list annassign
+	| test_list augassign yield_or_testlist
+	| test_list assign
 
 yield_or_testlist:
 	| yield_expr
@@ -201,7 +201,7 @@ yield_arg: 'from' test | test_list
 
 assign:
     | '=' yield_expr assign
-    | '=' testlist_star_expr assign
+    | '=' test_list assign
 	| EPS
 
 annassign: ':' test '=' test
@@ -242,8 +242,6 @@ comparison:
 	| expr comp_op comparison
 
 comp_op: '<' | '>' | '==' | '>=' | '<=' | '!=' | 'in' | 'not' 'in' | 'is' | 'is' 'not'
-
-star_expr: '*' expr
 
 expr: xor_expr
 	| xor_expr '|' expr
@@ -292,6 +290,7 @@ trailer_expr:
 	| EPS
 
 trailer:
+	| '(' ')'
 	| '(' arglist ')'
 	| '[' subscriptlist ']'
 	| '.' NAME
@@ -310,31 +309,20 @@ maybe_test:
 	| test
 	| EPS
 
-# maybe_await: 'await' | EPS  TODO: implement
-
-atom: '(' yield_expr ')'
-	| '(' testlist_comp ')'
-	| '[' testlist_comp ']'
+atom: '(' test_list_comp ')'
+	| '[' test_list_comp ']'
 	# | '{' dictorsetmaker '}'  TODO: implement
 	| '(' ')' | '[' ']' | '{' '}'
 	| NAME | NUMBER	| STRING
 	| 'None' | 'True' | 'False'
 
 test_list_comp:
-	| test_or_star_expr comp_for
-	| test_or_star_expr ',' test_list_comp
+	| test comp_for
+	| test_list
 
-test_or_star_expr:
-	| test
-	| star_expr
-
-expr_or_star_expr:
+expr_list:
 	| expr
-	| star_expr
-
-exprlist:
-	| expr_or_star_expr
-	| expr_or_star_expr ',' exprlist
+	| expr ',' expr_list
 
 test_list:
 	| test
