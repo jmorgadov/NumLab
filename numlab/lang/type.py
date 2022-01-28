@@ -56,3 +56,6 @@ class Instance:
 
     def set(self, attr_name, value):
         self._dict[attr_name] = value
+
+    def __getattr__(self, attr_name):
+        return self.get(attr_name)
