@@ -1,6 +1,7 @@
 from numlab.lang.type import Instance, Type
 from numlab.nl_types.nl_int import nl_int
 from numlab.nl_types.nl_object import nl_object
+from numlab.nl_types.nl_slice import nl_slice
 
 nl_list = Type("list", nl_object)
 
@@ -22,7 +23,18 @@ def nl__contains__(self, obj: Instance):
 def nl__getitem__(self, indx: Instance):
     if indx.type.subtype(nl_int):
         return self.value[int(indx.value)]
-    raise TypeError("List indices must be integers")
+    if indx.type.subtype(nl_slice):
+        low = indx.low if indx.low is not None else 0
+        upper = indx.up if indx.upper is not None else len(self.value)
+        step = indx.step if indx.step is not None else 1
+        if not isinstance(low, int) and not low.type.subtype(nl_int):
+            raise TypeError(f"Slice indices must be integers, not {low.type}")
+        if not isinstance(upper, int) and not upper.type.subtype(nl_int):
+            raise TypeError(f"Slice indices must be integers, not {upper.type}")
+        if not isinstance(step, int) and not step.type.subtype(nl_int):
+            raise TypeError(f"Slice indices must be integers, not {step.type}")
+        return self.value[low:upper:step]
+    raise TypeError(f"list indices must be integer or slice, not {indx.type}")
 
 
 @nl_list.method("__delitem__")
