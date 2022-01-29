@@ -479,7 +479,7 @@ class ListExpr(Expr):
     __slots__ = ("elts", "ctx")
 
     def __init__(self, elts: List[Expr] = None, ctx: ExprCtx = ExprCtx.LOAD):
-        self.elts = elts
+        self.elts = elts or []
         self.ctx = ctx
 
 

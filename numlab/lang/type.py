@@ -44,7 +44,7 @@ class Type:
 
 
 class Instance:
-    def __init__(self, _type: Type, *args, **kwargs):
+    def __init__(self, _type: Type):
         self.type = _type
         self._dict = self.type.get_attr_dict()
         self._dict["__dict__"] = self._dict
@@ -57,8 +57,13 @@ class Instance:
     def set(self, attr_name, value):
         self._dict[attr_name] = value
 
+    def get_value(self):
+        if self.type.type_name in ["int", "float", "bool", "str"]:
+            return self.get("__new__")(self.value)
+        return self
+
     def __getattr__(self, attr_name):
         return self.get(attr_name)
 
     def __repr__(self):
-        return f"<NumLab instance of type {self.type.type_name}>"
+        return f"<NumLab instance of type {self.type.type_name} at {hex(id(self))}>"

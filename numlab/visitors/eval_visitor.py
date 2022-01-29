@@ -100,6 +100,10 @@ class EvalVisitor:
     def eval(self, node: ast.AssignStmt):
         targets: List[ast.TupleExpr] = node.targets
         values = [self.eval(item) for item in node.value.elts]
+        for i, val in enumerate(values):
+            if isinstance(val, ast.NameExpr):
+                values[i] = self.context.resolve(val.name_id)
+            values[i] = values[i].get_value()
         for target_tuple in targets:
             if len(target_tuple.elts) != len(values):
                 raise ValueError("Too many values to unpack")
@@ -328,8 +332,8 @@ class EvalVisitor:
         args = [self.eval(arg) for arg in node.args]
         kwargs = {}
         for kwarg in node.keywords:
-            kw_arg: tuple = self.eval(kwarg)
-            kwargs[kw_arg[0]] = kw_arg[1]
+            kw_arg = self.eval(kwarg)
+            kwargs[kw_arg[0]] = kw_arg[1]  # pylint: disable=unsubscriptable-object
         func = self.eval(node.func)
         return func.get("__call__")(*args, **kwargs)
 
@@ -355,7 +359,10 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.AttributeExpr):
-        raise NotImplementedError()
+        val = self.eval(node.value)
+        if isinstance(val, ast.NameExpr):
+            val = self.context.resolve(val.name_id)
+        return val.get(node.attr)
 
     @visitor
     def eval(self, node: ast.SubscriptExpr):
@@ -367,7 +374,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.NameExpr):
-        return node
+        return self.context.resolve(node.name_id)
 
     @visitor
     def eval(self, node: ast.ListExpr):
