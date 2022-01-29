@@ -297,7 +297,13 @@ builders = {
         lambda t, a, y: ast.AugAssignStmt(t, a, y)
     ),
     "expr_stmt -> test_list assign": (
-        lambda t, a: ast.AssignStmt(t, a) if a is not None else t
+        lambda t, a: ast.AssignStmt([t] + a.targets, a.value)
+        if isinstance(a, ast.AssignStmt)
+        else (
+            ast.AssignStmt([t], a)
+            if isinstance(a, ast.TupleExpr)
+            else t
+        )
     ),
     # -------------------------------------------------------------------------
     "test_list -> test": lambda t: [t],
@@ -320,7 +326,7 @@ builders = {
         lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
         if isinstance(a, ast.AssignStmt)
         else (
-            ast.AssignStmt([], a)
+            ast.AssignStmt([t], a)
             if isinstance(a, ast.TupleExpr)
             else t
         )
@@ -329,7 +335,7 @@ builders = {
         lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
         if isinstance(a, ast.AssignStmt)
         else (
-            ast.AssignStmt([], a)
+            ast.AssignStmt([t], a)
             if isinstance(a, ast.TupleExpr)
             else t
         )
@@ -490,7 +496,9 @@ builders = {
     "atom -> [ ]": lambda p1, p2: ast.ListExpr(),
     "atom -> { }": lambda b1, b2: ast.DictExpr(),
     "atom -> NAME": lambda n: ast.NameExpr(n.value),
-    "atom -> NUMBER": lambda n: ast.ConstantExpr(n.value),
+    "atom -> NUMBER": lambda n: ast.ConstantExpr(
+        int(n.value) if n.value.isnumeric() else float(n.value)
+    ),
     "atom -> STRING": lambda s: ast.ConstantExpr(s.value),
     "atom -> None": lambda n: ast.ConstantExpr(None),
     "atom -> True": lambda t: ast.ConstantExpr(True),

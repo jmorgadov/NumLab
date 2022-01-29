@@ -27,7 +27,7 @@ class Type:
     def get_attr_dict(self):
         all_attrs = {}
         if self.parent:
-            all_attrs.update(self.parent.get_all())
+            all_attrs.update(self.parent.get_attr_dict())
         all_attrs.update(self.attributes)
         return all_attrs
 
@@ -59,3 +59,6 @@ class Instance:
 
     def __getattr__(self, attr_name):
         return self.get(attr_name)
+
+    def __repr__(self):
+        return f"<NumLab instance of type {self.type.type_name}>"

@@ -85,7 +85,7 @@ class EvalVisitor:
 
     def _assign(self, target, value):
         if isinstance(target, ast.NameExpr):
-            self.context.set(target.name_id, value)
+            self.context.define(target.name_id, value)
         elif isinstance(target, ast.AttributeExpr):
             attr_val = self.eval(target.value)
             attr_val.set(target.attr, value)
@@ -99,7 +99,7 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.AssignStmt):
         targets: List[ast.TupleExpr] = node.targets
-        values = [self.eval(item) for item in node.value[0].elts]
+        values = [self.eval(item) for item in node.value.elts]
         for target_tuple in targets:
             if len(target_tuple.elts) != len(values):
                 raise ValueError("Too many values to unpack")
@@ -344,7 +344,7 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ConstantExpr):
         if isinstance(node.value, str):
-            return nltp.nl_str.new(node.value)
+            return nltp.nl_string.new(node.value)
         if isinstance(node.value, bool):
             return nltp.nl_bool.new(node.value)
         if isinstance(node.value, int):
