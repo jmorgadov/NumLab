@@ -6,15 +6,10 @@ from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
 
+from typing import List
+
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
-
-FLAGS = {
-    "inside_loop": 0,
-    "pass": 0,
-    "break": False,
-    "continue": False,
-}
 
 OPERATOR_FUNC = {
     ast.Operator.ADD: "__add__",
@@ -54,10 +49,17 @@ def roper(oper: str) -> str:
 
 
 class EvalVisitor:
+
     visitor = Visitor().visitor
 
     def __init__(self, context: Context):
         self.context = context
+        self.flags = {
+            "inside_loop": 0,
+            "pass": 0,
+            "break": False,
+            "continue": False,
+        }
 
     @visitor
     def eval(self, node: ast.Program):
@@ -74,7 +76,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.ReturnStmt):
-        exprs = [self.eval(expr) for expr in node.exprs]
+        exprs = nltp.nl_tuple.new(tuple(self.eval(expr) for expr in node.exprs))
         return exprs
 
     @visitor
@@ -83,21 +85,26 @@ class EvalVisitor:
 
     def _assign(self, target, value):
         if isinstance(target, ast.NameExpr):
-            self.context.set(target.name, value)
+            self.context.set(target.name_id, value)
         elif isinstance(target, ast.AttributeExpr):
-            value.set[target.attr] = value
+            attr_val = self.eval(target.value)
+            attr_val.set(target.attr, value)
         elif isinstance(target, ast.SubscriptExpr):
+            subs_value = self.eval(target.value)
             slc = self.eval(target.slice)
-            value.get("__setitem__")(value, slc)
+            subs_value.get("__setitem__")(subs_value, slc)
         else:
             raise NotImplementedError()
 
     @visitor
     def eval(self, node: ast.AssignStmt):
-        targets: ast.TupleExpr = node.targets[0]
-        values: ast.TupleExpr = node.value[0]
-        for target, value in zip(targets.elts, values.elts):
-            self._assign(target, self.eval(value))
+        targets: List[ast.TupleExpr] = node.targets
+        values = [self.eval(item) for item in node.value[0].elts]
+        for target_tuple in targets:
+            if len(target_tuple.elts) != len(values):
+                raise ValueError("Too many values to unpack")
+            for target, value in zip(target_tuple.elts, values):
+                self._assign(target, value)
 
     @visitor
     def eval(self, node: ast.AugAssignStmt):
@@ -114,7 +121,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.ForStmt):
-        FLAGS["inside_loop"] += 1
+        self.flags["inside_loop"] += 1
         iterator = self.eval(node.iter_expr)
         while iterator.has_next():
             item = iterator.next()
@@ -124,55 +131,55 @@ class EvalVisitor:
             self.context.define(target_name, item)
             for stmt in node.body:
                 self.eval(stmt)
-                if FLAGS["break"]:
+                if self.flags["break"]:
                     break
-                if FLAGS["continue"]:
-                    FLAGS["continue"] = False
+                if self.flags["continue"]:
+                    self.flags["continue"] = False
                     break
-            if FLAGS["break"]:
+            if self.flags["break"]:
                 break
-        if FLAGS["break"]:
-            FLAGS["break"] = False
+        if self.flags["break"]:
+            self.flags["break"] = False
         else:
             for stmt in node.orelse:
                 self.eval(stmt)
-        FLAGS["inside_loop"] -= 1
+        self.flags["inside_loop"] -= 1
 
     @visitor
     def eval(self, node: ast.WhileStmt):
-        FLAGS["inside_loop"] += 1
+        self.flags["inside_loop"] += 1
         while _truth(self.eval(node.test)):
             for stmt in node.body:
                 self.eval(stmt)
-                if FLAGS["break"]:
+                if self.flags["break"]:
                     break
-                if FLAGS["continue"]:
-                    FLAGS["continue"] = False
+                if self.flags["continue"]:
+                    self.flags["continue"] = False
                     break
-            if FLAGS["break"]:
+            if self.flags["break"]:
                 break
-        if FLAGS["break"]:
-            FLAGS["break"] = False
+        if self.flags["break"]:
+            self.flags["break"] = False
         else:
             for stmt in node.orelse:
                 self.eval(stmt)
-        FLAGS["inside_loop"] -= 1
+        self.flags["inside_loop"] -= 1
 
     @visitor
     def eval(self, node: ast.IfStmt):
         if _truth(self.eval(node.test)):
             for stmt in node.body:
                 self.eval(stmt)
-                if FLAGS["break"]:
+                if self.flags["break"]:
                     break
-                if FLAGS["continue"]:
+                if self.flags["continue"]:
                     break
         else:
             for stmt in node.orelse:
                 self.eval(stmt)
-                if FLAGS["break"]:
+                if self.flags["break"]:
                     break
-                if FLAGS["continue"]:
+                if self.flags["continue"]:
                     break
 
     @visitor
@@ -209,15 +216,15 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.PassStmt):
-        FLAGS["pass"] += 1
+        self.flags["pass"] += 1
 
     @visitor
     def eval(self, node: ast.BreakStmt):
-        FLAGS["break"] = True
+        self.flags["break"] = True
 
     @visitor
     def eval(self, node: ast.ContinueStmt):
-        FLAGS["continue"] = True
+        self.flags["continue"] = True
 
     @visitor
     def eval(self, node: ast.ExprStmt):
@@ -318,11 +325,21 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.CallExpr):
-        raise NotImplementedError()
+        args = [self.eval(arg) for arg in node.args]
+        kwargs = {}
+        for kwarg in node.keywords:
+            kw_arg: tuple = self.eval(kwarg)
+            kwargs[kw_arg[0]] = kw_arg[1]
+        func = self.eval(node.func)
+        return func.get("__call__")(*args, **kwargs)
 
     @visitor
     def eval(self, node: ast.Keyword):
-        raise NotImplementedError()
+        if not isinstance(node.value, ast.NameExpr):
+            raise ValueError("Keyword value must be a name")
+        arg = node.arg.name_id
+        val = self.eval(node.value)
+        return arg, val
 
     @visitor
     def eval(self, node: ast.ConstantExpr):
@@ -342,7 +359,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.SubscriptExpr):
-        raise NotImplementedError()
+        return node
 
     @visitor
     def eval(self, node: ast.StarredExpr):
