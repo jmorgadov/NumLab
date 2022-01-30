@@ -8,4 +8,5 @@ from numlab.nl_types.nl_list import nl_list
 from numlab.nl_types.nl_tuple import nl_tuple
 from numlab.nl_types.nl_set import nl_set
 from numlab.nl_types.nl_slice import nl_slice
-# from numlab.nl_types.nl_func import nl_func
+from numlab.nl_types.nl_func import nl_function
+from numlab.nl_types.nl_generator import nl_generator
