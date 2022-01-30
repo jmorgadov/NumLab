@@ -288,7 +288,7 @@ class BinOpExpr(Expr):
 class UnaryOpExpr(Expr):
     __slots__ = ("op", "operand")
 
-    def __init__(self, op: str, operand: Expr):
+    def __init__(self, op: UnaryOp, operand: Expr):
         self.op = op
         self.operand = operand
 
@@ -479,7 +479,7 @@ class ListExpr(Expr):
     __slots__ = ("elts", "ctx")
 
     def __init__(self, elts: List[Expr] = None, ctx: ExprCtx = ExprCtx.LOAD):
-        self.elts = elts
+        self.elts = elts or []
         self.ctx = ctx
 
 
@@ -497,7 +497,7 @@ class SliceExpr(Expr):
     def __init__(self, lower: Expr = None, upper: Expr = None, step: Expr = None):
         self.lower = lower
         self.upper = upper
-        self.step = step or ConstantExpr(1)
+        self.step = step
 
 
 class Args(AST):

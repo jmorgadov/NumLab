@@ -1,7 +1,9 @@
 from numlab.lang.type import Instance, Type
-from numlab.nl_types.nl_object import nl_object
 
-nl_float = Type("float", nl_object)
+nl_bool = Type.get("bool")
+nl_str = Type.get("str")
+
+nl_float = Type("float", Type.get("object"))
 
 
 @nl_float.method("__new__")
@@ -74,46 +76,46 @@ def nl__idiv__(self, other: Instance):
 @nl_float.method("__eq__")
 def nl__eq__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.value == other.value)
+        return nl_bool(self.value == other.value)
     raise TypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__lt__")
 def nl__lt__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.value < other.value)
+        return nl_bool(self.value < other.value)
     raise TypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__gt__")
 def nl__gt__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.value > other.value)
+        return nl_bool(self.value > other.value)
     raise TypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__le__")
 def nl__le__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.value <= other.value)
+        return nl_bool(self.value <= other.value)
     raise TypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__ge__")
 def nl__ge__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.value >= other.value)
+        return nl_bool(self.value >= other.value)
     raise TypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__str__")
 def nl__str__(self):
-    return str(self.value)
+    return nl_str(str(self.value))
 
 
 @nl_float.method("__repr__")
 def nl__repr__(self):
-    return str(self.value)
+    return nl_str(str(self.value))
 
 
 @nl_float.method("__hash__")

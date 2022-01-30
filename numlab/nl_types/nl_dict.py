@@ -1,10 +1,11 @@
 from gettext import install
 
 from numlab.lang.type import Instance, Type
-from numlab.nl_types.nl_int import nl_int
-from numlab.nl_types.nl_object import nl_object
 
-nl_dict = Type("dict", nl_object)
+nl_int = Type.get("int")
+nl_bool = Type.get("bool")
+
+nl_dict = Type("dict", Type.get("object"))
 
 
 @nl_dict.method("__new__")
@@ -16,8 +17,7 @@ def nl__new__(value: dict):
 
 @nl_dict.method("__contains__")
 def nl__contains__(self, key: Instance):
-    if key.type.subtype(nl_object):
-        return key in self.value
+    return nl_bool(key in self.value)
 
 
 @nl_dict.method("__iter__")
@@ -28,19 +28,17 @@ def nl__iter__(self):
 
 @nl_dict.method("__len__")
 def nl__len__(self):
-    return len(self.value)
+    return nl_int(len(self.value))
 
 
 @nl_dict.method("__getitem__")
 def nl__getitem__(self, key: Instance):
-    if key.type.subtype(nl_object):
-        return self.value[key]
+    return self.value[key]
 
 
 @nl_dict.method("__setitem__")
 def nl__setitem__(self, key: Instance, value: Instance):
-    if key.type.subtype(nl_object) and value.type.subtype(nl_object):
-        self.value[key] = value
+    self.value[key] = value
 
 
 @nl_dict.method("clear")

@@ -14,10 +14,10 @@ def nl__init__(self):
 
 
 @nl_object.method("__str__")
-def nl__str__():
-    return "<object>"
+def nl__str__(self):
+    return f"<Numlab object at {hex(id(self))}>"
 
 
 @nl_object.method("__repr__")
-def nl__repr__():
-    return "<object>"
+def nl__repr__(self):
+    return f"<Numlab object at {hex(id(self))}>"

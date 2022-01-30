@@ -8,15 +8,15 @@ from numlab.lang.type import Type
 class Context:
     def __init__(self, parent: Context = None):
         self.parent: Context = parent
-        self.symbols: Dict[str, tuple[Type, Any]] = {}
+        self.symbols: Dict[str, Any] = {}
 
     def make_child(self) -> Context:
         return Context(self)
 
-    def define(self, name: str, symbol_type: Type, value: Any):
-        self.symbols[name] = (symbol_type, value)
+    def define(self, name: str, value: Any):
+        self.symbols[name] = value
 
-    def resolve(self, name: str) -> Optional[Tuple[Type, Any]]:
+    def resolve(self, name: str) -> Optional[Any]:
         if name in self.symbols:
             return self.symbols[name]
         if self.parent:

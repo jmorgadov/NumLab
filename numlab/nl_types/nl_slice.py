@@ -1,10 +1,9 @@
-from numlab.lang.type import Instance, Type
-from numlab.nl_types.nl_int import nl_int
-from numlab.nl_types.nl_object import nl_object
-
 from typing import Optional
 
-nl_slice = Type("slice", nl_object)
+from numlab.lang.type import Instance, Type
+
+nl_slice = Type("slice", Type.get("object"))
+
 
 @nl_slice.method("__new__")
 def nl__new__(low: Optional[int], upper: Optional[int], step: Optional[int]):

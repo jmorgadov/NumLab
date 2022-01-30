@@ -297,7 +297,13 @@ builders = {
         lambda t, a, y: ast.AugAssignStmt(t, a, y)
     ),
     "expr_stmt -> test_list assign": (
-        lambda t, a: ast.AnnAssignStmt(t, None, a) if a is not None else t
+        lambda t, a: ast.AssignStmt([t] + a.targets, a.value)
+        if isinstance(a, ast.AssignStmt)
+        else (
+            ast.AssignStmt([t], a)
+            if isinstance(a, ast.TupleExpr)
+            else t
+        )
     ),
     # -------------------------------------------------------------------------
     "test_list -> test": lambda t: [t],
@@ -316,8 +322,24 @@ builders = {
     "yield_arg -> from test": lambda f, t: ast.YieldFromExpr(t),
     "yield_arg -> test_list": lambda t: t,
     # -------------------------------------------------------------------------
-    "assign -> = yield_expr assign": lambda e, y, a: ast.AnnAssignStmt(y, None, a),
-    "assign -> = test_list assign": lambda e, t, a: ast.AnnAssignStmt(t, None, a),
+    "assign -> = yield_expr assign": (
+        lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
+        if isinstance(a, ast.AssignStmt)
+        else (
+            ast.AssignStmt([t], a)
+            if isinstance(a, ast.TupleExpr)
+            else t
+        )
+    ),
+    "assign -> = test_list assign": (
+        lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
+        if isinstance(a, ast.AssignStmt)
+        else (
+            ast.AssignStmt([t], a)
+            if isinstance(a, ast.TupleExpr)
+            else t
+        )
+    ),
     "assign -> EPS": lambda: None,
     # -------------------------------------------------------------------------
     "annassign -> : test = test": lambda c, a, e, t: ast.AnnAssignStmt(None, a, t),
@@ -441,7 +463,11 @@ builders = {
     # -------------------------------------------------------------------------
     "trailer -> ( )": lambda p, p2: build_call_trailer(),
     "trailer -> ( arglist )": lambda p, a, p2: build_call_trailer(a),
-    "trailer -> [ subscriptlist ]": lambda b, s, b2: ast.SubscriptExpr(None, s),
+    "trailer -> [ subscriptlist ]": lambda b, s, b2: (
+        ast.SubscriptExpr(None, s.elts[0])
+        if isinstance(s, ast.TupleExpr) and len(s.elts) == 1
+        else ast.SubscriptExpr(None, s)
+    ),
     "trailer -> . NAME": lambda d, n: ast.AttributeExpr(None, n.value),
     # -------------------------------------------------------------------------
     "subscriptlist -> subscript": lambda s: ast.TupleExpr([s]),
@@ -449,13 +475,13 @@ builders = {
         lambda s, o, s2: ast.TupleExpr([s] + s2.elts)
     ),
     # -------------------------------------------------------------------------
-    "subscript -> test": lambda t: ast.SliceExpr(t, None, None),
+    "subscript -> test": lambda t: t,
     "subscript -> maybe_test : maybe_test sliceop": (
         lambda l, c, u, s: ast.SliceExpr(l, u, s)
     ),
     # -------------------------------------------------------------------------
     "sliceop -> : maybe_test": lambda o, t: t,
-    "sliceop -> EPS": lambda: None,
+    "sliceop -> EPS": lambda: ast.ConstantExpr(1),
     # -------------------------------------------------------------------------
     "maybe_test -> test": lambda t: t,
     "maybe_test -> EPS": lambda: None,
@@ -468,13 +494,15 @@ builders = {
     "atom -> [ test_list_comp ]": (
         lambda b1, t, b2: ast.ListCompExpr(t[0], build_generators(t[1]))
         if isinstance(t, tuple)
-        else ast.ListExpr(t)
+        else ast.ListExpr(t.elts)
     ),
     "atom -> ( )": lambda p1, p2: ast.TupleExpr(),
     "atom -> [ ]": lambda p1, p2: ast.ListExpr(),
     "atom -> { }": lambda b1, b2: ast.DictExpr(),
     "atom -> NAME": lambda n: ast.NameExpr(n.value),
-    "atom -> NUMBER": lambda n: ast.ConstantExpr(n.value),
+    "atom -> NUMBER": lambda n: ast.ConstantExpr(
+        int(n.value) if n.value.isnumeric() else float(n.value)
+    ),
     "atom -> STRING": lambda s: ast.ConstantExpr(s.value),
     "atom -> None": lambda n: ast.ConstantExpr(None),
     "atom -> True": lambda t: ast.ConstantExpr(True),

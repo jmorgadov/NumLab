@@ -98,7 +98,7 @@ tknz.add_keywords(
 
 # Special terminals
 tknz.add_pattern("NAME", r"(\a|\A|_)(\a|\A|\d|_)*")
-tknz.add_pattern("NUMBER", r"\d\d*")
+tknz.add_pattern("NUMBER", r"\d\d*|\d\d*\.\d\d*")
 tknz.add_pattern("STRING", r"'((^')|(\\'))*(^\\)'")
 
 

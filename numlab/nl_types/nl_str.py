@@ -1,10 +1,12 @@
 from ctypes import sizeof
 
 from numlab.lang.type import Instance, Type
-from numlab.nl_types.nl_int import nl_int
-from numlab.nl_types.nl_object import nl_object
 
-nl_string = Type("string", nl_object)
+nl_bool = Type.get("bool")
+nl_int = Type.get("int")
+nl_str = Type.get("str")
+
+nl_string = Type("str", Type.get("object"))
 
 
 @nl_string.method("__new__")
@@ -24,32 +26,32 @@ def nl__add__(self, other: Instance):
 @nl_string.method("__contains__")
 def nl__contains__(self, other: Instance):
     if other.type.subtype(nl_string):
-        return self.value in other.value
+        return nl_bool(self.value in other.value)
     raise TypeError("Can't match string to non-string")
 
 
 @nl_string.method("__eq__")
 def nl__eq__(self, other: Instance):
     if other.type.subtype(nl_string):
-        return self.value == other.value
+        return nl_bool(self.value == other.value)
     raise TypeError("Cant compare string to non-string")
 
 
 @nl_string.method("__sizeof__")
 def nl__sizeof__(self):
-    return sizeof(self.value)
+    return nl_int(sizeof(self.value))
 
 
 @nl_string.method("__mul__")
-def nl__mul__(self, other: nl_int):
-    if other.type.subtype(nl_int):
+def nl__mul__(self, other):
+    if other.type.subtype(Type.get("int")):
         return nl__new__(self.value * other.value)
     raise TypeError("Can't multiply sequence by non-int")
 
 
 @nl_string.method("__getitem__")
 def nl__getitem__(self, other: Instance):
-    if other.type.subtype(nl_int):
+    if other.type.subtype(Type.get("int")):
         return self.value[other.value]
     raise TypeError("String indices must be integers")
 
@@ -62,7 +64,7 @@ def nl__iter__(self):
 
 @nl_string.method("__len__")
 def nl__len__(self):
-    return len(self.value)
+    return nl_int(len(self.value))
 
 
 @nl_string.method("__str__")
@@ -77,25 +79,19 @@ def nl__repr__(self):
 
 @nl_string.method("__hash__")
 def nl__hash__(self):
-    return hash(self.value)
+    return nl_int(hash(self.value))
 
 
 @nl_string.method("capitalize")
 def nl_capitalize(self):
-    return nl__new__(str.capitalize(self.value))
+    return nl_str(self.value.capitalize())
 
 
 @nl_string.method("isalnum")
 def nl_isalnum(self):
-    return str.isalnum(self.value)
+    return nl_bool(self.value.isalnum())
 
 
 @nl_string.method("isalpha")
 def nl_isalpha(self):
-    return str.isalpha(self.value)
-
-
-# nl_string.method('join')
-# def nl_join(self, iterable: Instance):
-#     if iterable.type.subtype(nl_string):
-#         return nl__new__(join(self.value, iterable))
+    return nl_bool(self.value.isalpha())
