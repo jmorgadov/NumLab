@@ -366,7 +366,11 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.SubscriptExpr):
-        return node
+        val = self.eval(node.value)
+        if isinstance(val, ast.NameExpr):
+            val = self.context.resolve(val.name_id)
+        idx = self.eval(node.slice_expr)
+        return val.get("__getitem__")(val, idx)
 
     @visitor
     def eval(self, node: ast.StarredExpr):
@@ -389,9 +393,9 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.SliceExpr):
         low = self.eval(node.lower) if node.lower is not None else None
-        up = self.eval(node.upper) if node.upper is not None else None
+        upper = self.eval(node.upper) if node.upper is not None else None
         step = self.eval(node.step) if node.step is not None else None
-        return nltp.nl_slice.new(low, up, step)
+        return nltp.nl_slice.new(low, upper, step)
 
     @visitor
     def eval(self, node: ast.Args):

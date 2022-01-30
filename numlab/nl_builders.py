@@ -463,7 +463,11 @@ builders = {
     # -------------------------------------------------------------------------
     "trailer -> ( )": lambda p, p2: build_call_trailer(),
     "trailer -> ( arglist )": lambda p, a, p2: build_call_trailer(a),
-    "trailer -> [ subscriptlist ]": lambda b, s, b2: ast.SubscriptExpr(None, s),
+    "trailer -> [ subscriptlist ]": lambda b, s, b2: (
+        ast.SubscriptExpr(None, s.elts[0])
+        if isinstance(s, ast.TupleExpr) and len(s.elts) == 1
+        else ast.SubscriptExpr(None, s)
+    ),
     "trailer -> . NAME": lambda d, n: ast.AttributeExpr(None, n.value),
     # -------------------------------------------------------------------------
     "subscriptlist -> subscript": lambda s: ast.TupleExpr([s]),
@@ -471,7 +475,7 @@ builders = {
         lambda s, o, s2: ast.TupleExpr([s] + s2.elts)
     ),
     # -------------------------------------------------------------------------
-    "subscript -> test": lambda t: ast.SliceExpr(t, None, None),
+    "subscript -> test": lambda t: t,
     "subscript -> maybe_test : maybe_test sliceop": (
         lambda l, c, u, s: ast.SliceExpr(l, u, s)
     ),
@@ -490,7 +494,7 @@ builders = {
     "atom -> [ test_list_comp ]": (
         lambda b1, t, b2: ast.ListCompExpr(t[0], build_generators(t[1]))
         if isinstance(t, tuple)
-        else ast.ListExpr(t)
+        else ast.ListExpr(t.elts)
     ),
     "atom -> ( )": lambda p1, p2: ast.TupleExpr(),
     "atom -> [ ]": lambda p1, p2: ast.ListExpr(),
