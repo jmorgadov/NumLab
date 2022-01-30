@@ -3,10 +3,8 @@ from __future__ import annotations
 import numlab.nl_ast as ast
 import numlab.nl_types as nltp
 from numlab.lang.context import Context
-from numlab.lang.type import Instance, Type
+from numlab.lang.type import Instance
 from numlab.lang.visitor import Visitor
-
-from typing import List
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -348,7 +346,7 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ConstantExpr):
         if isinstance(node.value, str):
-            return nltp.nl_string.new(node.value)
+            return nltp.nl_str.new(node.value)
         if isinstance(node.value, bool):
             return nltp.nl_bool.new(node.value)
         if isinstance(node.value, int):

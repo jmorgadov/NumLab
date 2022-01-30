@@ -4,10 +4,13 @@ from typing import Any, Callable, Dict, List
 
 
 class Type:
+    nl_types = {}
+
     def __init__(self, type_name: str, parent: Type = None):
         self.type_name = type_name
         self.attributes: Dict[str, Any] = {}
         self.parent = parent
+        Type.nl_types[type_name] = self
 
     def add_attribute(self, attribute: str, default: Any = None):
         self.attributes[attribute] = default
@@ -16,6 +19,7 @@ class Type:
         def method_wrapper(func):
             self.add_attribute(method_name, func)
             return func
+
         return method_wrapper
 
     def get_attribute(self, attribute_name: str):
@@ -31,7 +35,6 @@ class Type:
         all_attrs.update(self.attributes)
         return all_attrs
 
-
     def subtype(self, other: Type):
         if self.type_name == other.type_name:
             return True
@@ -39,8 +42,20 @@ class Type:
             return False
         return self.parent.subtype(other)
 
-    def new(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         return self.attributes["__new__"](*args, **kwargs)
+
+    @staticmethod
+    def new(type_name: str, *args, **kwargs):
+        if type_name not in Type.nl_types:
+            raise ValueError(f"{type_name} is not a valid NumLab type")
+        return Type.nl_types[type_name](*args, **kwargs)
+
+    @staticmethod
+    def get(type_name: str):
+        if type_name not in Type.nl_types:
+            raise ValueError(f"{type_name} is not a valid NumLab type")
+        return Type.nl_types[type_name]
 
 
 class Instance:
