@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import List
+
 import numlab.nl_ast as ast
 import numlab.nl_types as nltp
 from numlab.lang.context import Context
-from numlab.lang.type import Instance
+from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
 
 # pylint: disable=function-redefined
@@ -70,7 +72,17 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.ClassDefStmt):
-        raise NotImplementedError()
+        bases = [self.eval(base) for base in node.bases]
+        if len(bases) > 1:
+            raise NotImplementedError("Multiple inheritance not supported")
+        if not bases:
+            bases = [nltp.nl_object]
+        new_type = Type(node.name, bases[0])
+        self.context.define(node.name, new_type)
+        for stmt in node.body:
+            self.eval(stmt)
+        if node.decorators:
+            raise NotImplementedError("Decorators not supported")
 
     @visitor
     def eval(self, node: ast.ReturnStmt):
@@ -79,7 +91,10 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.DeleteStmt):
-        raise NotImplementedError()
+        for target in node.targets:
+            target.ctx = ast.ExprCtx.DEL
+            self.eval(target)
+
 
     def _assign(self, target, value):
         if isinstance(target, ast.NameExpr):
@@ -357,18 +372,22 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.AttributeExpr):
-        val = self.eval(node.value)
-        if isinstance(val, ast.NameExpr):
-            val = self.context.resolve(val.name_id)
-        return val.get(node.attr)
+        if node.ctx == ast.ExprCtx.STORE:
+            return node
+        val: Instance = self.eval(node.value)
+        if node.ctx == ast.ExprCtx.LOAD:
+            return val.get(node.attr)
+        val._dict.pop(node.attr)
 
     @visitor
     def eval(self, node: ast.SubscriptExpr):
+        if node.ctx == ast.ExprCtx.STORE:
+            return node
         val = self.eval(node.value)
-        if isinstance(val, ast.NameExpr):
-            val = self.context.resolve(val.name_id)
         idx = self.eval(node.slice_expr)
-        return val.get("__getitem__")(val, idx)
+        if node.ctx == ast.ExprCtx.LOAD:
+            return val.get("__getitem__")(val, idx)
+        val.get("__delitem__")(val, idx)
 
     @visitor
     def eval(self, node: ast.StarredExpr):
@@ -376,7 +395,11 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.NameExpr):
-        return self.context.resolve(node.name_id)
+        if node.ctx == ast.ExprCtx.STORE:
+            return node
+        if node.ctx == ast.ExprCtx.LOAD:
+            return self.context.resolve(node.name_id)
+        self.context.symbols.pop(node.name_id)
 
     @visitor
     def eval(self, node: ast.ListExpr):
