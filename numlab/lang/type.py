@@ -77,6 +77,14 @@ class Instance:
             return self.get("__new__")(self.get("value"))
         return self
 
+    def __iter__(self):
+        iterator = self.get("__iter__")(self)
+        while True:
+            try:
+                yield iterator.get("__next__")(iterator)
+            except StopIteration:
+                break
+
     def __repr__(self):
         return self.get("__repr__")(self).get("value")
 
