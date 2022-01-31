@@ -7,6 +7,7 @@ import numlab.nl_types as nltp
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
+from numlab.nl_types import nl_built_in_functions as builtins
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -66,6 +67,14 @@ class EvalVisitor:
             "return": False,
             "return_val": None,
         }
+
+    def resolve(self, obj_name):
+        val = self.context.resolve(obj_name)
+        if val is None:
+            val = builtins.resolve(obj_name)
+        if val is None:
+            raise ValueError(f"{obj_name} is not defined")
+        return val
 
     @visitor
     def eval(self, node: ast.Program):
@@ -150,7 +159,7 @@ class EvalVisitor:
         values = [self.eval(item) for item in node.value.elts]
         for i, val in enumerate(values):
             if isinstance(val, ast.NameExpr):
-                values[i] = self.context.resolve(val.name_id)
+                values[i] = self.resolve(val.name_id)
             values[i] = values[i].get_value()
         for target_tuple in targets:
             if len(target_tuple.elts) != len(values):
@@ -366,7 +375,7 @@ class EvalVisitor:
             if len(compr) == 1:
                 if not isinstance(current.target, ast.NameExpr):
                     raise ValueError("Invalid target")
-                yield self.context.resolve(current.target.name_id)
+                yield self.resolve(current.target.name_id)
             else:
                 yield from self._generate(compr[1:])
 
@@ -377,7 +386,7 @@ class EvalVisitor:
             raise ValueError("Invalid target")
         self.context = self.context.make_child()
         for _ in self._generate(node.generators):
-            item = self.context.resolve(node.elt.name_id)
+            item = self.resolve(node.elt.name_id)
             items.append(item)
         self.context = self.context.parent
         return nltp.nl_list(items)
@@ -388,7 +397,7 @@ class EvalVisitor:
         if not isinstance(node.target, ast.NameExpr):
             raise ValueError("Invalid target")
         for _ in self._generate(node.generators):
-            item = self.context.resolve(node.target.name_id)
+            item = self.resolve(node.target.name_id)
             items.add(item)
         return nltp.nl_list(items)
 
@@ -425,7 +434,7 @@ class EvalVisitor:
             kwargs[kw_arg[0]] = kw_arg[1]  # pylint: disable=unsubscriptable-object
         obj = None
         if isinstance(node.func, ast.NameExpr):
-            func = self.context.resolve(node.func.name_id)
+            func = self.resolve(node.func.name_id)
         elif isinstance(node.func, ast.AttributeExpr):
             obj = self.eval(node.func.value)
             func = node.func.attr
@@ -546,7 +555,7 @@ class EvalVisitor:
         if node.ctx == ast.ExprCtx.STORE:
             return node
         if node.ctx == ast.ExprCtx.LOAD:
-            return self.context.resolve(node.name_id)
+            return self.resolve(node.name_id)
         self.context.symbols.pop(node.name_id)
 
     @visitor
