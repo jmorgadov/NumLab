@@ -26,7 +26,6 @@ def nl__add__(self, other: Instance):
 
 @nl_float.method("__iadd__")
 def nl__iadd__(self, other: Instance):
-    print(other.type.type_name)
     if other.type.subtype(nl_float):
         self.set("value", self.get("value") + other.get("value"))
         return self

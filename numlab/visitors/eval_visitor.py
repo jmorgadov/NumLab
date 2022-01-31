@@ -82,7 +82,6 @@ class EvalVisitor:
                 self.context.define(arg.arg.name_id, value)
             for arg, value in kwargs.items():
                 self.context.define(arg, value)
-            print(self.context.symbols)
             for stmt in node.body:
                 self.eval(stmt)
             return_val = self.context.resolve("0")
