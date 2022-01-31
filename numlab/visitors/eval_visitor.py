@@ -84,8 +84,9 @@ class EvalVisitor:
                 self.context.define(arg.arg.name_id, value)
             for arg, value in kwargs.items():
                 self.context.define(arg, value)
+            last_stmt = None
             for stmt in node.body:
-                self.eval(stmt)
+                last_stmt = self.eval(stmt)
                 if self.flags["return"]:
                     self.flags["return"] = False
                     break
@@ -93,7 +94,7 @@ class EvalVisitor:
             self.flags["return"] = False
             val = self.flags["return_val"]
             self.flags["return_val"] = None
-            return val
+            return last_stmt if node.name is None else val
 
         func_obj = nltp.nl_function(func)
         func_obj.set("args", node.args)
