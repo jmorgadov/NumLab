@@ -120,6 +120,5 @@ def process_tokens(tokens: List[Token]):
                 indentations.append(new_indentation_size)
                 new_tokens.append(indent_tok)
         new_tokens.append(tok)
-    print(new_tokens)
     new_tokens.append(Token("NEWLINE", "\n"))
     return new_tokens
