@@ -14,7 +14,6 @@ def nl__new__(value: float):
 
 @nl_float.method("__bool__")
 def nl__bool__(self: Instance):
-    print(self.get("value"))
     return nl_bool(self.get("value") != 0)
 
 

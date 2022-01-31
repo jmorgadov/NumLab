@@ -17,7 +17,12 @@ def build_args(arg: ast.Arg, args: ast.Args = None) -> ast.Args:
         args.kwarg = arg
 
     if arg.default is not None:
-        if args.args[0].default is None and not args.args[0].is_arg:
+        if (
+            args.args
+            and args.args[0].default is None
+            and not args.args[0].is_arg
+            and not args.args[0].is_kwarg
+        ):
             raise ValueError("Default argument must be after positional argument")
     args.args.insert(0, arg)
     return args
@@ -116,7 +121,7 @@ builders = {
     "simple_stmt -> small_stmt NEWLINE": lambda s, n: s,
     # -------------------------------------------------------------------------
     "funcdef -> def NAME ( ) : suite": (
-        lambda d, n, p, p2, c, s: ast.FuncDefStmt(ast.NameExpr(n.value), None, s)
+        lambda d, n, p, p2, c, s: ast.FuncDefStmt(ast.NameExpr(n.value), ast.Args(), s)
     ),
     "funcdef -> def NAME ( parameters ) : suite": (
         lambda d, n, p, par, p2, c, s: ast.FuncDefStmt(ast.NameExpr(n.value), par, s)
@@ -303,11 +308,7 @@ builders = {
     "expr_stmt -> test_list assign": (
         lambda t, a: ast.AssignStmt([t] + a.targets, a.value)
         if isinstance(a, ast.AssignStmt)
-        else (
-            ast.AssignStmt([t], a)
-            if isinstance(a, ast.TupleExpr)
-            else t
-        )
+        else (ast.AssignStmt([t], a) if isinstance(a, ast.TupleExpr) else t)
     ),
     # -------------------------------------------------------------------------
     "test_list -> test": lambda t: [t],
@@ -329,20 +330,12 @@ builders = {
     "assign -> = yield_expr assign": (
         lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
         if isinstance(a, ast.AssignStmt)
-        else (
-            ast.AssignStmt([t], a)
-            if isinstance(a, ast.TupleExpr)
-            else t
-        )
+        else (ast.AssignStmt([t], a) if isinstance(a, ast.TupleExpr) else t)
     ),
     "assign -> = test_list assign": (
         lambda e, t, a: ast.AssignStmt([t] + a.targets, a.value)
         if isinstance(a, ast.AssignStmt)
-        else (
-            ast.AssignStmt([t], a)
-            if isinstance(a, ast.TupleExpr)
-            else t
-        )
+        else (ast.AssignStmt([t], a) if isinstance(a, ast.TupleExpr) else t)
     ),
     "assign -> EPS": lambda: None,
     # -------------------------------------------------------------------------

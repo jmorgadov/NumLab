@@ -11,5 +11,5 @@ def nl__new__(func):
 
 @nl_function.method('__call__')
 def nl__call__(self, *args, **kwargs):
-    self.func(*args, **kwargs)
+    return self.get("func")(*args, **kwargs)
 

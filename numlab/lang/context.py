@@ -21,4 +21,4 @@ class Context:
             return self.symbols[name]
         if self.parent:
             return self.parent.resolve(name)
-        return None
+        raise NameError(f"{name} is not defined")

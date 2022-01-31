@@ -5,6 +5,7 @@ from numlab.lang.type import Instance, Type
 nl_int = Type.get("int")
 nl_bool = Type.get("bool")
 nl_dict = Type.get("dict")
+nl_str = Type.get("str")
 
 
 @nl_dict.method("__new__")
@@ -28,6 +29,11 @@ def nl__iter__(self):
 @nl_dict.method("__len__")
 def nl__len__(self):
     return nl_int(len(self.get("value")))
+
+
+@nl_dict.method("__repr__")
+def nl__repr__(self):
+    return nl_str(repr(self.get("value")))
 
 
 @nl_dict.method("__getitem__")

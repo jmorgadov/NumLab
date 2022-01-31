@@ -501,7 +501,7 @@ class SliceExpr(Expr):
 
 
 class Args(AST):
-    __slots__ = ("args", "keyword_args", "vararg", "kwarg")
+    __slots__ = ("args", "vararg", "kwarg")
 
     def __init__(
         self,

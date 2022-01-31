@@ -4,6 +4,7 @@ nl_bool = Type.get("bool")
 nl_int = Type.get("int")
 nl_slice = Type.get("slice")
 nl_tuple = Type.get("tuple")
+nl_str = Type.get("str")
 
 
 @nl_tuple.method("__new__")
@@ -48,6 +49,10 @@ def nl__iter__(self):
     move_next = iterator.__next__
     return Type.new("generator", move_next)
 
+
+@nl_tuple.method("__repr__")
+def nl__repr__(self):
+    return nl_str(repr(self.get("value")))
 
 @nl_tuple.method("__len__")
 def nl__len__(self):

@@ -72,23 +72,27 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.FuncDefStmt):
-        for arg in node.args:
+        for arg in node.args.args:
             if arg.default is not None:
                 arg.default = self.eval(arg.default)
+
         def func(*args, **kwargs):
             self.context = self.context.make_child()
-            for arg, value in zip(node.args, args):
-                self.context.define(arg.name_id, value)
+            for arg, value in zip(node.args.args, args):
+                self.context.define(arg.arg.name_id, value)
             for arg, value in kwargs.items():
                 self.context.define(arg, value)
+            print(self.context.symbols)
             for stmt in node.body:
                 self.eval(stmt)
+            return_val = self.context.resolve("0")
             self.context = self.context.parent
+            return return_val
 
         func_obj = nltp.nl_function(func)
         func_obj.set("args", node.args)
-        if node.name_id is not None:
-            self.context.define(node.name_id, func_obj)
+        if node.name is not None:
+            self.context.define(node.name.name_id, func_obj)
         return func_obj
 
     @visitor
@@ -109,8 +113,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.ReturnStmt):
-        exprs = nltp.nl_tuple(tuple(self.eval(expr) for expr in node.exprs))
-        return exprs
+        self.context.define("0", self.eval(node.expr))
 
     @visitor
     def eval(self, node: ast.DeleteStmt):
@@ -423,23 +426,49 @@ class EvalVisitor:
             func = node.func.attr
         else:
             func = self.eval(node.func)
-        func_args = func.args
+        func_args = func.get("args").args
+
+        # Setting arg values
         call_args = {}
+        varargs = None
         for arg in func_args:
+            call_args[arg.arg] = arg.default
             if arg.is_arg:
+                call_args[arg.arg] = []
+                varargs = arg.arg
                 break
-            call_args[arg.arg] = None
         count = len(call_args)
         names = list(call_args.keys())
-        call_kwargs = {}
+
         i = 0
         for arg in args:
             if i >= count:
                 raise ValueError("Too many positional arguments")
-            call_args[names[i]] = arg
             if func_args[i].is_arg:
+                call_args[names[i]].append(arg)
                 continue
+            call_args[names[i]] = arg
             i += 1
+
+        if varargs is not None:
+            call_args[varargs] = Type.get("tuple")(call_args[varargs])
+
+        # Setting keyword values
+        call_kwargs = {}
+        kwarguments = None
+        passed_varargs = False
+        for arg in func_args:
+            if not passed_varargs:
+                if arg.is_arg:
+                    passed_varargs = True
+                continue
+
+            if arg.is_kwarg:
+                call_kwargs[arg.arg.name_id] = {}
+                kwarguments = arg.arg.name_id
+                break
+            call_kwargs[arg.arg.name_id] = arg.default
+
         for kwarg in kwargs:
             if kwarg in call_args:
                 if call_args[kwarg] is None:
@@ -447,18 +476,26 @@ class EvalVisitor:
                 else:
                     raise ValueError("Duplicate argument")
                 continue
-            call_kwargs[kwarg] = kwargs[kwarg]
+            if kwarg in call_kwargs:
+                call_kwargs[kwarg] = kwargs[kwarg]
+            elif kwarguments is not None:
+                call_kwargs[kwarguments][kwarg] = kwargs[kwarg]
+            else:
+                raise ValueError("Unknown argument")
+
+        if kwarguments is not None:
+            call_kwargs[kwarguments] = Type.get("dict")(call_kwargs[kwarguments])
 
         if None in call_args.values():
             raise ValueError("Missing argument")
 
         if obj is None:
-            return func.get("__call__")(obj, *args, **kwargs)
-        return obj.get(func)(*args, **kwargs)
+            return func.get("__call__")(func, *call_args.values(), **call_kwargs)
+        return obj.get(func)(obj, *args, **kwargs)
 
     @visitor
     def eval(self, node: ast.Keyword):
-        if not isinstance(node.value, ast.NameExpr):
+        if not isinstance(node.arg, ast.NameExpr):
             raise ValueError("Keyword value must be a name")
         arg = node.arg.name_id
         val = self.eval(node.value)

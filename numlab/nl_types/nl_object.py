@@ -15,9 +15,13 @@ def nl__init__(self):
 
 @nl_object.method("__str__")
 def nl__str__(self):
-    return f"<NumLab instance of type {self.type.type_name} at {hex(id(self))}>"
+    return Type.get("str")(
+        f"<NumLab instance of type {self.type.type_name} at {hex(id(self))}>"
+    )
 
 
 @nl_object.method("__repr__")
 def nl__repr__(self):
-    return f"<NumLab instance of type {self.type.type_name} at {hex(id(self))}>"
+    return Type.get("str")(
+        f"<NumLab instance of type {self.type.type_name} at {hex(id(self))}>"
+    )
