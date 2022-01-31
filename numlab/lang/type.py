@@ -74,11 +74,23 @@ class Instance:
 
     def get_value(self):
         if self.type.type_name in ["int", "float", "bool", "str"]:
-            return self.get("__new__")(self.value)
+            return self.get("__new__")(self.get("value"))
         return self
 
-    def __getattr__(self, attr_name):
-        return self.get(attr_name)
-
     def __repr__(self):
-        return f"<NumLab instance of type {self.type.type_name} at {hex(id(self))}>"
+        return self.get("__repr__")(self).get("value")
+
+nl_object = Type("object")
+nl_float = Type("float", nl_object)
+nl_int = Type("int", nl_float)
+nl_bool = Type("bool", nl_int)
+nl_str = Type("str", nl_object)
+nl_dict = Type("dict", nl_object)
+nl_list = Type("list", nl_object)
+nl_tuple = Type("tuple", nl_object)
+nl_set = Type("set", nl_object)
+nl_slice = Type("slice", nl_object)
+nl_function = Type("function", nl_object)
+nl_generator = Type("generator", nl_object)
+
+

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import List
+
 import numlab.nl_ast as ast
 import numlab.nl_types as nltp
 from numlab.lang.context import Context
-from numlab.lang.type import Instance
+from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
 
 # pylint: disable=function-redefined
@@ -35,7 +37,11 @@ OPERATOR_FUNC = {
 
 
 def _truth(inst: Instance) -> bool:
-    return nltp.nl_bool.new(inst).value
+    if "__bool__" in inst._dict:
+        return inst.get("__bool__")(inst).get("value")
+    if "__len__" in inst._dict:
+        return inst.get("__len__")(inst).get("value") > 0
+    return nltp.nl_bool(True).get("value")
 
 
 def ioper(oper: str) -> str:
@@ -66,20 +72,54 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.FuncDefStmt):
-        raise NotImplementedError()
+        for arg in node.args.args:
+            if arg.default is not None:
+                arg.default = self.eval(arg.default)
+
+        def func(*args, **kwargs):
+            self.context = self.context.make_child()
+            for arg, value in zip(node.args.args, args):
+                self.context.define(arg.arg.name_id, value)
+            for arg, value in kwargs.items():
+                self.context.define(arg, value)
+            print(self.context.symbols)
+            for stmt in node.body:
+                self.eval(stmt)
+            return_val = self.context.resolve("0")
+            self.context = self.context.parent
+            return return_val
+
+        func_obj = nltp.nl_function(func)
+        func_obj.set("args", node.args)
+        if node.name is not None:
+            self.context.define(node.name.name_id, func_obj)
+        return func_obj
 
     @visitor
     def eval(self, node: ast.ClassDefStmt):
-        raise NotImplementedError()
+        bases = [self.eval(base) for base in node.bases]
+        if len(bases) > 1:
+            raise NotImplementedError("Multiple inheritance not supported")
+        if not bases:
+            bases = [nltp.nl_object]
+        new_type = Type(node.name, bases[0])
+        self.context.define(node.name, new_type)
+        self.context = self.context.make_child()
+        for stmt in node.body:
+            self.eval(stmt)
+        if node.decorators:
+            raise NotImplementedError("Decorators not supported")
+        self.context = self.context.parent
 
     @visitor
     def eval(self, node: ast.ReturnStmt):
-        exprs = nltp.nl_tuple.new(tuple(self.eval(expr) for expr in node.exprs))
-        return exprs
+        self.context.define("0", self.eval(node.expr))
 
     @visitor
     def eval(self, node: ast.DeleteStmt):
-        raise NotImplementedError()
+        for target in node.targets:
+            target.ctx = ast.ExprCtx.DEL
+            self.eval(target)
 
     def _assign(self, target, value):
         if isinstance(target, ast.NameExpr):
@@ -124,11 +164,15 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ForStmt):
         self.flags["inside_loop"] += 1
-        iterator = self.eval(node.iter_expr)
-        while iterator.has_next():
-            item = iterator.next()
-            if not isinstance(node.target, ast.NameExpr):
-                raise ValueError("For loop target must be a NameExpr")
+        obj = self.eval(node.iter_expr)
+        iterator = obj.get("__iter__")(obj)
+        if not isinstance(node.target, ast.NameExpr):
+            raise ValueError("For loop target must be a NameExpr")
+        while True:
+            try:
+                item = iterator.get("__next__")(iterator)
+            except StopIteration:
+                break
             target_name = node.target.name_id
             self.context.define(target_name, item)
             for stmt in node.body:
@@ -238,15 +282,15 @@ class EvalVisitor:
         right: Instance = self.eval(node.right)
         op = node.op
         if op == ast.Operator.AND:
-            return nltp.nl_bool.new(_truth(left) and _truth(right))
+            return nltp.nl_bool(_truth(left) and _truth(right))
         if op == ast.Operator.OR:
-            return nltp.nl_bool.new(_truth(left) or _truth(right))
+            return nltp.nl_bool(_truth(left) or _truth(right))
 
         neg = False
         if op == ast.CmpOp.IS:
-            return nltp.nl_bool.new(left.type.subtype(right.type))
+            return nltp.nl_bool(left.type.subtype(right.type))
         if op == ast.CmpOp.IS_NOT:
-            return nltp.nl_bool.new(not left.type.subtype(right.type))
+            return nltp.nl_bool(not left.type.subtype(right.type))
 
         if op == ast.CmpOp.NOT_IN:
             neg = True
@@ -255,20 +299,21 @@ class EvalVisitor:
         oper = OPERATOR_FUNC[op]
         val = left.get(oper)(left, right)
         if neg:
-            val = nltp.nl_bool.new(not _truth(val))
+            val = nltp.nl_bool(not _truth(val))
+        return val
 
     @visitor
     def eval(self, node: ast.UnaryOpExpr):
         op = node.op
         val: Instance = self.eval(node.operand)
         if op == ast.UnaryOp.NOT:
-            return nltp.nl_bool.new(not _truth(val))
+            return nltp.nl_bool(not _truth(val))
         if op == ast.UnaryOp.INVERT:
             return val.get("__invert__")(val)
         if op == ast.UnaryOp.UADD:
             return val
         if op == ast.UnaryOp.USUB:
-            return val.get("__sub__")(nltp.nl_int.new(0), val)
+            return val.get("__sub__")(nltp.nl_int(0), val)
         raise ValueError("Unsupported unary operator")
 
     @visitor
@@ -286,20 +331,61 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.DictExpr):
         dic = {self.eval(k): self.eval(v) for k, v in zip(node.keys, node.values)}
-        return nltp.nl_dict.new(dic)
+        return nltp.nl_dict(dic)
 
     @visitor
     def eval(self, node: ast.SetExpr):
         values = {self.eval(v) for v in node.values}
-        return nltp.nl_set.new(values)
+        return nltp.nl_set(values)
+
+    def _generate(self, compr: List[ast.Comprehension]):
+        current = compr[0]
+        obj = self.eval(current.comp_iter)
+        iterator = obj.get("__iter__")(obj)
+        while True:
+            try:
+                item = iterator.get("__next__")(iterator)
+                if isinstance(current.target, ast.NameExpr):
+                    self.context.define(current.target.name_id, item)
+                else:
+                    raise NotImplementedError("Tuple target not supported")
+                valid = True
+                for if_expr in current.ifs:
+                    if not _truth(self.eval(if_expr.test)):
+                        valid = False
+                        break
+                if not valid:
+                    continue
+            except StopIteration:
+                break
+            if len(compr) == 1:
+                if not isinstance(current.target, ast.NameExpr):
+                    raise ValueError("Invalid target")
+                yield self.context.resolve(current.target.name_id)
+            else:
+                yield from self._generate(compr[1:])
 
     @visitor
     def eval(self, node: ast.ListCompExpr):
-        raise NotImplementedError()
+        items = []
+        if not isinstance(node.elt, ast.NameExpr):
+            raise ValueError("Invalid target")
+        self.context = self.context.make_child()
+        for _ in self._generate(node.generators):
+            item = self.context.resolve(node.elt.name_id)
+            items.append(item)
+        self.context = self.context.parent
+        return nltp.nl_list(items)
 
     @visitor
     def eval(self, node: ast.SetCompExpr):
-        raise NotImplementedError()
+        items = set()
+        if not isinstance(node.target, ast.NameExpr):
+            raise ValueError("Invalid target")
+        for _ in self._generate(node.generators):
+            item = self.context.resolve(node.target.name_id)
+            items.add(item)
+        return nltp.nl_list(items)
 
     @visitor
     def eval(self, node: ast.DictCompExpr):
@@ -332,12 +418,84 @@ class EvalVisitor:
         for kwarg in node.keywords:
             kw_arg = self.eval(kwarg)
             kwargs[kw_arg[0]] = kw_arg[1]  # pylint: disable=unsubscriptable-object
-        func = self.eval(node.func)
-        return func.get("__call__")(*args, **kwargs)
+        obj = None
+        if isinstance(node.func, ast.NameExpr):
+            func = self.context.resolve(node.func.name_id)
+        elif isinstance(node.func, ast.AttributeExpr):
+            obj = self.eval(node.func.value)
+            func = node.func.attr
+        else:
+            func = self.eval(node.func)
+        func_args = func.get("args").args
+
+        # Setting arg values
+        call_args = {}
+        varargs = None
+        for arg in func_args:
+            call_args[arg.arg] = arg.default
+            if arg.is_arg:
+                call_args[arg.arg] = []
+                varargs = arg.arg
+                break
+        count = len(call_args)
+        names = list(call_args.keys())
+
+        i = 0
+        for arg in args:
+            if i >= count:
+                raise ValueError("Too many positional arguments")
+            if func_args[i].is_arg:
+                call_args[names[i]].append(arg)
+                continue
+            call_args[names[i]] = arg
+            i += 1
+
+        if varargs is not None:
+            call_args[varargs] = Type.get("tuple")(call_args[varargs])
+
+        # Setting keyword values
+        call_kwargs = {}
+        kwarguments = None
+        passed_varargs = False
+        for arg in func_args:
+            if not passed_varargs:
+                if arg.is_arg:
+                    passed_varargs = True
+                continue
+
+            if arg.is_kwarg:
+                call_kwargs[arg.arg.name_id] = {}
+                kwarguments = arg.arg.name_id
+                break
+            call_kwargs[arg.arg.name_id] = arg.default
+
+        for kwarg in kwargs:
+            if kwarg in call_args:
+                if call_args[kwarg] is None:
+                    call_args[kwarg] = kwargs[kwarg]
+                else:
+                    raise ValueError("Duplicate argument")
+                continue
+            if kwarg in call_kwargs:
+                call_kwargs[kwarg] = kwargs[kwarg]
+            elif kwarguments is not None:
+                call_kwargs[kwarguments][kwarg] = kwargs[kwarg]
+            else:
+                raise ValueError("Unknown argument")
+
+        if kwarguments is not None:
+            call_kwargs[kwarguments] = Type.get("dict")(call_kwargs[kwarguments])
+
+        if None in call_args.values():
+            raise ValueError("Missing argument")
+
+        if obj is None:
+            return func.get("__call__")(func, *call_args.values(), **call_kwargs)
+        return obj.get(func)(obj, *args, **kwargs)
 
     @visitor
     def eval(self, node: ast.Keyword):
-        if not isinstance(node.value, ast.NameExpr):
+        if not isinstance(node.arg, ast.NameExpr):
             raise ValueError("Keyword value must be a name")
         arg = node.arg.name_id
         val = self.eval(node.value)
@@ -346,29 +504,33 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ConstantExpr):
         if isinstance(node.value, str):
-            return nltp.nl_str.new(node.value)
+            return nltp.nl_str(node.value)
         if isinstance(node.value, bool):
-            return nltp.nl_bool.new(node.value)
+            return nltp.nl_bool(node.value)
         if isinstance(node.value, int):
-            return nltp.nl_int.new(node.value)
+            return nltp.nl_int(node.value)
         if isinstance(node.value, float):
-            return nltp.nl_float.new(node.value)
+            return nltp.nl_float(node.value)
         raise ValueError(f"Unsupported constant type {type(node.value)}")
 
     @visitor
     def eval(self, node: ast.AttributeExpr):
-        val = self.eval(node.value)
-        if isinstance(val, ast.NameExpr):
-            val = self.context.resolve(val.name_id)
-        return val.get(node.attr)
+        if node.ctx == ast.ExprCtx.STORE:
+            return node
+        val: Instance = self.eval(node.value)
+        if node.ctx == ast.ExprCtx.LOAD:
+            return val.get(node.attr)
+        val._dict.pop(node.attr)
 
     @visitor
     def eval(self, node: ast.SubscriptExpr):
+        if node.ctx == ast.ExprCtx.STORE:
+            return node
         val = self.eval(node.value)
-        if isinstance(val, ast.NameExpr):
-            val = self.context.resolve(val.name_id)
         idx = self.eval(node.slice_expr)
-        return val.get("__getitem__")(val, idx)
+        if node.ctx == ast.ExprCtx.LOAD:
+            return val.get("__getitem__")(val, idx)
+        val.get("__delitem__")(val, idx)
 
     @visitor
     def eval(self, node: ast.StarredExpr):
@@ -376,24 +538,28 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.NameExpr):
-        return self.context.resolve(node.name_id)
+        if node.ctx == ast.ExprCtx.STORE:
+            return node
+        if node.ctx == ast.ExprCtx.LOAD:
+            return self.context.resolve(node.name_id)
+        self.context.symbols.pop(node.name_id)
 
     @visitor
     def eval(self, node: ast.ListExpr):
         items = [self.eval(i) for i in node.elts]
-        return nltp.nl_list.new(items)
+        return nltp.nl_list(items)
 
     @visitor
     def eval(self, node: ast.TupleExpr):
         items = tuple(self.eval(i) for i in node.elts)
-        return nltp.nl_tuple.new(items)
+        return nltp.nl_tuple(items)
 
     @visitor
     def eval(self, node: ast.SliceExpr):
         low = self.eval(node.lower) if node.lower is not None else None
         upper = self.eval(node.upper) if node.upper is not None else None
         step = self.eval(node.step) if node.step is not None else None
-        return nltp.nl_slice.new(low, upper, step)
+        return nltp.nl_slice(low, upper, step)
 
     @visitor
     def eval(self, node: ast.Args):

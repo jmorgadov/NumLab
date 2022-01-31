@@ -1,6 +1,6 @@
 from numlab.lang.type import Instance, Type
 
-nl_int = Type("int", Type.get("int"))
+nl_int = Type.get("int")
 
 
 @nl_int.method("__new__")

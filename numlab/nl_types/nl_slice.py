@@ -2,7 +2,7 @@ from typing import Optional
 
 from numlab.lang.type import Instance, Type
 
-nl_slice = Type("slice", Type.get("object"))
+nl_slice = Type.get("slice")
 
 
 @nl_slice.method("__new__")
