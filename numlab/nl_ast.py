@@ -161,7 +161,7 @@ class ForStmt(Stmt):
         self.target = target
         self.iter_expr = iter_expr
         self.body = body
-        self.orelse = orelse
+        self.orelse = orelse or []
 
 
 class WhileStmt(Stmt):
@@ -170,7 +170,7 @@ class WhileStmt(Stmt):
     def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt] = None):
         self.test = test
         self.body = body
-        self.orelse = orelse
+        self.orelse = orelse or []
 
 
 class IfStmt(Stmt):

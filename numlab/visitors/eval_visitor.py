@@ -150,10 +150,10 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.AugAssignStmt):
-        target = node.target
-        value = self.eval(node.value)
+        target = self.eval(node.target.elts[0])
+        value = self.eval(node.value.elts[0])
         oper = ioper(OPERATOR_FUNC[node.op])
-        target.get(oper)(value)
+        target.get(oper)(target, value)
 
     @visitor
     def eval(self, node: ast.AnnAssignStmt):
@@ -164,15 +164,10 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ForStmt):
         self.flags["inside_loop"] += 1
-        obj = self.eval(node.iter_expr)
-        iterator = obj.get("__iter__")(obj)
+        obj = self.eval(node.iter_expr.elts[0])
         if not isinstance(node.target, ast.NameExpr):
             raise ValueError("For loop target must be a NameExpr")
-        while True:
-            try:
-                item = iterator.get("__next__")(iterator)
-            except StopIteration:
-                break
+        for item in obj:  # pylint: disable=not-an-iterable
             target_name = node.target.name_id
             self.context.define(target_name, item)
             for stmt in node.body:

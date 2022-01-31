@@ -209,9 +209,9 @@ builders = {
     "compound_stmt -> classdef": lambda c: c,
     "compound_stmt -> decorated": lambda d: d,
     # -------------------------------------------------------------------------
-    "if_stmt -> if test : suite elif_clause": lambda i, t, s, e: build_if_stmt(t, s, e),
+    "if_stmt -> if test : suite elif_clause": lambda i, t, c, s, e: build_if_stmt(t, s, e),
     "if_stmt -> if test : suite elif_clause else : suite": (
-        lambda i, t, s, e, el, s2: build_if_stmt(t, s, e, s2)
+        lambda i, t, c, s, e, el, s2: build_if_stmt(t, s, e, s2)
     ),
     # -------------------------------------------------------------------------
     "elif_clause -> elif test : suite elif_clause": (lambda e, t, s, e2: [(t, s)] + e2),
