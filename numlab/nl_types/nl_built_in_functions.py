@@ -54,7 +54,7 @@ def sorted(a, *args):
 
 @builtin_func('iter')
 def iter(x):
-    pass
+    return x.get('__iter__')(x)
 
 @builtin_func('min')
 def min(a, *args):
@@ -86,4 +86,4 @@ def hash(x):
 
 @builtin_func('input')
 def input():
-    pass
+    return nl_str(builtins.input())
