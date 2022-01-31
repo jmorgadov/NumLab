@@ -1,7 +1,7 @@
 from numlab.lang.type import Instance, Type
 from numlab.nl_types.nl_object import nl_object
 
-nl_function = Type("function", nl_object)
+nl_function = Type.get("function")
 
 @nl_function.method('__new__')
 def nl__new__(func):

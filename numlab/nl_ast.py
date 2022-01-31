@@ -506,12 +506,10 @@ class Args(AST):
     def __init__(
         self,
         args: List[Arg] = None,
-        keyword_args: List[Arg] = None,
         vararg=None,
         kwarg=None,
     ):
         self.args = args or []
-        self.keyword_args = keyword_args or []
         self.vararg = vararg
         self.kwarg = kwarg
 

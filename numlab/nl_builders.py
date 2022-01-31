@@ -8,19 +8,18 @@ def build_args(arg: ast.Arg, args: ast.Args = None) -> ast.Args:
         if args.vararg is not None:
             raise ValueError("Only one *arg is allowed")
         args.vararg = arg
-        return args
 
     if arg.is_kwarg:
         if args.kwarg is not None:
             raise ValueError("Only one **arg is allowed")
+        if args.vararg is not None:
+            raise ValueError("**kwargs must be after *args")
         args.kwarg = arg
-        return args
 
-    if arg.default is None:
-        args.args.insert(0, arg)
-        return args
-
-    args.keyword_args.insert(0, arg)
+    if arg.default is not None:
+        if args.args[0].default is None and not args.args[0].is_arg:
+            raise ValueError("Default argument must be after positional argument")
+    args.args.insert(0, arg)
     return args
 
 
@@ -70,7 +69,12 @@ def build_call_expr(func, args=None):
 def build_call_trailer(args=None):
     if args is None:
         return ast.CallExpr(None, [], [])
-    # TODO: check correct order
+    is_keyword = False
+    for arg in args:
+        if isinstance(arg, ast.Keyword):
+            is_keyword = True
+        elif is_keyword:
+            raise ValueError("Positional arguments must be after keyword arguments")
     not_keywords = [arg for arg in args if not isinstance(arg, ast.Keyword)]
     keywords = [arg for arg in args if isinstance(arg, ast.Keyword)]
     return ast.CallExpr(None, not_keywords, keywords)
@@ -285,8 +289,8 @@ builders = {
         lambda f, e, i, o, c: [ast.Comprehension(e, o)] + c
     ),
     # -------------------------------------------------------------------------
-    "comp_if -> if test_nocond": lambda i, t, c: [ast.IfExpr(t, c)],
-    "comp_if -> if test_nocond comp_iter": lambda i, t, c: [ast.IfExpr(t, c)] + c,
+    "comp_if -> if test_nocond": lambda i, t: [ast.IfExpr(t, None)],
+    "comp_if -> if test_nocond comp_iter": lambda i, t, c: [ast.IfExpr(t, None)] + c,
     # -------------------------------------------------------------------------
     "comp_iter -> comp_for": lambda c: c,
     "comp_iter -> comp_if": lambda c: c,
@@ -511,8 +515,12 @@ builders = {
     "test_list_comp -> test comp_for": lambda t, c: (t, c),
     "test_list_comp -> test_list": lambda t: t,
     # -------------------------------------------------------------------------
-    "expr_list -> expr": lambda e: ast.TupleExpr([e]),
-    "expr_list -> expr , expr_list": lambda e, o, el: ast.TupleExpr([e] + el.elts),
+    "expr_list -> expr": lambda e: e,
+    "expr_list -> expr , expr_list": lambda e, o, el: (
+        ast.TupleExpr([e] + el.elts)
+        if isinstance(el, ast.TupleExpr)
+        else ast.TupleExpr([e, el])
+    ),
     # -------------------------------------------------------------------------
     "test_list -> test": lambda t: ast.TupleExpr([t]),
     "test_list -> test , test_list": lambda t, o, tl: ast.TupleExpr([t] + tl.elts),
