@@ -63,6 +63,8 @@ class EvalVisitor:
             "pass": 0,
             "break": False,
             "continue": False,
+            "return": False,
+            "return_val": None,
         }
 
     @visitor
@@ -84,9 +86,14 @@ class EvalVisitor:
                 self.context.define(arg, value)
             for stmt in node.body:
                 self.eval(stmt)
-            return_val = self.context.resolve("0")
+                if self.flags["return"]:
+                    self.flags["return"] = False
+                    break
             self.context = self.context.parent
-            return return_val
+            self.flags["return"] = False
+            val = self.flags["return_val"]
+            self.flags["return_val"] = None
+            return val
 
         func_obj = nltp.nl_function(func)
         func_obj.set("args", node.args)
@@ -112,7 +119,10 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.ReturnStmt):
-        self.context.define("0", self.eval(node.expr))
+        if self.context.parent is None:
+            raise RuntimeError("Cannot return from top-level code")
+        self.flags["return"] = True
+        self.flags["return_val"] = self.eval(node.expr)
 
     @visitor
     def eval(self, node: ast.DeleteStmt):
@@ -171,16 +181,16 @@ class EvalVisitor:
             self.context.define(target_name, item)
             for stmt in node.body:
                 self.eval(stmt)
-                if self.flags["break"]:
+                if self.flags["break"] or self.flags["return"]:
                     break
                 if self.flags["continue"]:
                     self.flags["continue"] = False
                     break
-            if self.flags["break"]:
+            if self.flags["break"] or self.flags["return"]:
                 break
         if self.flags["break"]:
             self.flags["break"] = False
-        else:
+        elif not self.flags["return"]:
             for stmt in node.orelse:
                 self.eval(stmt)
         self.flags["inside_loop"] -= 1
