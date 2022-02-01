@@ -4,12 +4,14 @@ nl_object = Type.get("object")
 
 
 @nl_object.method("__new__")
-def nl__new__():
-    return Instance(nl_object)
+def nl__new__(cls, *args, **kwargs):
+    inst = Instance(nl_object)
+    inst.get("__init__")(inst, *args, **kwargs)
+    return inst
 
 
 @nl_object.method("__init__")
-def nl__init__(self):
+def nl__init__(self, *args, **kwargs):
     pass
 
 

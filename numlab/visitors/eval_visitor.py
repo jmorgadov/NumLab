@@ -4,10 +4,10 @@ from typing import List
 
 import numlab.nl_ast as ast
 import numlab.nl_builtins as nltp
+import numlab.nl_builtins as builtins
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
-import numlab.nl_builtins as builtins
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -66,6 +66,7 @@ class EvalVisitor:
             "continue": False,
             "return": False,
             "return_val": None,
+            "class": [],
         }
 
     def resolve(self, obj_name):
@@ -75,6 +76,12 @@ class EvalVisitor:
         if val is None:
             raise ValueError(f"{obj_name} is not defined")
         return val
+
+    def define(self, name, value):
+        if self.flags["class"]:
+            self.flags["class"][-1].add_attribute(name, value)
+        else:
+            self.context.define(name, value)
 
     @visitor
     def eval(self, node: ast.Program):
@@ -90,9 +97,9 @@ class EvalVisitor:
         def func(*args, **kwargs):
             self.context = self.context.make_child()
             for arg, value in zip(node.args.args, args):
-                self.context.define(arg.arg.name_id, value)
+                self.define(arg.arg.name_id, value)
             for arg, value in kwargs.items():
-                self.context.define(arg, value)
+                self.define(arg, value)
             last_stmt = None
             for stmt in node.body:
                 last_stmt = self.eval(stmt)
@@ -108,7 +115,7 @@ class EvalVisitor:
         func_obj = nltp.nl_function(func)
         func_obj.set("args", node.args)
         if node.name is not None:
-            self.context.define(node.name.name_id, func_obj)
+            self.define(node.name.name_id, func_obj)
         return func_obj
 
     @visitor
@@ -119,12 +126,25 @@ class EvalVisitor:
         if not bases:
             bases = [nltp.nl_object]
         new_type = Type(node.name, bases[0])
-        self.context.define(node.name, new_type)
+        self.define(node.name.name_id, new_type)
+        self.flags["class"].append(new_type)
+
+        def new(cls, *args, **kwargs):
+            inst = Instance(cls)
+            init = inst.get("__init__")
+            if isinstance(init, Instance):
+                init.get("__call__")(init, inst, *args, **kwargs)
+            else:
+                init(*args, **kwargs)
+            return inst
+
+        new_type.add_attribute("__new__", new)
         self.context = self.context.make_child()
         for stmt in node.body:
             self.eval(stmt)
         if node.decorators:
             raise NotImplementedError("Decorators not supported")
+        self.flags["class"].pop()
         self.context = self.context.parent
 
     @visitor
@@ -142,7 +162,7 @@ class EvalVisitor:
 
     def _assign(self, target, value):
         if isinstance(target, ast.NameExpr):
-            self.context.define(target.name_id, value)
+            self.define(target.name_id, value)
         elif isinstance(target, ast.AttributeExpr):
             attr_val = self.eval(target.value)
             attr_val.set(target.attr, value)
@@ -188,7 +208,7 @@ class EvalVisitor:
             raise ValueError("For loop target must be a NameExpr")
         for item in obj:  # pylint: disable=not-an-iterable
             target_name = node.target.name_id
-            self.context.define(target_name, item)
+            self.define(target_name, item)
             for stmt in node.body:
                 self.eval(stmt)
                 if self.flags["break"] or self.flags["return"]:
@@ -360,7 +380,7 @@ class EvalVisitor:
             try:
                 item = iterator.get("__next__")(iterator)
                 if isinstance(current.target, ast.NameExpr):
-                    self.context.define(current.target.name_id, item)
+                    self.define(current.target.name_id, item)
                 else:
                     raise NotImplementedError("Tuple target not supported")
                 valid = True
@@ -425,8 +445,7 @@ class EvalVisitor:
     def eval(self, node: ast.CompareExpr):
         raise NotImplementedError()
 
-
-    def _call_func(self, func, obj, args, kwargs):
+    def _call_func(self, func, args, kwargs):
         func_args = func.get("args").args
 
         # Setting arg values
@@ -490,13 +509,10 @@ class EvalVisitor:
         if None in call_args.values():
             raise ValueError("Missing argument")
 
-        if obj is None:
-            return func.get("__call__")(func, *call_args.values(), **call_kwargs)
-        return obj.get(func)(obj, *args, **kwargs)
-
+        return func.get("__call__")(func, *call_args.values(), **call_kwargs)
 
     def _class_init(self, cls, args, kwargs):
-        raise NotImplementedError()
+        return cls(cls, *args, **kwargs)
 
     @visitor
     def eval(self, node: ast.CallExpr):
@@ -515,14 +531,14 @@ class EvalVisitor:
                 return bi_func(*args, **kwargs)
         elif isinstance(node.func, ast.AttributeExpr):
             obj = self.eval(node.func.value)
-            func = node.func.attr
+            func = obj.get(node.func.attr)
+            args.insert(0, obj)
         else:
             func = self.eval(node.func)
 
-        if func.subtype(nltp.nl_func):
-            return self._call_func(func, obj, args, kwargs)
+        if isinstance(func, Instance):
+            return self._call_func(func, args, kwargs)
         return self._class_init(func, args, kwargs)
-
 
     @visitor
     def eval(self, node: ast.Keyword):
