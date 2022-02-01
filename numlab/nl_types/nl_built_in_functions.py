@@ -7,6 +7,7 @@ __BUILTINS = {}
 nl_float = Type.get('float')
 nl_int = Type.get('int')
 nl_str = Type.get('str')
+nl_list = Type.get('list')
 
 def builtin_func(func_name):
     def deco(func):
@@ -23,39 +24,57 @@ def print(*args, **kwargs):
 
 @builtin_func('abs')
 def abs(x: nl_float):
-    return x if x.value > 0 else nl_float.__new__(-1*x.value)
+    return nl_float(builtins.abs(x.get('value')))
 
 @builtin_func('bin')
 def bin(x: nl_int):
-    return nl_str.__new__(builtins.bin(x.value))
+    return nl_str(builtins.bin(x.get('value')))
 
 @builtin_func('pow')
 def pow(base, exp, mod):
-    return nl_float.__new__(builtins.pow(base.value, exp.value, mod.value))
+    return nl_float(builtins.pow(base.get('value'), exp.get('value'), mod.get('value')))
 
 @builtin_func('round')
 def round(x, ndigits = None):
-    return nl_float.__new__(builtins.round(x.value, ndigits))
+    return nl_float(builtins.round(x.get('value'), ndigits))
 
 @builtin_func('sum')
-def sum(iterable, start = 0):
-    pass
+def sum(a, *args):
+    if '__iter__' in a._dict:
+        return nl_float(builtins.sum(a))
+    if args:
+        return nl_float(builtins.sum(a, *args))
+    return a
 
 @builtin_func('sorted')
-def sorted(iterable):
-    pass
+def sorted(a, *args):
+    if '__iter__' in a._dict:
+        return nl_list(builtins.min(a))
+    raise TypeError('Object must be iterable')
+
+@builtin_func('iter')
+def iter(x):
+    return x.get('__iter__')(x)
 
 @builtin_func('min')
-def min(iterable):
-    pass
+def min(a, *args):
+    if '__iter__' in a._dict:
+        return nl_float(builtins.min(a))
+    if args:
+        return nl_float(builtins.min(a, *args))
+    return a
 
 @builtin_func('max')
-def max(iterable):
-    pass
+def max(a, *args):
+    if '__iter__' in a._dict:
+        return nl_float(builtins.max(a))
+    if args:
+        return nl_float(builtins.max(a, *args))
+    return a
 
 @builtin_func('open')
-def opne(iterable):
-    pass
+def open(file, mode, encoding = None):
+    builtins.open(file.get('value'), mode.get('value'), encoding = encoding.get('value'))
 
 @builtin_func('len')
 def len(x):
@@ -65,6 +84,6 @@ def len(x):
 def hash(x):
     return x.__hash__()
 
-# @builtin_func('input')
-# def input():
-#     return nl_str.__new__(builtins.input())
+@builtin_func('input')
+def input():
+    return nl_str(builtins.input())
