@@ -110,8 +110,13 @@ def process_tokens(tokens: List[Token]):
     dedent_tok = Token("DEDENT", "DEDENT")
     indentations = [0]
     new_tokens = []
+    check_indent = 0
     for tok in tokens:
-        if not new_tokens or new_tokens[-1].NEWLINE:
+        if tok.NEWLINE and check_indent == 0:
+            check_indent = 1
+        if not tok.NEWLINE and check_indent == 1:
+            check_indent = 2
+        if check_indent == 2:
             new_indentation_size = tok.col
             while new_indentation_size < indentations[-1]:
                 new_tokens.append(dedent_tok)
@@ -119,6 +124,10 @@ def process_tokens(tokens: List[Token]):
             if new_indentation_size > indentations[-1]:
                 indentations.append(new_indentation_size)
                 new_tokens.append(indent_tok)
-        new_tokens.append(tok)
+            check_indent = 0
+        if not tok.NEWLINE or (new_tokens and not new_tokens[-1].NEWLINE):
+            new_tokens.append(tok)
+
     new_tokens.append(Token("NEWLINE", "\n"))
+    print(new_tokens)
     return new_tokens
