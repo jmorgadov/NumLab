@@ -7,6 +7,7 @@ import numlab.nl_builtins as builtins
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
+from time import time
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -33,6 +34,29 @@ OPERATOR_FUNC = {
     ast.CmpOp.GT: "__gt__",
     ast.CmpOp.LTE: "__le__",
     ast.CmpOp.GTE: "__ge__",
+}
+
+OPER_SYMBOL = {
+    "__add__": "+",
+    "__sub__": "-",
+    "__mul__": "*",
+    "__truediv__": "/",
+    "__floordiv__": "//",
+    "__mod__": "%",
+    "__pow__": "**",
+    "__lshift__": "<<",
+    "__rshift__": ">>",
+    "__xor__": "^",
+    "__and__": "&",
+    "__or__": "|",
+    "__matmul__": "@",
+    "__contains__": "in",
+    "__eq__": "==",
+    "__ne__": "!=",
+    "__lt__": "<",
+    "__gt__": ">",
+    "__le__": "<=",
+    "__ge__": ">=",
 }
 
 
@@ -63,9 +87,37 @@ class EvalVisitor:
             "pass": 0,
             "break": False,
             "continue": False,
-            "return": False,
-            "return_val": None,
+            "return_val": [],
             "class": [],
+        }
+        self.stats = {
+            "total_time": 0,
+            "num_assign": 0,
+            "num_call": 0,
+            "oper_stats": {
+                "+": 0,
+                "-": 0,
+                "*": 0,
+                "/": 0,
+                "**": 0,
+                "%": 0,
+                "//": 0,
+                "<<": 0,
+                ">>": 0,
+                "@": 0,
+                "&": 0,
+                "|": 0,
+                "^": 0,
+                "in": 0,
+                "==": 0,
+                "!=": 0,
+                "<": 0,
+                ">": 0,
+                "<=": 0,
+                ">=": 0,
+                "and": 0,
+                "or": 0,
+            },
         }
 
     def resolve(self, obj_name):
@@ -78,14 +130,18 @@ class EvalVisitor:
 
     def define(self, name, value):
         if self.flags["class"]:
-            self.flags["class"][-1].add_attribute(name, value)
+            class_obj = self.flags["class"][-1]
+            class_obj.add_attribute(name, value)
         else:
             self.context.define(name, value)
 
     @visitor
     def eval(self, node: ast.Program):
+        start = time()
         for stmt in node.stmts:
             self.eval(stmt)
+        end = time()
+        self.stats["total_time"] += end - start
 
     @visitor
     def eval(self, node: ast.FuncDefStmt):
@@ -102,13 +158,10 @@ class EvalVisitor:
             last_stmt = None
             for stmt in node.body:
                 last_stmt = self.eval(stmt)
-                if self.flags["return"]:
-                    self.flags["return"] = False
+                if self.flags["return_val"]:
                     break
             self.context = self.context.parent
-            self.flags["return"] = False
-            val = self.flags["return_val"]
-            self.flags["return_val"] = None
+            val = self.flags["return_val"].pop()
             return last_stmt if node.name is None else val
 
         func_obj = builtins.nl_function(func)
@@ -150,8 +203,7 @@ class EvalVisitor:
     def eval(self, node: ast.ReturnStmt):
         if self.context.parent is None:
             raise RuntimeError("Cannot return from top-level code")
-        self.flags["return"] = True
-        self.flags["return_val"] = self.eval(node.expr)
+        self.flags["return_val"].append(self.eval(node.expr))
 
     @visitor
     def eval(self, node: ast.DeleteStmt):
@@ -160,6 +212,7 @@ class EvalVisitor:
             self.eval(target)
 
     def _assign(self, target, value):
+        self.stats["num_assign"] += 1
         if isinstance(target, ast.NameExpr):
             self.define(target.name_id, value)
         elif isinstance(target, ast.AttributeExpr):
@@ -190,6 +243,8 @@ class EvalVisitor:
     def eval(self, node: ast.AugAssignStmt):
         target = self.eval(node.target.elts[0])
         value = self.eval(node.value.elts[0])
+        self.stats["num_assign"] += 1
+        self.stats["oper_stats"][OPER_SYMBOL[OPERATOR_FUNC[node.op]]] += 1
         oper = ioper(OPERATOR_FUNC[node.op])
         target.get(oper)(target, value)
 
@@ -210,16 +265,16 @@ class EvalVisitor:
             self.define(target_name, item)
             for stmt in node.body:
                 self.eval(stmt)
-                if self.flags["break"] or self.flags["return"]:
+                if self.flags["break"] or self.flags["return_val"]:
                     break
                 if self.flags["continue"]:
                     self.flags["continue"] = False
                     break
-            if self.flags["break"] or self.flags["return"]:
+            if self.flags["break"] or self.flags["return_val"]:
                 break
         if self.flags["break"]:
             self.flags["break"] = False
-        elif not self.flags["return"]:
+        elif not self.flags["return_val"]:
             for stmt in node.orelse:
                 self.eval(stmt)
         self.flags["inside_loop"] -= 1
@@ -253,12 +308,16 @@ class EvalVisitor:
                     break
                 if self.flags["continue"]:
                     break
+                if self.flags["return_val"]:
+                    break
         else:
             for stmt in node.orelse:
                 self.eval(stmt)
                 if self.flags["break"]:
                     break
                 if self.flags["continue"]:
+                    break
+                if self.flags["return_val"]:
                     break
 
     @visitor
@@ -314,12 +373,15 @@ class EvalVisitor:
         left: Instance = self.eval(node.left)
         op = node.op
         if op == ast.Operator.AND:
+            self.stats["oper_stats"]["and"] += 1
             return builtins.nl_bool(_truth(left) and _truth(self.eval(node.right)))
         if op == ast.Operator.OR:
+            self.stats["oper_stats"]["or"] += 1
             return builtins.nl_bool(_truth(left) or _truth(self.eval(node.right)))
 
         right: Instance = self.eval(node.right)
 
+        self.stats["oper_stats"][OPER_SYMBOL[OPERATOR_FUNC[op]]] += 1
         neg = False
         if op == ast.CmpOp.IS:
             return builtins.nl_bool(left.type.subtype(right.type))
@@ -453,6 +515,7 @@ class EvalVisitor:
 
     def _call_func(self, func, args, kwargs):
         func_args = func.get("args").args
+        self.stats["num_call"] += 1
 
         # Setting arg values
         call_args = {}
