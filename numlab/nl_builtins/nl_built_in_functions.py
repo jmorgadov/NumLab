@@ -30,7 +30,9 @@ def nl_repr(arg):
 
 @builtin_func("print")
 def nl_print(value, *args, sep=nl_str(" "), end=nl_str("\n")):
-    values = [value.get("__str__")(value)] + [arg.get("__str__")(arg) for arg in args]
+    values = [value.get("__str__")(value).get("value")] + [
+        arg.get("__str__")(arg).get("value") for arg in args
+    ]
     builtins.print(*values, sep=sep.get("value"), end=end.get("value"))
 
 

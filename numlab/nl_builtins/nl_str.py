@@ -75,7 +75,7 @@ def nl__len__(self):
 
 @nl_string.method("__str__")
 def nl__str__(self):
-    return self.get("value")
+    return self
 
 
 @nl_string.method("__repr__")
