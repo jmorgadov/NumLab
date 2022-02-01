@@ -17,9 +17,7 @@ def nl__init__(self, *args, **kwargs):
 
 @nl_object.method("__str__")
 def nl__str__(self):
-    return Type.get("str")(
-        f"<NumLab instance of type {self.type.type_name} at {hex(id(self))}>"
-    )
+    return self.get("__repr__")(self)
 
 
 @nl_object.method("__repr__")

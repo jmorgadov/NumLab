@@ -65,6 +65,8 @@ class Instance:
         self._dict["__dict__"] = self._dict
 
     def get(self, attr_name):
+        if attr_name == "__dict__":
+            return Type.get("dict")(self._dict)
         if attr_name not in self._dict:
             raise ValueError(f"{self.type.type_name} has no attribute {attr_name}")
         return self._dict[attr_name]
@@ -72,8 +74,11 @@ class Instance:
     def set(self, attr_name, value):
         self._dict[attr_name] = value
 
+    def has_value(self):
+        return self.type.type_name in ["int", "float", "str", "bool"]
+
     def get_value(self):
-        if self.type.type_name in ["int", "float", "bool", "str"]:
+        if self.has_value():
             return self.get("__new__")(self.get("value"))
         return self
 

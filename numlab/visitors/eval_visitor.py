@@ -312,12 +312,13 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.BinOpExpr):
         left: Instance = self.eval(node.left)
-        right: Instance = self.eval(node.right)
         op = node.op
         if op == ast.Operator.AND:
-            return builtins.nl_bool(_truth(left) and _truth(right))
+            return builtins.nl_bool(_truth(left) and _truth(self.eval(node.right)))
         if op == ast.Operator.OR:
-            return builtins.nl_bool(_truth(left) or _truth(right))
+            return builtins.nl_bool(_truth(left) or _truth(self.eval(node.right)))
+
+        right: Instance = self.eval(node.right)
 
         neg = False
         if op == ast.CmpOp.IS:
@@ -328,6 +329,12 @@ class EvalVisitor:
         if op == ast.CmpOp.NOT_IN:
             neg = True
             op = ast.CmpOp.IN
+
+        if op == ast.CmpOp.IN:
+            val = right.get("__contains__")(right, left)
+            if neg:
+                return builtins.nl_bool(not val.get("value"))
+            return val
 
         oper = OPERATOR_FUNC[op]
         val = left.get(oper)(left, right)

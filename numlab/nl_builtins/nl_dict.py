@@ -17,7 +17,12 @@ def nl__new__(value: dict):
 
 @nl_dict.method("__contains__")
 def nl__contains__(self, key: Instance):
-    return nl_bool(key in self.get("value"))
+    val = nl_bool(key in self.get("value"))
+    if val.get("value"):
+        return val
+    if key.has_value():
+        return nl_bool(key.get("value") in self.get("value"))
+    return val
 
 
 @nl_dict.method("__iter__")
