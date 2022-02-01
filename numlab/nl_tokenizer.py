@@ -129,5 +129,4 @@ def process_tokens(tokens: List[Token]):
             new_tokens.append(tok)
 
     new_tokens.append(Token("NEWLINE", "\n"))
-    print(new_tokens)
     return new_tokens

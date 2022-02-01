@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import List
 
 import numlab.nl_ast as ast
-import numlab.nl_builtins as nltp
 import numlab.nl_builtins as builtins
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
@@ -42,7 +41,7 @@ def _truth(inst: Instance) -> bool:
         return inst.get("__bool__")(inst).get("value")
     if "__len__" in inst._dict:
         return inst.get("__len__")(inst).get("value") > 0
-    return nltp.nl_bool(True).get("value")
+    return builtins.nl_bool(True).get("value")
 
 
 def ioper(oper: str) -> str:
@@ -112,7 +111,7 @@ class EvalVisitor:
             self.flags["return_val"] = None
             return last_stmt if node.name is None else val
 
-        func_obj = nltp.nl_function(func)
+        func_obj = builtins.nl_function(func)
         func_obj.set("args", node.args)
         if node.name is not None:
             self.define(node.name.name_id, func_obj)
@@ -124,7 +123,7 @@ class EvalVisitor:
         if len(bases) > 1:
             raise NotImplementedError("Multiple inheritance not supported")
         if not bases:
-            bases = [nltp.nl_object]
+            bases = [builtins.nl_object]
         new_type = Type(node.name, bases[0])
         self.define(node.name.name_id, new_type)
         self.flags["class"].append(new_type)
@@ -316,15 +315,15 @@ class EvalVisitor:
         right: Instance = self.eval(node.right)
         op = node.op
         if op == ast.Operator.AND:
-            return nltp.nl_bool(_truth(left) and _truth(right))
+            return builtins.nl_bool(_truth(left) and _truth(right))
         if op == ast.Operator.OR:
-            return nltp.nl_bool(_truth(left) or _truth(right))
+            return builtins.nl_bool(_truth(left) or _truth(right))
 
         neg = False
         if op == ast.CmpOp.IS:
-            return nltp.nl_bool(left.type.subtype(right.type))
+            return builtins.nl_bool(left.type.subtype(right.type))
         if op == ast.CmpOp.IS_NOT:
-            return nltp.nl_bool(not left.type.subtype(right.type))
+            return builtins.nl_bool(not left.type.subtype(right.type))
 
         if op == ast.CmpOp.NOT_IN:
             neg = True
@@ -333,7 +332,7 @@ class EvalVisitor:
         oper = OPERATOR_FUNC[op]
         val = left.get(oper)(left, right)
         if neg:
-            val = nltp.nl_bool(not _truth(val))
+            val = builtins.nl_bool(not _truth(val))
         return val
 
     @visitor
@@ -341,13 +340,13 @@ class EvalVisitor:
         op = node.op
         val: Instance = self.eval(node.operand)
         if op == ast.UnaryOp.NOT:
-            return nltp.nl_bool(not _truth(val))
+            return builtins.nl_bool(not _truth(val))
         if op == ast.UnaryOp.INVERT:
             return val.get("__invert__")(val)
         if op == ast.UnaryOp.UADD:
             return val
         if op == ast.UnaryOp.USUB:
-            return val.get("__sub__")(nltp.nl_int(0), val)
+            return val.get("__sub__")(builtins.nl_int(0), val)
         raise ValueError("Unsupported unary operator")
 
     @visitor
@@ -365,12 +364,12 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.DictExpr):
         dic = {self.eval(k): self.eval(v) for k, v in zip(node.keys, node.values)}
-        return nltp.nl_dict(dic)
+        return builtins.nl_dict(dic)
 
     @visitor
     def eval(self, node: ast.SetExpr):
         values = {self.eval(v) for v in node.values}
-        return nltp.nl_set(values)
+        return builtins.nl_set(values)
 
     def _generate(self, compr: List[ast.Comprehension]):
         current = compr[0]
@@ -409,7 +408,7 @@ class EvalVisitor:
             item = self.resolve(node.elt.name_id)
             items.append(item)
         self.context = self.context.parent
-        return nltp.nl_list(items)
+        return builtins.nl_list(items)
 
     @visitor
     def eval(self, node: ast.SetCompExpr):
@@ -419,7 +418,7 @@ class EvalVisitor:
         for _ in self._generate(node.generators):
             item = self.resolve(node.target.name_id)
             items.add(item)
-        return nltp.nl_list(items)
+        return builtins.nl_list(items)
 
     @visitor
     def eval(self, node: ast.DictCompExpr):
@@ -551,13 +550,13 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ConstantExpr):
         if isinstance(node.value, str):
-            return nltp.nl_str(node.value)
+            return builtins.nl_str(node.value)
         if isinstance(node.value, bool):
-            return nltp.nl_bool(node.value)
+            return builtins.nl_bool(node.value)
         if isinstance(node.value, int):
-            return nltp.nl_int(node.value)
+            return builtins.nl_int(node.value)
         if isinstance(node.value, float):
-            return nltp.nl_float(node.value)
+            return builtins.nl_float(node.value)
         raise ValueError(f"Unsupported constant type {type(node.value)}")
 
     @visitor
@@ -594,19 +593,19 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ListExpr):
         items = [self.eval(i) for i in node.elts]
-        return nltp.nl_list(items)
+        return builtins.nl_list(items)
 
     @visitor
     def eval(self, node: ast.TupleExpr):
         items = tuple(self.eval(i) for i in node.elts)
-        return nltp.nl_tuple(items)
+        return builtins.nl_tuple(items)
 
     @visitor
     def eval(self, node: ast.SliceExpr):
         low = self.eval(node.lower) if node.lower is not None else None
         upper = self.eval(node.upper) if node.upper is not None else None
         step = self.eval(node.step) if node.step is not None else None
-        return nltp.nl_slice(low, upper, step)
+        return builtins.nl_slice(low, upper, step)
 
     @visitor
     def eval(self, node: ast.Args):
