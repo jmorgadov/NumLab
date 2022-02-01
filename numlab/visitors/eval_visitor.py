@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import List
 
 import numlab.nl_ast as ast
-import numlab.nl_types as nltp
+import numlab.nl_builtins as nltp
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
-from numlab.nl_types import nl_built_in_functions as builtins
+import numlab.nl_builtins as builtins
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -425,21 +425,8 @@ class EvalVisitor:
     def eval(self, node: ast.CompareExpr):
         raise NotImplementedError()
 
-    @visitor
-    def eval(self, node: ast.CallExpr):
-        args = [self.eval(arg) for arg in node.args]
-        kwargs = {}
-        for kwarg in node.keywords:
-            kw_arg = self.eval(kwarg)
-            kwargs[kw_arg[0]] = kw_arg[1]  # pylint: disable=unsubscriptable-object
-        obj = None
-        if isinstance(node.func, ast.NameExpr):
-            func = self.resolve(node.func.name_id)
-        elif isinstance(node.func, ast.AttributeExpr):
-            obj = self.eval(node.func.value)
-            func = node.func.attr
-        else:
-            func = self.eval(node.func)
+
+    def _call_func(self, func, obj, args, kwargs):
         func_args = func.get("args").args
 
         # Setting arg values
@@ -506,6 +493,36 @@ class EvalVisitor:
         if obj is None:
             return func.get("__call__")(func, *call_args.values(), **call_kwargs)
         return obj.get(func)(obj, *args, **kwargs)
+
+
+    def _class_init(self, cls, args, kwargs):
+        raise NotImplementedError()
+
+    @visitor
+    def eval(self, node: ast.CallExpr):
+        args = [self.eval(arg) for arg in node.args]
+        kwargs = {}
+        for kwarg in node.keywords:
+            kw_arg = self.eval(kwarg)
+            kwargs[kw_arg[0]] = kw_arg[1]  # pylint: disable=unsubscriptable-object
+        obj = None
+        if isinstance(node.func, ast.NameExpr):
+            func = self.context.resolve(node.func.name_id)
+            if func is None:
+                bi_func = builtins.resolve(node.func.name_id)
+                if bi_func is None:
+                    raise ValueError("Unknown function")
+                return bi_func(*args, **kwargs)
+        elif isinstance(node.func, ast.AttributeExpr):
+            obj = self.eval(node.func.value)
+            func = node.func.attr
+        else:
+            func = self.eval(node.func)
+
+        if func.subtype(nltp.nl_func):
+            return self._call_func(func, obj, args, kwargs)
+        return self._class_init(func, args, kwargs)
+
 
     @visitor
     def eval(self, node: ast.Keyword):

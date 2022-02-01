@@ -1,5 +1,4 @@
 from numlab.lang.type import Instance, Type
-from numlab.nl_types.nl_object import nl_object
 
 nl_function = Type.get("function")
 
