@@ -128,5 +128,9 @@ def process_tokens(tokens: List[Token]):
         if not tok.NEWLINE or (new_tokens and not new_tokens[-1].NEWLINE):
             new_tokens.append(tok)
 
+    if len(indentations) > 1:
+        for _ in range(len(indentations) - 1):
+            new_tokens.append(dedent_tok)
+
     new_tokens.append(Token("NEWLINE", "\n"))
     return new_tokens
