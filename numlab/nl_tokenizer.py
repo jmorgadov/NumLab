@@ -97,6 +97,7 @@ tknz.add_keywords(
     "conf",
     "begsim",
     "endsim",
+    "resetstats",
 )
 
 # Special terminals

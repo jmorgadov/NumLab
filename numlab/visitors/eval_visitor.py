@@ -141,13 +141,13 @@ class EvalVisitor:
 
     @callback
     def time_callbalck(self, node: ast.AST):
-        self.set_stat("total_time", time() - self.flags["start_time"])
+        self.set_stat("time", time() - self.flags["start_time"])
 
     def reset_stats(self):
         self.define("stats", builtins.nl_dict({}))
         self.set_stats(
             [
-                ("total_time", 0),
+                ("time", 0),
                 ("assign_count", 0),
                 ("call_count", 0),
                 ("add_count", 0),
@@ -212,7 +212,7 @@ class EvalVisitor:
         for stmt in node.stmts:
             self.eval(stmt)
         end = time()
-        self.set_stat("total_time", end - start)
+        self.set_stat("time", end - start)
 
     @visitor
     def eval(self, node: ast.FuncDefStmt):
@@ -428,7 +428,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.ResetStats):
-        raise NotImplementedError()
+        self.reset_stats()
 
     @visitor
     def eval(self, node: ast.WithStmt):
