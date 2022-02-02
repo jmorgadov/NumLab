@@ -113,7 +113,6 @@ class EvalVisitor:
         self.context = context
         self.flags = {
             "inside_loop": 0,
-            "pass": 0,
             "break": False,
             "continue": False,
             "return_val": [],
@@ -150,7 +149,6 @@ class EvalVisitor:
         if not "max_var" in config:
             return
         if self.context.count_vars() > config["max_var"]:
-            print(self.context.symbols)
             raise TimeoutError(f"Variable limit exceeded: {config['max_var']}")
 
     def reset_stats(self):
@@ -274,7 +272,7 @@ class EvalVisitor:
             if isinstance(init, Instance):
                 init.get("__call__")(init, inst, *args, **kwargs)
             else:
-                init(*args, **kwargs)
+                init(inst, *args, **kwargs)
             return inst
 
         new_type.add_attribute("__new__", new)
@@ -480,7 +478,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.PassStmt):
-        self.flags["pass"] += 1
+        return node
 
     @visitor
     def eval(self, node: ast.BreakStmt):
@@ -753,6 +751,8 @@ class EvalVisitor:
             return builtins.nl_int(node.value)
         if isinstance(node.value, float):
             return builtins.nl_float(node.value)
+        if node.value is None:
+            return builtins.nl_none()
         raise ValueError(f"Unsupported constant type {type(node.value)}")
 
     @visitor

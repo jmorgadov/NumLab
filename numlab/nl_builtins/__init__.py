@@ -10,5 +10,6 @@ from numlab.nl_builtins.nl_set import nl_set
 from numlab.nl_builtins.nl_slice import nl_slice
 from numlab.nl_builtins.nl_str import nl_str
 from numlab.nl_builtins.nl_tuple import nl_tuple
+from numlab.nl_builtins.nl_none import nl_none
 
 from numlab.nl_builtins.nl_built_in_functions import resolve
