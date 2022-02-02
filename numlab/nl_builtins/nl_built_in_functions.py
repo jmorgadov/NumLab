@@ -132,3 +132,24 @@ def nl_hash(x):
 @builtin_func("input")
 def nl_input():
     return nl_str(builtins.input())
+
+
+@builtin_func("range")
+def nl_range(start, stop=None, step=None):
+    if stop is None:
+        stop = start
+        start = nl_int(0)
+    if step is None:
+        step = nl_int(1)
+
+    def move_next(self):
+        if not "current" in self._dict:
+            self.set("current", start)
+            return start
+        old_current = self.get("current")
+        self.set("current", old_current.get("__add__")(old_current, step))
+        current = self.get("current")
+        if current.get("__ge__")(current, stop).get("value"):
+            raise StopIteration
+        return current
+    return Type.new("generator", move_next)

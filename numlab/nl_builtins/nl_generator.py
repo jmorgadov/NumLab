@@ -10,6 +10,11 @@ def nl__new__(func):
     return _inst
 
 
+@nl_generator.method("__iter__")
+def nl__iter__(self):
+    return self
+
+
 @nl_generator.method("__next__")
 def nl__next__(self):
-    return self.get("func")()
+    return self.get("func")(self)
