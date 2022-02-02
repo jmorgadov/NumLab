@@ -153,3 +153,23 @@ def nl_range(start, stop=None, step=None):
             raise StopIteration
         return current
     return Type.new("generator", move_next)
+
+@builtin_func("rand")
+def nl_rand():
+    return nl_float(random.random())
+
+
+@builtin_func("randint")
+def nl_randint(a, b):
+    return nl_int(random.randint(a.get("value"), b.get("value")))
+
+
+@builtin_func("norm")
+def nl_norm():
+    return nl_float(random.normalvariate(0, 1))
+
+
+@builtin_func("sqrt")
+def nl_sqrt(x):
+    return nl_float(math.sqrt(x.get("value")))
+
