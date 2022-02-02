@@ -198,7 +198,7 @@ builders = {
     "continue_stmt -> continue": lambda c: ast.ContinueStmt(),
     # -------------------------------------------------------------------------
     "return_stmt -> return": lambda r: ast.ReturnStmt(),
-    "return_stmt -> return expr_list": lambda r, e: ast.ReturnStmt(e),
+    "return_stmt -> return test_list": lambda r, e: ast.ReturnStmt(e),
     # -------------------------------------------------------------------------
     "yield_stmt -> yield": lambda y: ast.YieldExpr(),
     "yield_stmt -> yield expr_list": lambda y, e: ast.YieldExpr(e),
@@ -381,7 +381,7 @@ builders = {
     "test_nocond -> or_test": lambda o: o,
     "test_nocond -> lambdef_nocond": lambda l: l,
     # -------------------------------------------------------------------------
-    "lambdef -> lambda : test": lambda l, c, t: ast.FuncDefStmt(None, [], [t]),
+    "lambdef -> lambda : test": lambda l, c, t: ast.FuncDefStmt(None, ast.Args(), [t]),
     "lambdef -> lambda varargslist : test": (
         lambda l, v, c, t: ast.FuncDefStmt(None, v, [t])
     ),

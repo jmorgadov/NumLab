@@ -92,7 +92,7 @@ continue_stmt: 'continue'
 
 return_stmt:
 	| 'return'
-	| 'return' expr_list
+	| 'return' test_list
 
 yield_stmt:
 	| 'yield'

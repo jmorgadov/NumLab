@@ -307,7 +307,10 @@ class EvalVisitor:
     def eval(self, node: ast.ReturnStmt):
         if self.context.parent is None:
             raise RuntimeError("Cannot return from top-level code")
-        self.flags["return_val"].append(self.eval(node.expr))
+        val = node.expr.elts
+        if len(val) == 1:
+            val = val[0]
+        self.flags["return_val"].append(self.eval(val))
 
     @visitor
     def eval(self, node: ast.DeleteStmt):

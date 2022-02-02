@@ -2,13 +2,14 @@ from numlab.lang.type import Instance, Type
 
 nl_bool = Type.get("bool")
 nl_str = Type.get("str")
+nl_int = Type.get("int")
 nl_float = Type.get("float")
 
 
 @nl_float.method("__new__")
 def nl__new__(value: float):
     _inst = Instance(nl_float)
-    _inst.set("value", value)
+    _inst.set("value", float(value))
     return _inst
 
 
@@ -60,6 +61,12 @@ def nl__imul__(self, other: Instance):
         self.set("value", self.get("value") * other.get("value"))
         return self
     raise TypeError("Can't multiply float by non-float")
+
+@nl_float.method("__pow__")
+def nl__pow__(self, other: Instance):
+    if other.type.subtype(nl_int):
+        return nl__new__(self.get("value") ** other.get("value"))
+    raise TypeError("Can't raise float to non-int")
 
 
 @nl_float.method("__div__")
