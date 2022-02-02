@@ -105,5 +105,5 @@ nl_set = Type("set", nl_object)
 nl_slice = Type("slice", nl_object)
 nl_function = Type("function", nl_object)
 nl_generator = Type("generator", nl_object)
-
+nl_none = Type("none", nl_object)
 

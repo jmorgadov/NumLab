@@ -63,8 +63,7 @@ OPER_STAT_NAME = {
 
 CONFIG_OPTS_VALIDATOR = {
     "max_time": builtins.nl_float,
-    "max_recursion": builtins.nl_int,
-    "max_call_depth": builtins.nl_int,
+    "max_var": builtins.nl_int,
 }
 
 
@@ -140,8 +139,19 @@ class EvalVisitor:
             raise TimeoutError(f"Time limit exceeded: {config['max_time']}s")
 
     @callback
-    def time_callbalck(self, node: ast.AST):
+    def main_callbalck(self, node: ast.AST):
         self.set_stat("time", time() - self.flags["start_time"])
+
+    @callback
+    def check_max_var_callbalck(self, node: ast.AST):
+        if not self.in_sim:
+            return
+        config = self.in_sim[-1]
+        if not "max_var" in config:
+            return
+        if self.context.count_vars() > config["max_var"]:
+            print(self.context.symbols)
+            raise TimeoutError(f"Variable limit exceeded: {config['max_var']}")
 
     def reset_stats(self):
         self.define("stats", builtins.nl_dict({}))
@@ -149,6 +159,7 @@ class EvalVisitor:
             [
                 ("time", 0),
                 ("assign_count", 0),
+                ("var_count", 0),
                 ("call_count", 0),
                 ("add_count", 0),
                 ("sub_count", 0),
@@ -204,6 +215,7 @@ class EvalVisitor:
             class_obj.add_attribute(name, value)
         else:
             self.context.define(name, value)
+        self.set_stat("var_count", self.context.count_vars())
 
     @visitor
     def eval(self, node: ast.Program):
@@ -232,7 +244,11 @@ class EvalVisitor:
                 if self.flags["return_val"]:
                     break
             self.context = self.context.parent
-            val = self.flags["return_val"].pop()
+            val = (
+                self.flags["return_val"].pop()
+                if self.flags["return_val"]
+                else Type.get("none")
+            )
             return last_stmt if node.name is None else val
 
         func_obj = builtins.nl_function(func)
@@ -768,7 +784,8 @@ class EvalVisitor:
             return node
         if node.ctx == ast.ExprCtx.LOAD:
             return self.resolve(node.name_id)
-        self.context.symbols.pop(node.name_id)
+        self.context.delete(node.name_id)
+        self.set_stat("var_count", self.context.count_vars())
 
     @visitor
     def eval(self, node: ast.ListExpr):
