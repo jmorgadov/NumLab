@@ -106,7 +106,9 @@ def convert_to_nl_obj(obj: Any):
 
 class EvalVisitor:
 
-    visitor = Visitor().visitor
+    visitor_obj = Visitor()
+    visitor = visitor_obj.visitor
+    callback = visitor_obj.callback
 
     def __init__(self, context: Context):
         self.context = context
@@ -118,11 +120,28 @@ class EvalVisitor:
             "return_val": [],
             "class": [],
             "current_config": None,
+            "start_time": 0,
         }
         self.stats = {}
         self.reset_stats()
         self.configs = {}
         self.in_sim = []
+
+    @callback
+    def check_time_callback(self, node: ast.AST):
+        if not self.in_sim:
+            return
+        config = self.in_sim[-1]
+        if not "max_time" in config:
+            return
+        start = self.flags["start_time"]
+        now = time()
+        if now - start > config["max_time"]:
+            raise TimeoutError(f"Time limit exceeded: {config['max_time']}s")
+
+    @callback
+    def time_callbalck(self, node: ast.AST):
+        self.set_stat("total_time", time() - self.flags["start_time"])
 
     def reset_stats(self):
         self.define("stats", builtins.nl_dict({}))
@@ -160,12 +179,16 @@ class EvalVisitor:
         stats = self.resolve("stats")
         for name, value in items:
             self.stats[name] = value
-            stats.get("__setitem__")(stats, name, convert_to_nl_obj(value))
+            stats.get("__setitem__")(
+                stats, convert_to_nl_obj(name), convert_to_nl_obj(value)
+            )
 
     def set_stat(self, name, value):
         self.stats[name] = value
         stats = self.resolve("stats")
-        stats.get("__setitem__")(stats, name, convert_to_nl_obj(value))
+        stats.get("__setitem__")(
+            stats, convert_to_nl_obj(name), convert_to_nl_obj(value)
+        )
 
     def resolve(self, obj_name):
         val = self.context.resolve(obj_name)
@@ -185,6 +208,7 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.Program):
         start = time()
+        self.flags["start_time"] = start
         for stmt in node.stmts:
             self.eval(stmt)
         end = time()
@@ -388,11 +412,19 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.Begsim):
-        raise NotImplementedError()
+        val = node.config
+        if not isinstance(val, ast.NameExpr):
+            raise ValueError("Invalid value for begsim config option")
+        conf_name = val.name_id
+        if not conf_name in self.configs:
+            raise ValueError(f"Unknown config: {conf_name}")
+        self.in_sim.append(self.configs[val.name_id])
 
     @visitor
     def eval(self, node: ast.Endsim):
-        raise NotImplementedError()
+        if not self.in_sim:
+            raise ValueError("Endsim without begsim")
+        self.in_sim.pop()
 
     @visitor
     def eval(self, node: ast.ResetStats):
