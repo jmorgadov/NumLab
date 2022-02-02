@@ -94,6 +94,9 @@ tknz.add_keywords(
     "global",
     "nonlocal",
     "lambda",
+    "conf",
+    "begsim",
+    "endsim",
 )
 
 # Special terminals

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import List
+from time import time
+from typing import Any, List, Tuple
 
 import numlab.nl_ast as ast
 import numlab.nl_builtins as builtins
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
-from time import time
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -36,27 +36,35 @@ OPERATOR_FUNC = {
     ast.CmpOp.GTE: "__ge__",
 }
 
-OPER_SYMBOL = {
-    "__add__": "+",
-    "__sub__": "-",
-    "__mul__": "*",
-    "__truediv__": "/",
-    "__floordiv__": "//",
-    "__mod__": "%",
-    "__pow__": "**",
-    "__lshift__": "<<",
-    "__rshift__": ">>",
-    "__xor__": "^",
-    "__and__": "&",
-    "__or__": "|",
-    "__matmul__": "@",
-    "__contains__": "in",
-    "__eq__": "==",
-    "__ne__": "!=",
-    "__lt__": "<",
-    "__gt__": ">",
-    "__le__": "<=",
-    "__ge__": ">=",
+OPER_STAT_NAME = {
+    ast.Operator.ADD: "add_count",
+    ast.Operator.SUB: "sub_count",
+    ast.Operator.MUL: "mul_count",
+    ast.Operator.DIV: "truediv_count",
+    ast.Operator.POW: "pow_count",
+    ast.Operator.MOD: "mod_count",
+    ast.Operator.POW: "pow_count",
+    ast.Operator.LSHIFT: "lshift_count",
+    ast.Operator.RSHIFT: "rshift_count",
+    ast.Operator.BIT_XOR: "bit_xor_count",
+    ast.Operator.BIT_AND: "bit_and_count",
+    ast.Operator.BIT_OR: "bit_or_count",
+    ast.Operator.FLOORDIV: "floordiv_count",
+    ast.Operator.MATMUL: "matmul_count",
+    ast.CmpOp.IN: "contains_count",
+    ast.CmpOp.EQ: "eq_count",
+    ast.CmpOp.NOT_EQ: "ne_count",
+    ast.CmpOp.LT: "lt_count",
+    ast.CmpOp.GT: "gt_count",
+    ast.CmpOp.LTE: "le_count",
+    ast.CmpOp.GTE: "ge_count",
+}
+
+
+CONFIG_OPTS_VALIDATOR = {
+    "max_time": builtins.nl_float,
+    "max_recursion": builtins.nl_int,
+    "max_call_depth": builtins.nl_int,
 }
 
 
@@ -76,6 +84,26 @@ def roper(oper: str) -> str:
     return f"__r{oper[2:-2]}__"
 
 
+def convert_to_nl_obj(obj: Any):
+    if isinstance(obj, Instance):
+        return obj
+    if isinstance(obj, bool):
+        return builtins.nl_bool(obj)
+    if isinstance(obj, int):
+        return builtins.nl_int(obj)
+    if isinstance(obj, float):
+        return builtins.nl_float(obj)
+    if isinstance(obj, str):
+        return builtins.nl_str(obj)
+    if isinstance(obj, list):
+        items = [convert_to_nl_obj(item) for item in obj]
+        return builtins.nl_list(items)
+    if isinstance(obj, tuple):
+        items = [convert_to_nl_obj(item) for item in obj]
+        return builtins.nl_tuple(items)
+    raise TypeError(f"Unsupported type: {type(obj)}")
+
+
 class EvalVisitor:
 
     visitor = Visitor().visitor
@@ -89,36 +117,55 @@ class EvalVisitor:
             "continue": False,
             "return_val": [],
             "class": [],
+            "current_config": None,
         }
-        self.stats = {
-            "total_time": 0,
-            "num_assign": 0,
-            "num_call": 0,
-            "oper_stats": {
-                "+": 0,
-                "-": 0,
-                "*": 0,
-                "/": 0,
-                "**": 0,
-                "%": 0,
-                "//": 0,
-                "<<": 0,
-                ">>": 0,
-                "@": 0,
-                "&": 0,
-                "|": 0,
-                "^": 0,
-                "in": 0,
-                "==": 0,
-                "!=": 0,
-                "<": 0,
-                ">": 0,
-                "<=": 0,
-                ">=": 0,
-                "and": 0,
-                "or": 0,
-            },
-        }
+        self.stats = {}
+        self.reset_stats()
+        self.configs = {}
+        self.in_sim = []
+
+    def reset_stats(self):
+        self.define("stats", builtins.nl_dict({}))
+        self.set_stats(
+            [
+                ("total_time", 0),
+                ("assign_count", 0),
+                ("call_count", 0),
+                ("add_count", 0),
+                ("sub_count", 0),
+                ("mul_count", 0),
+                ("truediv_count", 0),
+                ("pow_count", 0),
+                ("mod_count", 0),
+                ("floordiv_count", 0),
+                ("lshift_count", 0),
+                ("rshift_count", 0),
+                ("matmul_count", 0),
+                ("bit_xor_count", 0),
+                ("bit_and_count", 0),
+                ("bit_or_count", 0),
+                ("in_count", 0),
+                ("eq_count", 0),
+                ("ne_count", 0),
+                ("lt_count", 0),
+                ("gt_count", 0),
+                ("le_count", 0),
+                ("ge_count", 0),
+                ("and_count", 0),
+                ("or_count", 0),
+            ]
+        )
+
+    def set_stats(self, items: List[Tuple[str, Any]]):
+        stats = self.resolve("stats")
+        for name, value in items:
+            self.stats[name] = value
+            stats.get("__setitem__")(stats, name, convert_to_nl_obj(value))
+
+    def set_stat(self, name, value):
+        self.stats[name] = value
+        stats = self.resolve("stats")
+        stats.get("__setitem__")(stats, name, convert_to_nl_obj(value))
 
     def resolve(self, obj_name):
         val = self.context.resolve(obj_name)
@@ -141,7 +188,7 @@ class EvalVisitor:
         for stmt in node.stmts:
             self.eval(stmt)
         end = time()
-        self.stats["total_time"] += end - start
+        self.set_stat("total_time", end - start)
 
     @visitor
     def eval(self, node: ast.FuncDefStmt):
@@ -200,6 +247,25 @@ class EvalVisitor:
         self.context = self.context.parent
 
     @visitor
+    def eval(self, node: ast.ConfDefStmt):
+        self.flags["current_config"] = node.name
+        self.configs[node.name] = {}
+        for conf_opt in node.configs:
+            self.eval(conf_opt)
+
+    @visitor
+    def eval(self, node: ast.ConfOption):
+        if node.name not in CONFIG_OPTS_VALIDATOR:
+            raise ValueError(f"Unknown config option: {node.name}")
+        val = self.eval(node.value)
+        if not val.type.subtype(CONFIG_OPTS_VALIDATOR[node.name]):
+            raise ValueError(
+                f"Invalid value for config option: {node.name}. "
+                "Expected: " + CONFIG_OPTS_VALIDATOR[node.name].type_name
+            )
+        self.configs[self.flags["current_config"]][node.name] = val.get("value")
+
+    @visitor
     def eval(self, node: ast.ReturnStmt):
         if self.context.parent is None:
             raise RuntimeError("Cannot return from top-level code")
@@ -212,7 +278,7 @@ class EvalVisitor:
             self.eval(target)
 
     def _assign(self, target, value):
-        self.stats["num_assign"] += 1
+        self.set_stat("assign_count", self.stats["assign_count"] + 1)
         if isinstance(target, ast.NameExpr):
             self.define(target.name_id, value)
         elif isinstance(target, ast.AttributeExpr):
@@ -243,8 +309,8 @@ class EvalVisitor:
     def eval(self, node: ast.AugAssignStmt):
         target = self.eval(node.target.elts[0])
         value = self.eval(node.value.elts[0])
-        self.stats["num_assign"] += 1
-        self.stats["oper_stats"][OPER_SYMBOL[OPERATOR_FUNC[node.op]]] += 1
+        self.set_stat("assign_count", self.stats["assign_count"] + 1)
+        self.set_stat(OPER_STAT_NAME[node.op], self.stats[OPER_STAT_NAME[node.op]] + 1)
         oper = ioper(OPERATOR_FUNC[node.op])
         target.get(oper)(target, value)
 
@@ -321,6 +387,18 @@ class EvalVisitor:
                     break
 
     @visitor
+    def eval(self, node: ast.Begsim):
+        raise NotImplementedError()
+
+    @visitor
+    def eval(self, node: ast.Endsim):
+        raise NotImplementedError()
+
+    @visitor
+    def eval(self, node: ast.ResetStats):
+        raise NotImplementedError()
+
+    @visitor
     def eval(self, node: ast.WithStmt):
         raise NotImplementedError()
 
@@ -373,15 +451,15 @@ class EvalVisitor:
         left: Instance = self.eval(node.left)
         op = node.op
         if op == ast.Operator.AND:
-            self.stats["oper_stats"]["and"] += 1
+            self.set_stat("and_count", self.stats["and_count"] + 1)
             return builtins.nl_bool(_truth(left) and _truth(self.eval(node.right)))
         if op == ast.Operator.OR:
-            self.stats["oper_stats"]["or"] += 1
+            self.set_stat("or_count", self.stats["or_count"] + 1)
             return builtins.nl_bool(_truth(left) or _truth(self.eval(node.right)))
 
         right: Instance = self.eval(node.right)
 
-        self.stats["oper_stats"][OPER_SYMBOL[OPERATOR_FUNC[op]]] += 1
+        self.set_stat(OPER_STAT_NAME[op], self.stats[OPER_STAT_NAME[op]] + 1)
         neg = False
         if op == ast.CmpOp.IS:
             return builtins.nl_bool(left.type.subtype(right.type))
@@ -515,7 +593,7 @@ class EvalVisitor:
 
     def _call_func(self, func, args, kwargs):
         func_args = func.get("args").args
-        self.stats["num_call"] += 1
+        self.set_stat("call_count", self.stats["call_count"] + 1)
 
         # Setting arg values
         call_args = {}

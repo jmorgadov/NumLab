@@ -55,7 +55,15 @@ small_stmt:
 	| global_stmt
 	| nonlocal_stmt
 	| assert_stmt
-	# | import_stmt     TODO: implement
+	| sim_stmt
+	| stat_stmt
+
+sim_stmt:
+	| 'begsim' test
+	| 'endsim'
+
+stat_stmt:
+    | 'resetstats'
 
 del_stmt: 'del' expr_list
 
@@ -104,6 +112,14 @@ compound_stmt:
 	| funcdef
 	| classdef
 	| decorated
+	| confdef
+
+confdef:
+    | 'conf' NAME ':' NEWLINE INDENT confbody DEDENT
+
+confbody:
+	| NAME test NEWLINE
+	| NAME test NEWLINE confbody
 
 if_stmt:
 	| 'if' test ':' suite elif_clause

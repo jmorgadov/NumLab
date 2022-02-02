@@ -165,7 +165,14 @@ builders = {
     "small_stmt -> global_stmt": lambda g: g,
     "small_stmt -> nonlocal_stmt": lambda n: n,
     "small_stmt -> assert_stmt": lambda a: a,
+    "small_stmt -> sim_stmt": lambda s: s,
+    "small_stmt -> stat_stmt": lambda s: s,
     # "small_stmt -> import_stmt": lambda i: i,
+    # -------------------------------------------------------------------------
+    "sim_stmt -> begsim test": lambda b, t: ast.Begsim(t),
+    "sim_stmt -> endsim": lambda e: ast.Endsim(),
+    # -------------------------------------------------------------------------
+    "stat_stmt -> resetstats": lambda s: ast.ResetStats(),
     # -------------------------------------------------------------------------
     "del_stmt -> del expr_list": lambda l, e: ast.DeleteStmt(e),
     # -------------------------------------------------------------------------
@@ -208,6 +215,16 @@ builders = {
     "compound_stmt -> funcdef": lambda f: f,
     "compound_stmt -> classdef": lambda c: c,
     "compound_stmt -> decorated": lambda d: d,
+    "compound_stmt -> confdef": lambda c: c,
+    # -------------------------------------------------------------------------
+    "confdef -> conf NAME : NEWLINE INDENT confbody DEDENT": (
+        lambda c, n, c_, nl, i, cb, d: ast.ConfDefStmt(n.value, cb)
+    ),
+    # -------------------------------------------------------------------------
+    "confbody -> NAME test NEWLINE": lambda n, t, nl: [ast.ConfOption(n.value, t)],
+    "confbody -> NAME test NEWLINE confbody": (
+        lambda n, t, nl, cb: [ast.ConfOption(n.value, t)] + cb
+    ),
     # -------------------------------------------------------------------------
     "if_stmt -> if test : suite elif_clause": lambda i, t, c, s, e: build_if_stmt(t, s, e),
     "if_stmt -> if test : suite elif_clause else : suite": (
