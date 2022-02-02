@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import List
+from time import time
+from typing import Any, List, Tuple
 
 import numlab.nl_ast as ast
 import numlab.nl_builtins as builtins
@@ -35,6 +36,37 @@ OPERATOR_FUNC = {
     ast.CmpOp.GTE: "__ge__",
 }
 
+OPER_STAT_NAME = {
+    ast.Operator.ADD: "add_count",
+    ast.Operator.SUB: "sub_count",
+    ast.Operator.MUL: "mul_count",
+    ast.Operator.DIV: "truediv_count",
+    ast.Operator.POW: "pow_count",
+    ast.Operator.MOD: "mod_count",
+    ast.Operator.POW: "pow_count",
+    ast.Operator.LSHIFT: "lshift_count",
+    ast.Operator.RSHIFT: "rshift_count",
+    ast.Operator.BIT_XOR: "bit_xor_count",
+    ast.Operator.BIT_AND: "bit_and_count",
+    ast.Operator.BIT_OR: "bit_or_count",
+    ast.Operator.FLOORDIV: "floordiv_count",
+    ast.Operator.MATMUL: "matmul_count",
+    ast.CmpOp.IN: "contains_count",
+    ast.CmpOp.EQ: "eq_count",
+    ast.CmpOp.NOT_EQ: "ne_count",
+    ast.CmpOp.LT: "lt_count",
+    ast.CmpOp.GT: "gt_count",
+    ast.CmpOp.LTE: "le_count",
+    ast.CmpOp.GTE: "ge_count",
+}
+
+
+CONFIG_OPTS_VALIDATOR = {
+    "max_time": builtins.nl_float,
+    "max_recursion": builtins.nl_int,
+    "max_call_depth": builtins.nl_int,
+}
+
 
 def _truth(inst: Instance) -> bool:
     if "__bool__" in inst._dict:
@@ -52,9 +84,31 @@ def roper(oper: str) -> str:
     return f"__r{oper[2:-2]}__"
 
 
+def convert_to_nl_obj(obj: Any):
+    if isinstance(obj, Instance):
+        return obj
+    if isinstance(obj, bool):
+        return builtins.nl_bool(obj)
+    if isinstance(obj, int):
+        return builtins.nl_int(obj)
+    if isinstance(obj, float):
+        return builtins.nl_float(obj)
+    if isinstance(obj, str):
+        return builtins.nl_str(obj)
+    if isinstance(obj, list):
+        items = [convert_to_nl_obj(item) for item in obj]
+        return builtins.nl_list(items)
+    if isinstance(obj, tuple):
+        items = [convert_to_nl_obj(item) for item in obj]
+        return builtins.nl_tuple(items)
+    raise TypeError(f"Unsupported type: {type(obj)}")
+
+
 class EvalVisitor:
 
-    visitor = Visitor().visitor
+    visitor_obj = Visitor()
+    visitor = visitor_obj.visitor
+    callback = visitor_obj.callback
 
     def __init__(self, context: Context):
         self.context = context
@@ -63,10 +117,78 @@ class EvalVisitor:
             "pass": 0,
             "break": False,
             "continue": False,
-            "return": False,
-            "return_val": None,
+            "return_val": [],
             "class": [],
+            "current_config": None,
+            "start_time": 0,
         }
+        self.stats = {}
+        self.reset_stats()
+        self.configs = {}
+        self.in_sim = []
+
+    @callback
+    def check_time_callback(self, node: ast.AST):
+        if not self.in_sim:
+            return
+        config = self.in_sim[-1]
+        if not "max_time" in config:
+            return
+        start = self.flags["start_time"]
+        now = time()
+        if now - start > config["max_time"]:
+            raise TimeoutError(f"Time limit exceeded: {config['max_time']}s")
+
+    @callback
+    def time_callbalck(self, node: ast.AST):
+        self.set_stat("time", time() - self.flags["start_time"])
+
+    def reset_stats(self):
+        self.define("stats", builtins.nl_dict({}))
+        self.set_stats(
+            [
+                ("time", 0),
+                ("assign_count", 0),
+                ("call_count", 0),
+                ("add_count", 0),
+                ("sub_count", 0),
+                ("mul_count", 0),
+                ("truediv_count", 0),
+                ("pow_count", 0),
+                ("mod_count", 0),
+                ("floordiv_count", 0),
+                ("lshift_count", 0),
+                ("rshift_count", 0),
+                ("matmul_count", 0),
+                ("bit_xor_count", 0),
+                ("bit_and_count", 0),
+                ("bit_or_count", 0),
+                ("in_count", 0),
+                ("eq_count", 0),
+                ("ne_count", 0),
+                ("lt_count", 0),
+                ("gt_count", 0),
+                ("le_count", 0),
+                ("ge_count", 0),
+                ("and_count", 0),
+                ("or_count", 0),
+            ]
+        )
+
+    def set_stats(self, items: List[Tuple[str, Any]]):
+        stats = self.resolve("stats")
+        for name, value in items:
+            self.stats[name] = value
+            stats.get("__setitem__")(
+                stats, convert_to_nl_obj(name), convert_to_nl_obj(value)
+            )
+
+    def set_stat(self, name, value):
+        self.stats[name] = value
+        stats = self.resolve("stats")
+        stats.get("__setitem__")(
+            stats, convert_to_nl_obj(name), convert_to_nl_obj(value)
+        )
 
     def resolve(self, obj_name):
         val = self.context.resolve(obj_name)
@@ -78,14 +200,19 @@ class EvalVisitor:
 
     def define(self, name, value):
         if self.flags["class"]:
-            self.flags["class"][-1].add_attribute(name, value)
+            class_obj = self.flags["class"][-1]
+            class_obj.add_attribute(name, value)
         else:
             self.context.define(name, value)
 
     @visitor
     def eval(self, node: ast.Program):
+        start = time()
+        self.flags["start_time"] = start
         for stmt in node.stmts:
             self.eval(stmt)
+        end = time()
+        self.set_stat("time", end - start)
 
     @visitor
     def eval(self, node: ast.FuncDefStmt):
@@ -102,13 +229,10 @@ class EvalVisitor:
             last_stmt = None
             for stmt in node.body:
                 last_stmt = self.eval(stmt)
-                if self.flags["return"]:
-                    self.flags["return"] = False
+                if self.flags["return_val"]:
                     break
             self.context = self.context.parent
-            self.flags["return"] = False
-            val = self.flags["return_val"]
-            self.flags["return_val"] = None
+            val = self.flags["return_val"].pop()
             return last_stmt if node.name is None else val
 
         func_obj = builtins.nl_function(func)
@@ -147,11 +271,29 @@ class EvalVisitor:
         self.context = self.context.parent
 
     @visitor
+    def eval(self, node: ast.ConfDefStmt):
+        self.flags["current_config"] = node.name
+        self.configs[node.name] = {}
+        for conf_opt in node.configs:
+            self.eval(conf_opt)
+
+    @visitor
+    def eval(self, node: ast.ConfOption):
+        if node.name not in CONFIG_OPTS_VALIDATOR:
+            raise ValueError(f"Unknown config option: {node.name}")
+        val = self.eval(node.value)
+        if not val.type.subtype(CONFIG_OPTS_VALIDATOR[node.name]):
+            raise ValueError(
+                f"Invalid value for config option: {node.name}. "
+                "Expected: " + CONFIG_OPTS_VALIDATOR[node.name].type_name
+            )
+        self.configs[self.flags["current_config"]][node.name] = val.get("value")
+
+    @visitor
     def eval(self, node: ast.ReturnStmt):
         if self.context.parent is None:
             raise RuntimeError("Cannot return from top-level code")
-        self.flags["return"] = True
-        self.flags["return_val"] = self.eval(node.expr)
+        self.flags["return_val"].append(self.eval(node.expr))
 
     @visitor
     def eval(self, node: ast.DeleteStmt):
@@ -160,6 +302,7 @@ class EvalVisitor:
             self.eval(target)
 
     def _assign(self, target, value):
+        self.set_stat("assign_count", self.stats["assign_count"] + 1)
         if isinstance(target, ast.NameExpr):
             self.define(target.name_id, value)
         elif isinstance(target, ast.AttributeExpr):
@@ -190,6 +333,8 @@ class EvalVisitor:
     def eval(self, node: ast.AugAssignStmt):
         target = self.eval(node.target.elts[0])
         value = self.eval(node.value.elts[0])
+        self.set_stat("assign_count", self.stats["assign_count"] + 1)
+        self.set_stat(OPER_STAT_NAME[node.op], self.stats[OPER_STAT_NAME[node.op]] + 1)
         oper = ioper(OPERATOR_FUNC[node.op])
         target.get(oper)(target, value)
 
@@ -210,16 +355,16 @@ class EvalVisitor:
             self.define(target_name, item)
             for stmt in node.body:
                 self.eval(stmt)
-                if self.flags["break"] or self.flags["return"]:
+                if self.flags["break"] or self.flags["return_val"]:
                     break
                 if self.flags["continue"]:
                     self.flags["continue"] = False
                     break
-            if self.flags["break"] or self.flags["return"]:
+            if self.flags["break"] or self.flags["return_val"]:
                 break
         if self.flags["break"]:
             self.flags["break"] = False
-        elif not self.flags["return"]:
+        elif not self.flags["return_val"]:
             for stmt in node.orelse:
                 self.eval(stmt)
         self.flags["inside_loop"] -= 1
@@ -253,6 +398,8 @@ class EvalVisitor:
                     break
                 if self.flags["continue"]:
                     break
+                if self.flags["return_val"]:
+                    break
         else:
             for stmt in node.orelse:
                 self.eval(stmt)
@@ -260,6 +407,28 @@ class EvalVisitor:
                     break
                 if self.flags["continue"]:
                     break
+                if self.flags["return_val"]:
+                    break
+
+    @visitor
+    def eval(self, node: ast.Begsim):
+        val = node.config
+        if not isinstance(val, ast.NameExpr):
+            raise ValueError("Invalid value for begsim config option")
+        conf_name = val.name_id
+        if not conf_name in self.configs:
+            raise ValueError(f"Unknown config: {conf_name}")
+        self.in_sim.append(self.configs[val.name_id])
+
+    @visitor
+    def eval(self, node: ast.Endsim):
+        if not self.in_sim:
+            raise ValueError("Endsim without begsim")
+        self.in_sim.pop()
+
+    @visitor
+    def eval(self, node: ast.ResetStats):
+        self.reset_stats()
 
     @visitor
     def eval(self, node: ast.WithStmt):
@@ -314,12 +483,15 @@ class EvalVisitor:
         left: Instance = self.eval(node.left)
         op = node.op
         if op == ast.Operator.AND:
+            self.set_stat("and_count", self.stats["and_count"] + 1)
             return builtins.nl_bool(_truth(left) and _truth(self.eval(node.right)))
         if op == ast.Operator.OR:
+            self.set_stat("or_count", self.stats["or_count"] + 1)
             return builtins.nl_bool(_truth(left) or _truth(self.eval(node.right)))
 
         right: Instance = self.eval(node.right)
 
+        self.set_stat(OPER_STAT_NAME[op], self.stats[OPER_STAT_NAME[op]] + 1)
         neg = False
         if op == ast.CmpOp.IS:
             return builtins.nl_bool(left.type.subtype(right.type))
@@ -453,6 +625,7 @@ class EvalVisitor:
 
     def _call_func(self, func, args, kwargs):
         func_args = func.get("args").args
+        self.set_stat("call_count", self.stats["call_count"] + 1)
 
         # Setting arg values
         call_args = {}
