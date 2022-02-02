@@ -1,4 +1,6 @@
 import builtins
+import math
+import random
 
 from numlab.lang.type import Type
 
@@ -9,6 +11,7 @@ nl_int = Type.get("int")
 nl_str = Type.get("str")
 nl_list = Type.get("list")
 nl_bool = Type.get("bool")
+nl_function = Type.get("function")
 
 
 def builtin_func(func_name):
@@ -152,7 +155,9 @@ def nl_range(start, stop=None, step=None):
         if current.get("__ge__")(current, stop).get("value"):
             raise StopIteration
         return current
+
     return Type.new("generator", move_next)
+
 
 @builtin_func("rand")
 def nl_rand():
@@ -173,3 +178,18 @@ def nl_norm():
 def nl_sqrt(x):
     return nl_float(math.sqrt(x.get("value")))
 
+
+@builtin_func("montcar")
+def nl_montcar(n, func):
+    if not n.type.subtype(nl_int):
+        raise TypeError("montcar() argument 1 must be an integer")
+    if n.get("value") <= 0:
+        raise ValueError("montcar() argument 1 must be > 0")
+    if not func.type.subtype(nl_function):
+        raise TypeError("montcar() argument 2 must be a function (predicate)")
+    true_count, total_count = 0, 0
+    for _ in range(n.get("value")):
+        total_count += 1
+        if func.get("__call__")(func).get("value"):
+            true_count += 1
+    return nl_float(true_count / total_count)
