@@ -36,8 +36,11 @@ class Type:
         return all_attrs
 
     def subtype(self, other: Type):
-        if self.type_name == other.type_name:
-            return True
+        if not isinstance(other, tuple):
+            other = (other,)
+        for subtype in other:
+            if self.type_name == subtype.type_name:
+                return True
         if self.parent is None:
             return False
         return self.parent.subtype(other)

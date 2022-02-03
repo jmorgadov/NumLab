@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from time import time
+from time import sleep, time
 from typing import Any, List, Tuple
 
 import numlab.nl_ast as ast
@@ -62,8 +62,29 @@ OPER_STAT_NAME = {
 
 
 CONFIG_OPTS_VALIDATOR = {
-    "max_time": builtins.nl_float,
-    "max_var": builtins.nl_int,
+    "max_time": (builtins.nl_float,),
+    "max_var": (builtins.nl_int,),
+    "call_time": (builtins.nl_float, builtins.nl_function),
+    "add_time": (builtins.nl_float, builtins.nl_function),
+    "sub_time": (builtins.nl_float, builtins.nl_function),
+    "mul_time": (builtins.nl_float, builtins.nl_function),
+    "truediv_time": (builtins.nl_float, builtins.nl_function),
+    "pow_time": (builtins.nl_float, builtins.nl_function),
+    "mod_time": (builtins.nl_float, builtins.nl_function),
+    "lshift_time": (builtins.nl_float, builtins.nl_function),
+    "rshift_time": (builtins.nl_float, builtins.nl_function),
+    "bit_xor_time": (builtins.nl_float, builtins.nl_function),
+    "bit_and_time": (builtins.nl_float, builtins.nl_function),
+    "bit_or_time": (builtins.nl_float, builtins.nl_function),
+    "floordiv_time": (builtins.nl_float, builtins.nl_function),
+    "matmul_time": (builtins.nl_float, builtins.nl_function),
+    "contains_time": (builtins.nl_float, builtins.nl_function),
+    "eq_time": (builtins.nl_float, builtins.nl_function),
+    "ne_time": (builtins.nl_float, builtins.nl_function),
+    "lt_time": (builtins.nl_float, builtins.nl_function),
+    "gt_time": (builtins.nl_float, builtins.nl_function),
+    "le_time": (builtins.nl_float, builtins.nl_function),
+    "ge_time": (builtins.nl_float, builtins.nl_function),
 }
 
 
@@ -142,6 +163,26 @@ class EvalVisitor:
         self.set_stat("time", time() - self.flags["start_time"])
 
     @callback
+    def time_config_callback(self, node: ast.AST):
+        if not self.in_sim:
+            return
+        config = self.in_sim[-1]
+        if isinstance(node, ast.CallExpr) and "call_time" in config:
+            val = self.get_config_val("call_time", config).get("value")
+            sleep(val)
+            return
+        if isinstance(node, ast.Stmt) and "stmt_time" in config:
+            val = self.get_config_val("stmt_time", config).get("value")
+            sleep(val)
+            return
+        if isinstance(node, ast.BinOpExpr):
+            conf_name = OPER_STAT_NAME[node.op][:-5] + "time"
+            if conf_name in config:
+                val = self.get_config_val(conf_name, config).get("value")
+                sleep(val)
+                return
+
+    @callback
     def check_max_var_callbalck(self, node: ast.AST):
         if not self.in_sim:
             return
@@ -150,6 +191,21 @@ class EvalVisitor:
             return
         if self.context.count_vars() > config["max_var"]:
             raise TimeoutError(f"Variable limit exceeded: {config['max_var']}")
+
+    def get_config_val(self, name, config) -> Instance:
+        if not name in config:
+            return None
+        obj = config[name]
+        base_type = CONFIG_OPTS_VALIDATOR[name][0]
+        if obj.type.subtype(builtins.nl_function):
+            val = obj.get("__call__")(obj)
+            if not val.type.subtype(base_type):
+                raise TypeError(
+                    f"{name} must be {base_type.type_name}. Function is "
+                    f"returning type {val.type.type_name}"
+                )
+            return val
+        return obj
 
     def reset_stats(self):
         self.define("stats", builtins.nl_dict({}))
@@ -299,9 +355,9 @@ class EvalVisitor:
         if not val.type.subtype(CONFIG_OPTS_VALIDATOR[node.name]):
             raise ValueError(
                 f"Invalid value for config option: {node.name}. "
-                "Expected: " + CONFIG_OPTS_VALIDATOR[node.name].type_name
+                "Expected: " + [ct.type_name for ct in CONFIG_OPTS_VALIDATOR[node.name]]
             )
-        self.configs[self.flags["current_config"]][node.name] = val.get("value")
+        self.configs[self.flags["current_config"]][node.name] = val
 
     @visitor
     def eval(self, node: ast.ReturnStmt):
