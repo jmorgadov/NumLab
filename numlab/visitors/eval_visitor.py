@@ -63,7 +63,28 @@ OPER_STAT_NAME = {
 
 CONFIG_OPTS_VALIDATOR = {
     "max_time": (builtins.nl_float,),
-    "max_var": (builtins.nl_int,),
+    "max_var_count": (builtins.nl_int,),
+    "max_call_count": (builtins.nl_int,),
+    "max_add_count": (builtins.nl_int,),
+    "max_sub_count": (builtins.nl_int,),
+    "max_mul_count": (builtins.nl_int,),
+    "max_truediv_count": (builtins.nl_int,),
+    "max_pow_count": (builtins.nl_int,),
+    "max_mod_count": (builtins.nl_int,),
+    "max_lshift_count": (builtins.nl_int,),
+    "max_rshift_count": (builtins.nl_int,),
+    "max_bit_xor_count": (builtins.nl_int,),
+    "max_bit_and_count": (builtins.nl_int,),
+    "max_bit_or_count": (builtins.nl_int,),
+    "max_floordiv_count": (builtins.nl_int,),
+    "max_matmul_count": (builtins.nl_int,),
+    "max_contains_count": (builtins.nl_int,),
+    "max_eq_count": (builtins.nl_int,),
+    "max_ne_count": (builtins.nl_int,),
+    "max_lt_count": (builtins.nl_int,),
+    "max_gt_count": (builtins.nl_int,),
+    "max_le_count": (builtins.nl_int,),
+    "max_ge_count": (builtins.nl_int,),
     "call_time": (builtins.nl_float, builtins.nl_function),
     "add_time": (builtins.nl_float, builtins.nl_function),
     "sub_time": (builtins.nl_float, builtins.nl_function),
@@ -183,14 +204,19 @@ class EvalVisitor:
                 return
 
     @callback
-    def check_max_var_callbalck(self, node: ast.AST):
+    def check_max_callbalck(self, node: ast.AST):
         if not self.in_sim:
             return
         config = self.in_sim[-1]
-        if not "max_var" in config:
-            return
-        if self.context.count_vars() > config["max_var"]:
-            raise TimeoutError(f"Variable limit exceeded: {config['max_var']}")
+        if "max_var_count" in config and self.context.count_vars() > config["max_var_count"]:
+            raise TimeoutError(f"Variable limit exceeded: {config['max_var_count']}")
+        max_configs = [k for k in config if k.startswith("max_")]
+        for max_config in max_configs:
+            if not max_config in config:
+                continue
+            stat_name = max_config[4:]
+            if self.stats[stat_name] > config[max_config].get("value"):
+                raise Exception(f"{stat_name} limit exceeded: {config[max_config]}")
 
     def get_config_val(self, name, config) -> Instance:
         if not name in config:
@@ -703,7 +729,6 @@ class EvalVisitor:
 
     def _call_func(self, func, args, kwargs):
         func_args = func.get("args").args
-        self.set_stat("call_count", self.stats["call_count"] + 1)
 
         # Setting arg values
         call_args = {}
@@ -773,6 +798,7 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.CallExpr):
+        self.set_stat("call_count", self.stats["call_count"] + 1)
         args = [self.eval(arg) for arg in node.args]
         kwargs = {}
         for kwarg in node.keywords:
