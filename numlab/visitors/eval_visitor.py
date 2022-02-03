@@ -86,6 +86,7 @@ CONFIG_OPTS_VALIDATOR = {
     "max_le_count": (builtins.nl_int,),
     "max_ge_count": (builtins.nl_int,),
     "call_time": (builtins.nl_float, builtins.nl_function),
+    "assign_time": (builtins.nl_float, builtins.nl_function),
     "add_time": (builtins.nl_float, builtins.nl_function),
     "sub_time": (builtins.nl_float, builtins.nl_function),
     "mul_time": (builtins.nl_float, builtins.nl_function),
@@ -190,6 +191,13 @@ class EvalVisitor:
         config = self.in_sim[-1]
         if isinstance(node, ast.CallExpr) and "call_time" in config:
             val = self.get_config_val("call_time", config).get("value")
+            sleep(val)
+            return
+        if (
+            isinstance(node, (ast.AnnAssignStmt, ast.AugAssignStmt, ast.AssignStmt))
+            and "assign_time" in config
+        ):
+            val = self.get_config_val("assign_time", config).get("value")
             sleep(val)
             return
         if isinstance(node, ast.Stmt) and "stmt_time" in config:

@@ -34,6 +34,7 @@ def main():
     # Parse file
     run_logger.info("Parsing script")
     program = parser_man.parse_file(file_path)
+    program.dump()
 
     # Evaluate
     run_logger.info("Executing. Output:")
