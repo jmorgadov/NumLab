@@ -5,10 +5,6 @@ from numlab.lang.visitor import Visitor
 # pylint: disable=missing-function-docstring
 
 
-
-
-
-
 class OptVisitor:
 
     visitor = Visitor().visitor
@@ -16,220 +12,218 @@ class OptVisitor:
     def __init__(self):
         self.changes = []
 
-
-
     @visitor
-    def check(self,     node: ast.Program):
+    def check(self, node: ast.Program):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.FuncDefStmt):
+    def check(self, node: ast.FuncDefStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ClassDefStmt):
+    def check(self, node: ast.ClassDefStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ConfDefStmt):
+    def check(self, node: ast.ConfDefStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ConfOption):
+    def check(self, node: ast.ConfOption):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ReturnStmt):
+    def check(self, node: ast.ReturnStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.DeleteStmt):
+    def check(self, node: ast.DeleteStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.AssignStmt):
+    def check(self, node: ast.AssignStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.AugAssignStmt):
+    def check(self, node: ast.AugAssignStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.AnnAssignStmt):
+    def check(self, node: ast.AnnAssignStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ForStmt):
+    def check(self, node: ast.ForStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.WhileStmt):
+    def check(self, node: ast.WhileStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.IfStmt):
+    def check(self, node: ast.IfStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.Begsim):
+    def check(self, node: ast.Begsim):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.Endsim):
+    def check(self, node: ast.Endsim):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ResetStats):
+    def check(self, node: ast.ResetStats):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.WithStmt):
+    def check(self, node: ast.WithStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.WithItem):
+    def check(self, node: ast.WithItem):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.RaiseStmt):
+    def check(self, node: ast.RaiseStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.TryStmt):
+    def check(self, node: ast.TryStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ExceptHandler):
+    def check(self, node: ast.ExceptHandler):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.AssertStmt):
+    def check(self, node: ast.AssertStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.GlobalStmt):
+    def check(self, node: ast.GlobalStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.NonlocalStmt):
+    def check(self, node: ast.NonlocalStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.PassStmt):
+    def check(self, node: ast.PassStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.BreakStmt):
+    def check(self, node: ast.BreakStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ContinueStmt):
+    def check(self, node: ast.ContinueStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ExprStmt):
+    def check(self, node: ast.ExprStmt):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.BinOpExpr):
+    def check(self, node: ast.BinOpExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.UnaryOpExpr):
+    def check(self, node: ast.UnaryOpExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.LambdaExpr):
+    def check(self, node: ast.LambdaExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.IfExpr):
+    def check(self, node: ast.IfExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.DictExpr):
+    def check(self, node: ast.DictExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.SetExpr):
+    def check(self, node: ast.SetExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ListCompExpr):
+    def check(self, node: ast.ListCompExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.SetCompExpr):
+    def check(self, node: ast.SetCompExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.DictCompExpr):
+    def check(self, node: ast.DictCompExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.GeneratorExpr):
+    def check(self, node: ast.GeneratorExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.Comprehension):
+    def check(self, node: ast.Comprehension):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.YieldExpr):
+    def check(self, node: ast.YieldExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.YieldFromExpr):
+    def check(self, node: ast.YieldFromExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.CompareExpr):
+    def check(self, node: ast.CompareExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.CallExpr):
+    def check(self, node: ast.CallExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.Keyword):
+    def check(self, node: ast.Keyword):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ConstantExpr):
+    def check(self, node: ast.ConstantExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.AttributeExpr):
+    def check(self, node: ast.AttributeExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.SubscriptExpr):
+    def check(self, node: ast.SubscriptExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.StarredExpr):
+    def check(self, node: ast.StarredExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.NameExpr):
+    def check(self, node: ast.NameExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.ListExpr):
+    def check(self, node: ast.ListExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.TupleExpr):
+    def check(self, node: ast.TupleExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.SliceExpr):
+    def check(self, node: ast.SliceExpr):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.Args):
+    def check(self, node: ast.Args):
         raise NotImplementedError()
 
     @visitor
-    def eval(self, node: ast.Arg):
+    def check(self, node: ast.Arg):
         raise NotImplementedError()
