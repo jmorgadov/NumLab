@@ -342,8 +342,13 @@ class EvalVisitor:
 
     @visitor
     def eval(self, node: ast.ConfDefStmt):
+        base_config = {}
+        if node.base is not None:
+            base_config = self.configs.get(node.base, None)
+            if base_config is None:
+                raise ValueError(f"Config {node.base} is not defined")
         self.flags["current_config"] = node.name
-        self.configs[node.name] = {}
+        self.configs[node.name] = base_config.copy()
         for conf_opt in node.configs:
             self.eval(conf_opt)
 

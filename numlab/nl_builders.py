@@ -220,13 +220,18 @@ builders = {
     "confdef -> conf NAME : NEWLINE INDENT confbody DEDENT": (
         lambda c, n, c_, nl, i, cb, d: ast.ConfDefStmt(n.value, cb)
     ),
+    "confdef -> conf NAME ( NAME ) : NEWLINE INDENT confbody DEDENT": (
+        lambda c, n, p1, b, p2, c_, nl, i, cb, d: ast.ConfDefStmt(n.value, cb, b.value)
+    ),
     # -------------------------------------------------------------------------
     "confbody -> NAME test NEWLINE": lambda n, t, nl: [ast.ConfOption(n.value, t)],
     "confbody -> NAME test NEWLINE confbody": (
         lambda n, t, nl, cb: [ast.ConfOption(n.value, t)] + cb
     ),
     # -------------------------------------------------------------------------
-    "if_stmt -> if test : suite elif_clause": lambda i, t, c, s, e: build_if_stmt(t, s, e),
+    "if_stmt -> if test : suite elif_clause": lambda i, t, c, s, e: build_if_stmt(
+        t, s, e
+    ),
     "if_stmt -> if test : suite elif_clause else : suite": (
         lambda i, t, c, s, e, el, s2: build_if_stmt(t, s, e, s2)
     ),

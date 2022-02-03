@@ -116,6 +116,7 @@ compound_stmt:
 
 confdef:
     | 'conf' NAME ':' NEWLINE INDENT confbody DEDENT
+	| 'conf' NAME '(' NAME ')' ':' NEWLINE INDENT confbody DEDENT
 
 confbody:
 	| NAME test NEWLINE
