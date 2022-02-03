@@ -60,6 +60,33 @@ class Type:
             raise ValueError(f"{type_name} is not a valid NumLab type")
         return Type.nl_types[type_name]
 
+    @staticmethod
+    def get_type(value):
+        if isinstance(value, str):
+            return Type.get("str")
+        if isinstance(value, bool):
+            return Type.get("bool")
+        if isinstance(value, int):
+            return Type.get("int")
+        if isinstance(value, float):
+            return Type.get("float")
+        if value is None:
+            return Type.get("none")
+        if isinstance(value, list):
+            return Type.get("list")
+        if isinstance(value, dict):
+            return Type.get("dict")
+        if isinstance(value, tuple):
+            return Type.get("tuple")
+        if callable(value):
+            return Type.get("function")
+        return value
+
+    @staticmethod
+    def resolve_type(value):
+        val_type = Type.get_type(value)
+        return val_type(value)
+
 
 class Instance:
     def __init__(self, _type: Type):
@@ -96,6 +123,7 @@ class Instance:
     def __repr__(self):
         return self.get("__repr__")(self).get("value")
 
+
 nl_object = Type("object")
 nl_float = Type("float", nl_object)
 nl_int = Type("int", nl_float)
@@ -109,4 +137,3 @@ nl_slice = Type("slice", nl_object)
 nl_function = Type("function", nl_object)
 nl_generator = Type("generator", nl_object)
 nl_none = Type("none", nl_object)
-

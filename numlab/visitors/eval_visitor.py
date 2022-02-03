@@ -208,7 +208,10 @@ class EvalVisitor:
         if not self.in_sim:
             return
         config = self.in_sim[-1]
-        if "max_var_count" in config and self.context.count_vars() > config["max_var_count"]:
+        if (
+            "max_var_count" in config
+            and self.context.count_vars() > config["max_var_count"]
+        ):
             raise TimeoutError(f"Variable limit exceeded: {config['max_var_count']}")
         max_configs = [k for k in config if k.startswith("max_")]
         for max_config in max_configs:
@@ -386,7 +389,8 @@ class EvalVisitor:
         if not val.type.subtype(CONFIG_OPTS_VALIDATOR[node.name]):
             raise ValueError(
                 f"Invalid value for config option: {node.name}. "
-                "Expected: " + [ct.type_name for ct in CONFIG_OPTS_VALIDATOR[node.name]]
+                "Expected: "
+                + repr([ct.type_name for ct in CONFIG_OPTS_VALIDATOR[node.name]])
             )
         self.configs[self.flags["current_config"]][node.name] = val
 
