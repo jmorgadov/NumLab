@@ -153,7 +153,7 @@ class AnnAssignStmt(Stmt):
 
 
 class ConfDefStmt(Stmt):
-    __slots__ = ("name", "configs")
+    __slots__ = ("name", "base", "configs")
 
     def __init__(self, name: str, cofigs: List[ConfOption], base: str = None):
         self.name = name
