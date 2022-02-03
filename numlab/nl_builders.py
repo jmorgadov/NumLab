@@ -508,7 +508,11 @@ builders = {
     "atom -> ( test_list_comp )": (
         lambda b1, t, b2: ast.GeneratorExpr(t[0], build_generators(t[1]))
         if isinstance(t, tuple)
-        else ast.ListExpr(t)
+        else (
+            t.elts[0]
+            if len(t.elts) == 1
+            else t
+        )
     ),
     "atom -> [ test_list_comp ]": (
         lambda b1, t, b2: ast.ListCompExpr(t[0], build_generators(t[1]))
