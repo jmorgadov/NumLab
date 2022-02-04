@@ -45,29 +45,29 @@ print(a ** 2)
 
 # Control de flujo
 if val:
-	print("val is true")
+    print("val is true")
 else:
-	print("val is false")
+    print("val is false")
 
 for i in range(10):
-	if i % 2 == 0:
-		print(i)
+    if i % 2 == 0:
+         print(i)
 
 
 # Declaración de funciones
 def foo(a, b):
-	return a + b
+    return a + b
 
 bar = lambda a, b: a + b
 
 # Declaración de tipos
 class Foo:
-	def __init__(self, a, b):
-		self.a = a
-		self.b = b
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
 
-	def __str__(self):
-		return "Foo(%s, %s)" % (self.a, self.b)
+    def __str__(self):
+        return "Foo(%s, %s)" % (self.a, self.b)
 ```
 
 ### Estadísticas en tiempo de ejecución
@@ -107,7 +107,7 @@ Ejemplo:
 
 ```python
 for i in range(10):
-	a = i * 2
+    a = i * 2
 
 print(stats["mul_count"])  # Output: 10
 ```
@@ -118,9 +118,9 @@ a 0 usando la palabra clave `resetstats`.
 Ejemplo:
 ```python
 for i in range(10):
-	a = i * 2
-	if i == 4:
-		resetstats
+    a = i * 2
+    if i == 4:
+        resetstats
 
 print(stats["mul_count"])  # Output: 5
 ```
@@ -146,21 +146,21 @@ configuración:
 
 ```python
 conf general_conf:
-	max_time 0.5
+    max_time 0.5
     max_var_count 10
-	max_add_count 100
-	max_sub_count 100
-	sub_time 0.1
+    max_add_count 100
+    max_sub_count 100
+    sub_time 0.1
 ```
 
 Es posible también crear jerarquías de restricciones, por ejemplo:
 
 ```python
 conf add_config1(general_conf):
-	add_time 0.3
+    add_time 0.3
 
 conf add_config2(general_conf):
-	add_time 0.5
+    add_time 0.5
 ```
 
 Estas configuraciones heredan las restricciones de la configuración base. De
@@ -175,7 +175,7 @@ ejemplo:
 a = 2
 
 conf c1:
-	max_time a ** 3 + 8
+    max_time a ** 3 + 8
 ```
 
 Si la restricción es sobre el tiempo de ejecución de un operador, es posible
@@ -186,7 +186,7 @@ Por ejemplo:
 
 ```python
 conf c1:
-	add_time lambda : rand() * 2 
+    add_time lambda : rand() * 2 
 ```
 
 > `rand` es una función built-in que devuelve un número aleatorio entre 0 y 1.
@@ -205,7 +205,7 @@ respectivamente. Por ejemplo:
 
 ```python
 conf c1:
-	max_time 0.5
+    max_time 0.5
 
 begsim c1
 a = 1
@@ -213,10 +213,10 @@ b = 1
 print(a)
 print(b)
 for _ in range(98):
-	c = a + b
-	a = b
-	b = c
-	print(c)
+    c = a + b
+    a = b
+    b = c
+    print(c)
 endsim
 ```
 
