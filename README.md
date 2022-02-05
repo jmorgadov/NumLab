@@ -626,3 +626,71 @@ class EvalVisitor:
 
 ### Optimización de código
 
+Se implementó también un optimizador de código, el cual, mediante un algorítmo
+genético, cambia la estructura de un AST para reducir el tiempo de ejecución.
+Para ello se creó otro **visitor**, el cual se puede clasificar como un sistema
+experto. Este **visitor**, busca en un programa determinado en qué nodos se
+pueden realizar, bajo ciertas reglas, cambios que puedan reducir el tiempo de
+ejecución.
+
+Entre estas reglas se pueden mencionar por ejemplo, cambiar el orden de las
+comprobaciónes en una condicional (o ciclo while) para que se evalúen primero
+las condiciones que son más sencillas, o incluso, sustituir operaciones de
+multiplicación por operaciones **shift** si es posible, etc.
+
+Una vez se recorre el AST en busca de cambios, se crea un vector el cual
+contiene en cada posición la información de dónde se puede realizar un cambio
+(el nodo) y dos funciones: una que realiza el cambio y otra que devuelve el
+nodo a su estado original.
+
+Esta información se lleva a la ejecución de un algorítmo genético. La población
+de este algoritmo consiste en vectores booleanos que indican si se debe realizar
+un cambio en un nodo o no. Al evaluar un AST se realizan los cambios necesarios
+y se obtiene el tiempo de ejecución (en caso de existir un error el tiempo de
+ejecución será infinito).
+
+La población inicial se genera aleatoriamente. El entrecruzamiento entre dos
+vectores se realiza dividiéndolos en dos partes, he intercambiando las mismas,
+esta forma de entrecruzamiento es posible ya que cada cambio es independiente.
+La mutación consiste en cambiar aleatoriamente algún valor del vector.
+
+Al ejecutar la optimización se obtiene el ast resultante de realizar los cambios
+definidos por el mejor vector de la población (luego de algunas generaciones).
+
+A continuación se muestra un ejemplo de código y su optimización:
+
+```python
+items = [1, 1, 1, 1, 1]
+
+def foo():
+	a = [i for i in range(100)]
+	return items
+
+for i in range(50):
+	if i in [j for j in range(48, 500)] or i < 40: 
+		a = i + 3
+	if foo() and items[0] == 1:
+		items.remove(1)
+		
+print(stats["time"])
+```
+
+En este código se puede ver que el primer `if` realiza dos comprobaciones. La
+primera de ellas genera una lista de al rededor de 450 elementos cada vez que
+se ejecuta el `if`, mientras que la segunda solamente compara dos valores.
+
+Se puede observar además que existe otra comprobación, donde también se
+realizan dos operaciones y la primera de ellas es más costosa temporalmente que
+la segunda. Sin embargo en este caso la segunda operación es dependiente de la
+primera, por lo que no se puede realizar antes. Esto no se comprueba en ningún
+momento al extraer los cambios posibles debido a la complegidad que puede
+presentar comprobar este tipo relaciones entre los nodos. Más adelante el
+algoritmo genético es quien decidirá si es correcto realizar el cambio o no.
+
+Al ejecutar este código se obtuvo un tiempo de ejecución promedio de 1.8
+segundos. Al optimizar el AST, se detectaron dos cambios potenciales (el orden
+de comprobación en las expresiones condicionales mencionadas anteriormente). El
+algoritmo genético obtuvo como mejor resultado realizar el primer cambio y no
+el segundo. Finalmente, el código optimizado tuvo un tiempo de ejecución de
+aproximadamente 0.6 segundos.
+
