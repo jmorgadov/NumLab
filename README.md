@@ -562,5 +562,67 @@ ejecución de una simulación es menor que el límite establecido en cada moment
 
 ### Ejecución
 
+Para la ejecución de un programa representado en un AST se implementó un
+visitor `EvalVisitor` (muy similar al ejemplo de la sección anterior). A
+continuación se muestran algunas de las características más importantes
+implementadas en el proceso de evaluación.
+
+
+#### Tipos y funciones predefinidas
+
+Para representar los tipos predefinidos de **Numlab** se creó la clase `Type`.
+Cada instancia de esta clase representa un tipo de **Numlab**, entre ellos:
+`int`, `str`, `list`, etc (los tipos básicos existentes en python).
+
+A cada tipo de le pude agregar atributos (las funciones también se agregan como
+atributo). Además, cada tipo puede derivar de otro (permitiendo la herencia), por
+consiguiente, en la resolución de un atributo si el mismo no está definido en el
+tipo actual, se busca en el tipo padre (y así susesivamente).
+
+Se implementaron tambíen varias de las funciones built-in de python en **Numlab**.
+En la ejecución del código se puede acceder a estas funciones directamente.
+
+#### Contextos
+
+Para definir el contexto donde se encuentra cada vaiable, tipo o función que se
+crea, se implementó la clase `Context`. Un **context** tiene un diccionario
+con el nombre de cada objeto creado en el mismo y su respectivo valor. Cada contexto
+tiene además una referencia al contexto padre (en caso de que exista). Esto
+permite que al realizar la resolución de una variable, si la misma no se ecuentra
+en el contexto actual, se busque en el contexto padre.
+
+El contexto también es utilizado también en las secciones de código simuladas
+para comprobar la cantidad de variables creadas (en caso de existir alguna
+restricción sobre este valor).
+
+#### Evaluación
+
+Como se había mencionado anteriormente, la evaluación de un programa se realiza
+mediante un **visitor**. En este **visitor** se implementaron las funciones
+que definen cómo se evalúa cada uno de los nodos del AST.
+
+En ocasiones, existen nodos que afectan la evaluación de otros, como por ejemplo
+las palabras claves de control de flujo (`break`, `continue`, `return`, etc). Para
+ello, la instancia del **visitor** cuenta con un diccionario `flags` que contiene
+diversa información que se puede utlizar en común entre la evaluación de los nodos.
+
+En estas evaluaciones es también donde se van guardando las estadísiticas de la
+ejecución del programa (en un diccionario `stats` el cual tiene accesibilidad
+incluso desde el código que se está ejecutando). Por ejemplo, al realizar un
+llamado a una función, se incrementa el contador de llamados:
+
+```python
+class EvalVisitor:
+    
+    # ... Other eval methods
+
+    @visitor
+    def eval(self, node: ast.CallExpr):
+        self.set_stat("call_count", self.stats["call_count"] + 1)
+        # Call eval implementation ...
+
+    # ... Other eval methods
+```
+
 ### Optimización de código
 
