@@ -352,6 +352,51 @@ tokens = tknz.tokenize("some text")
 
 ### Gramáticas
 
+Se implementaron las clases `Grammar`, `NonTerminal`, `Terminal` y `Production`
+las cuales son usadas para la representación de una gramática general. Se
+implementó además un parser de gramáticas con el cual es posible crear
+gramáticas dado un formato, esto permite definir la gramática del lenguaje en
+un archivo y poder cambiarla fácilmente. Dado la sencillez del formato (el
+lenguaje de las gramáticas), se implementó un sencillo parser recursivo
+descendente para la creación de las mismas.
+
+El formato especificado es el siguiente:
+
+```
+expression: production_1 | production_2 | ... | production_n
+```
+
+De forma equivalente, para mayor legibilidad:
+
+```
+expression:
+    | production_1 
+    | production_2
+    | ...
+    | production_n
+```
+
+Ejemplo:
+
+```
+Expr_AB:
+    | 'a' Expr_AB 'b'
+    | EPS
+```
+
+> EPS es un elemento especial en las gramáticas para representar *epsilon*
+
+Las gramáticas luego pueden ser cargadas como se muestra a continuación:
+
+```python
+from grammar im port Grammar
+gm = Grammar.open("expr_ab.gm")
+```
+
+Las gramáticas están compuestas por una lista de expresiones (no terminales).
+Cada no terminal de la gramática, contiene una lista de producciones. Cada
+producción contiene una lista de elementos (terminales o no terminales).
+
 ### Parser
 
 ### Evaluación
