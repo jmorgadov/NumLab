@@ -1,6 +1,7 @@
 import builtins
 import math
 import random
+from time import sleep
 
 from numlab.lang.type import Type
 
@@ -177,6 +178,11 @@ def nl_norm():
 @builtin_func("sqrt")
 def nl_sqrt(x):
     return nl_float(math.sqrt(x.get("value")))
+
+
+@builtin_func("sleep")
+def nl_sleep(x: nl_float):
+    return nl_float(sleep(x))
 
 
 @builtin_func("montcar")
