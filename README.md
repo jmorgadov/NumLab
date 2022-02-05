@@ -4,7 +4,7 @@
 
 - [Objetivos](https://github.com/jmorgadov/NumLab#objetivos)
 - [Lenguaje](https://github.com/jmorgadov/NumLab#lenguaje)
-  - [Cracterísticas básicas](https://github.com/jmorgadov/NumLab#caracter%C3%ADsticas-b%C3%A1sicas)
+  - [Características básicas](https://github.com/jmorgadov/NumLab#caracter%C3%ADsticas-b%C3%A1sicas)
   - [Estadísticas en tiempo de ejecución](https://github.com/jmorgadov/NumLab#estad%C3%ADsticas-en-tiempo-de-ejecuci%C3%B3n)
   - [Simulación de código](https://github.com/jmorgadov/NumLab#simulaci%C3%B3n-de-c%C3%B3digo)
     - [Configuración de la simulación](https://github.com/jmorgadov/NumLab#configuraci%C3%B3n-de-la-simulaci%C3%B3n)
@@ -28,27 +28,28 @@ El objetivo de este proyecto es crear una herramienta de aprendizaje
 desarrollada para ayudar a los estudiantes de Ciencias de la Computación que
 están cursando la asignatura Matemática Numérica. Se quiere crear un lenguaje
 basado en Python en el cual los estudiantes implementen soluciones de problemas
-numéricos como: hallar cero de funciones, resolver sistemas de ecuación, entre
-otros; y a la vez, realizar un análisis de la ejecución de estas soluciones.
+numéricos como: hallar cero de funciones, resolver sistemas de ecuaciones,
+entre otros; y a la vez, realizar un análisis de la ejecución de estas
+soluciones.
 
 Una de las características que tendrá este lenguaje es la capacidad de simular
 regiones de código bajo ciertas condiciones o limitantes, como por ejemplo:
 limitar el tiempo de ejecución, limitar la cantidad de variables que se pueden
 crear, lmitar el tiempo que toma realizar una operación determinada, entre
-otro. Esto fomenta en los estudiantes la implementación de soluciones más
+otras. Esto fomenta en los estudiantes la búsqueda de soluciones más
 eficientes. Además, el lenguaje también constará con la posibilidad, mediante
 un algoritmo genético, de optimizar códigos ya escritos.
 
 ## Lenguaje
 
 **Numlab** es el lenguaje que se ha implementado para dar solución a los
-objetivos mencionados anteriormente. En las siquientes seciones, se muestran
+objetivos mencionados anteriormente. En las siquientes secciones, se muestran
 las principales características del mismo.
 
 ### Características básicas
 
 **Numlab** está basado en Python, aunque no implementa todas las
-funcionalidades del mismo, la sintaxis básica si es la misma. Ejemplos:
+funcionalidades del mismo, la sintaxis básica sí es la misma. Ejemplos:
 
 ```python
 # Declaración de variables
@@ -98,32 +99,32 @@ En cada ejecución existe una variable llamada `stats`, la cual contiene un
 diccionario con las estadísticas de la ejecución. Entre las estadísticas que se
 pueden obtener se encuentran:
 
- - `stats["time"]`: tiempo de ejecución en segundos
- - `stats["assign_count"]`: cantidad de asignaciones realizadas
- - `stats["var_count"]`: cantidad de variables creadas
- - `stats["call_count"]`: cantidad de llamados a funciones realizados
- - `stats["add_count"]`: cantidad de veces que se realizó la operación suma
- - `stats["sub_count"]`: cantidad de veces que se realizó la operación resta
- - `stats["mul_count"]`: cantidad de veces que se realizó la operación multiplicación
- - `stats["truediv_count"]`: cantidad de veces que se realizó la operación división
- - `stats["pow_count"]`: cantidad de veces que se realizó la operación potencia
- - `stats["mod_count"]`: cantidad de veces que se realizó la operación módulo
- - `stats["floordiv_count"]`: cantidad de veces que se realizó la operación división entera
- - `stats["lshift_count"]`: cantidad de veces que se realizó la operación **left shift**
- - `stats["rshift_count"]`: cantidad de veces que se realizó la operación **right shift**
- - `stats["matmul_count"]`: cantidad de veces que se realizó la operación multiplicación de matrices
- - `stats["bit_xor_count"]`: cantidad de veces que se realizó la operación **bitwise xor**
- - `stats["bit_and_count"]`: cantidad de veces que se realizó la operación **bitwise and**
- - `stats["bit_or_count"]`: cantidad de veces que se realizó la operación **bitwise or**
- - `stats["contains_count"]`: cantidad de veces que se comprobó si un elemento está contenido en otro
- - `stats["eq_count"]`: cantidad de veces que se comprobó si dos elementos son iguales
- - `stats["ne_count"]`: cantidad de veces que se comprobó si dos elementos son distintos
- - `stats["lt_count"]`: cantidad de veces que se comprobó si un elemento es menor que otro
- - `stats["gt_count"]`: cantidad de veces que se comprobó si un elemento es mayor que otro
- - `stats["le_count"]`: cantidad de veces que se comprobó si un elemento es menor o igual que otro
- - `stats["ge_count"]`: cantidad de veces que se comprobó si un elemento es mayor o igual que otro
- - `stats["and_count"]`: cantidad de veces que se realizó la operación lógica **and**
- - `stats["or_count"]`: cantidad de veces que se realizó la operación lógica **or**
+ - `stats["time"]`: tiempo de ejecución en segundos.
+ - `stats["assign_count"]`: cantidad de asignaciones realizadas.
+ - `stats["var_count"]`: cantidad de variables creadas.
+ - `stats["call_count"]`: cantidad de llamados a funciones realizados.
+ - `stats["add_count"]`: cantidad de veces que se realizó la operación suma.
+ - `stats["sub_count"]`: cantidad de veces que se realizó la operación resta.
+ - `stats["mul_count"]`: cantidad de veces que se realizó la operación multiplicación.
+ - `stats["truediv_count"]`: cantidad de veces que se realizó la operación división.
+ - `stats["pow_count"]`: cantidad de veces que se realizó la operación potencia.
+ - `stats["mod_count"]`: cantidad de veces que se realizó la operación módulo.
+ - `stats["floordiv_count"]`: cantidad de veces que se realizó la operación división entera.
+ - `stats["lshift_count"]`: cantidad de veces que se realizó la operación **left shift**.
+ - `stats["rshift_count"]`: cantidad de veces que se realizó la operación **right shift**.
+ - `stats["matmul_count"]`: cantidad de veces que se realizó la operación multiplicación de matrices.
+ - `stats["bit_xor_count"]`: cantidad de veces que se realizó la operación **bitwise xor**.
+ - `stats["bit_and_count"]`: cantidad de veces que se realizó la operación **bitwise and**.
+ - `stats["bit_or_count"]`: cantidad de veces que se realizó la operación **bitwise or**.
+ - `stats["contains_count"]`: cantidad de veces que se comprobó si un elemento está contenido en otro.
+ - `stats["eq_count"]`: cantidad de veces que se comprobó si dos elementos son iguales.
+ - `stats["ne_count"]`: cantidad de veces que se comprobó si dos elementos son distintos.
+ - `stats["lt_count"]`: cantidad de veces que se comprobó si un elemento es menor que otro.
+ - `stats["gt_count"]`: cantidad de veces que se comprobó si un elemento es mayor que otro.
+ - `stats["le_count"]`: cantidad de veces que se comprobó si un elemento es menor o igual que otro.
+ - `stats["ge_count"]`: cantidad de veces que se comprobó si un elemento es mayor o igual que otro.
+ - `stats["and_count"]`: cantidad de veces que se realizó la operación lógica **and**.
+ - `stats["or_count"]`: cantidad de veces que se realizó la operación lógica **or**.
 
 Ejemplo:
 
@@ -135,7 +136,7 @@ print(stats["mul_count"])  # Output: 10
 ```
 
 En cualquier momento de la ejecución, se puede restablecer todas las estadísticas
-a 0 usando la palabra clave `resetstats`.
+a cero usando la palabra clave `resetstats`.
 
 Ejemplo:
 ```python
@@ -163,8 +164,8 @@ realiza la operación suma: `max_add_count`.
 
 #### Configuración de la simulación
 
-Para establecer estas restricciones en **Numlab** se utiliza un bloque de
-configuración:
+Para establecer estas restricciones en **Numlab** las mismas se deben escribir
+en un bloque de configuración:
 
 ```python
 conf general_conf:
@@ -178,6 +179,13 @@ conf general_conf:
 Es posible también crear jerarquías de restricciones, por ejemplo:
 
 ```python
+conf general_conf:
+    max_time 0.5
+    max_var_count 10
+    max_add_count 100
+    max_sub_count 100
+    sub_time 0.1
+
 conf add_config1(general_conf):
     add_time 0.3
 
@@ -187,8 +195,8 @@ conf add_config2(general_conf):
 
 Estas configuraciones heredan las restricciones de la configuración base. De
 esta forma se pueden declarar configuraciones diferentes pero que tengan
-restricciones en común sin tener que repetir las mismas. Si se establece
-una restricción que ya estaba en la configuración base, se sobreescribe.
+restricciones en común sin necesidad de repetir las mismas. Si se establece una
+restricción que ya estaba en la configuración base, se sobreescribe.
 
 Los valores de una configuración pueden ser resultados de una operación, por
 ejemplo:
@@ -211,18 +219,18 @@ conf c1:
     add_time lambda : rand() * 2 
 ```
 
-> `rand` es una función built-in que devuelve un número aleatorio entre 0 y 1.
+> `rand` es una función built-in que devuelve un número aleatorio entre 0 y 1
+> con una distribución uniforme.
 
 En el ejemplo anterior, cada vez que se simule la operación suma, la misma
-demorará un tiempo aleatorio entre 0 y 2 (diferente para cada vez que se
-realice).
+demorará un tiempo aleatorio entre 0 y 2.
 
 #### Regiones de código simuladas
 
 Para establecer una región de código donde se simulen las restricciones
 establescidas en una configuración, se utilizan las palabras claves `begsim
 <config>` y `endsim`, donde `<config>` es el nombre de la configuración que se
-decea usar. Estas palabras indican donde comienza y termina la simulación
+desea usar. Estas palabras indican donde comienza y termina la simulación
 respectivamente. Por ejemplo:
 
 ```python
@@ -242,10 +250,10 @@ endsim
 Es posible utilizar `begsim` y `endsim` más de una vez en una misma ejecución
 (en tal caso se recomienta usar `resetstats` antes de cada empezar de
 simulación). Se pueden relizar simulaciónes dentro de simulaciones, en tal caso
-se pasa a utilizar la configuración de la ultima simulación. Cada `endsim`
+se pasa a utilizar la configuración de la última simulación. Cada `endsim`
 termina un nivel de simulación (la última que se haya hecho). Estas palabras
 claves pueden estar en cualquier parte del código, la única restricción es que
-no se pueden realizar más `endsim` que `begsim`.
+no se pueden ejecutar más `endsim` que `begsim`.
 
 ## Implementación
 
@@ -255,12 +263,12 @@ exponen las características principales de la implementación de cada estapa.
 ### Autómatas
 
 Para la creación de las algunas de las proximas funcionalidades, se realizaó
-una implementación de un objeto de tipo `Automata` que permite simular una
+una implementación de un tipo `Automata` que permite simular una
 máquina de estados de forma genérica. A los mismos se le pueden agregar
 estados así como transiciones entre los mismos. Cada autómata tiene un estado
 inicial y uno o varios estados finales.
 
-La ejecución de una maquina de estados realizada con un autómata es bastante
+La ejecución de una máquina de estados realizada con un autómata es bastante
 simple. Dado una entrada iterable, se comienza en el estado inicial y se va
 ejecutando cada transición hasta llegar a un estado final. En caso de llegar a
 un estado en el que ninguna transición es válida, se termina la ejecución y la
@@ -269,17 +277,17 @@ la entrada como válida o inválida en dependencia de si se llegó a un estado
 final o no respectivamente.
 
 Los autómatas pueden tener transiciones **épsilon** entre estados, en este
-caso, la ejecución se bifurca. En estos caso la maquina de estados se mueve
-por todos los estaos posibles al mismo timepo. Esto da la posibliadad de
-ejecutar autómatas no deterministas.
+caso, la ejecución se bifurca y la maquina de estados se mueve por todos los
+estaos posibles al mismo timepo. Esto da la posibliadad de ejecutar autómatas
+no deterministas.
 
-Se implementó además la opción de convertir un autómata no determinista (NFA)
-a un autómata determinista (DFA). Esto se implementó utilizando el algoritmo
-visto en clase (calculando los **goto** y **epsilon clausuras**).
+Se implementó además, utilizando el algoritmo visto en clase (calculando los
+**goto** y **epsilon clausuras**) la opción de convertir un autómata no
+determinista (NFA) a un autómata determinista (DFA).
 
 ### Motor de expresiones regulares
 
-Las principales funcionalidades implementados son:
+Las principales funcionalidades implementadas son:
 
 - Operador `*`: Matchea cero o más veces la expresión anterior.
 - Operador `|`: Mathcea la expresión anterior o la siguiente.
@@ -289,7 +297,7 @@ Las principales funcionalidades implementados son:
 - Caracter `\d`: Matchea un dígito.
 - Caracter `\a`: Matchea una letra minúscula.
 - Caracter `\A`: Matchea una letra mayúscula.
-- Parentesis `(` y `)`: Agrupa una expresión regular.
+- Parentesis `(` y `)`: Agrupan una expresión regular.
 
 > Cualquier operador o caracter especal puede ser escapado con `\`.
 
@@ -319,7 +327,7 @@ tknz.add_pattern("NUMBER", r"\d\d*|\d\d*\.\d\d*")
 ```
 
 Al tokenizar un texto, se revisan los patrones comenzando por el primero (en el
-mismo orden en el que fueron agregados) y el primero que matchee con el inicio
+mismo orden en el que fueron agregados) y el primero que matchee con un prefijo
 de la cadena se establece como un token nuevo (se toma como lexema la subcadena
 que matcheó con la expresión regular). Luego se vuelve a realizar esta
 operación con el resto de la cadena, así sucesivamente hasta terminar la misma.
@@ -344,9 +352,9 @@ los tokens de un tipo determinado. En tal caso basta con que la función devuelv
 tknz.add_pattern("SPACE", r"( | \t)( |\t)*", lambda t: None)
 ```
 
-Se ofrece también la opción de agregar `keywords` (palabras clave) para una
+Se ofrece también la opción de agregar `keywords` (palabras claves) para una
 mayor comodidad. Esto se hace mediante el método `add_keywords()` el cual recibe
-una lista de palabras. En el proceso de tokenización, si la subcadena matcheada
+una lista de palabras. En el proceso de tokenización, si el prefijo matcheado
 conicide con alguna de las palabras clave, entonces el tipo del token se
 establece como `KEYWORD`.
 
@@ -398,8 +406,8 @@ expression:
 Ejemplo:
 
 ```
-Expr_AB:
-    | 'a' Expr_AB 'b'
+ExprAB:
+    | 'a' ExprAB 'b'
     | EPS
 ```
 
@@ -525,8 +533,8 @@ parser, el cual contiene: la producción que lo genera, la posición del punto
 
 La segunda clase (`LR1Table`) representa la tabla de transición del parser.
 Cada posición de la tabla puede contener tres tipos de elementos: un **string**
-`"OK"`, que indica que el estado es de aceptación; un valór numérico entero,
-que indica el estado siguiente; o un no terminal de la gramática, el cual
+`"OK"`, que indica que el estado de aceptación; un valór numérico entero, que
+indica cual es el siguiente estado; o un no terminal de la gramática, el cual
 representa que hay que realizar una reducción. Para no tener que recalcular la
 tabla cada vez que se va a parsear un texto, la misma puede ser serializada y
 luego cargada.
@@ -535,7 +543,7 @@ La construcción de la tabla se realizó siguiendo el algoritmo visto en las
 conferencias de la asignatura (calculando los **goto** y las **clausuras** de
 los estados).
 
-Es en el proceso de parsing, al realizar una acción de reducción, que se
+En el proceso de parsing, al realizar una acción de reducción, es donde se
 utilizan las funciones constructoras vistas en la sección anterior. En
 dependencia de la producción que se está reduciendo, se llama a la función
 constructora correspondiente.
@@ -579,7 +587,7 @@ class EvalVisitor:
 
 El decorador `@callback` se utiliza para definir funciones que se van a llamar
 cada vez que se llame a una función marcada como **visitor**. En el proyecto
-uno de los usos quese le da a este decorador es para comprobar que el tiempo de
+uno de los usos que se le da a este decorador es para comprobar que el tiempo de
 ejecución de una simulación es menor que el límite establecido en cada momento.
 
 ### Ejecución
@@ -606,12 +614,16 @@ En la ejecución del código se puede acceder a estas funciones directamente.
 
 #### Contextos
 
-Para definir el contexto donde se encuentra cada vaiable, tipo o función que se
+Para definir el contexto donde se encuentra cada variable, tipo o función que se
 crea, se implementó la clase `Context`. Un **context** tiene un diccionario
 con el nombre de cada objeto creado en el mismo y su respectivo valor. Cada contexto
 tiene además una referencia al contexto padre (en caso de que exista). Esto
 permite que al realizar la resolución de una variable, si la misma no se ecuentra
 en el contexto actual, se busque en el contexto padre.
+
+> En el EvalVisitor al realizar la resolución de una variable, se busca primero
+> en el context actual, y si no se encuentra, se busca entre las funciones y
+> tipos predefinidos.
 
 El contexto también es utilizado también en las secciones de código simuladas
 para comprobar la cantidad de variables creadas (en caso de existir alguna
@@ -623,10 +635,11 @@ Como se había mencionado anteriormente, la evaluación de un programa se realiz
 mediante un **visitor**. En este **visitor** se implementaron las funciones
 que definen cómo se evalúa cada uno de los nodos del AST.
 
-En ocasiones, existen nodos que afectan la evaluación de otros, como por ejemplo
-las palabras claves de control de flujo (`break`, `continue`, `return`, etc). Para
-ello, la instancia del **visitor** cuenta con un diccionario `flags` que contiene
-diversa información que se puede utlizar en común entre la evaluación de los nodos.
+En ocasiones, existen nodos que afectan la evaluación de otros, como por
+ejemplo las palabras claves de control de flujo (`break`, `continue`, `return`,
+etc). Para ello, el `EvalVisitor` cuenta con un diccionario `flags` (atributo
+de instancia) que contiene diversa información que se puede utlizar en común
+entre la evaluación de los nodos.
 
 En estas evaluaciones es también donde se van guardando las estadísiticas de la
 ejecución del programa (en un diccionario `stats` el cual tiene accesibilidad
@@ -672,11 +685,11 @@ y se obtiene el tiempo de ejecución (en caso de existir un error el tiempo de
 ejecución será infinito).
 
 La población inicial se genera aleatoriamente. El entrecruzamiento entre dos
-vectores se realiza dividiéndolos en dos partes, he intercambiando las mismas,
-esta forma de entrecruzamiento es posible ya que cada cambio es independiente.
+vectores se realiza dividiéndolos en dos partes, he intercambiando las mismas.
+Esta forma de entrecruzamiento es posible ya que cada cambio es independiente.
 La mutación consiste en cambiar aleatoriamente algún valor del vector.
 
-Al ejecutar la optimización se obtiene el ast resultante de realizar los cambios
+Al ejecutar la optimización se obtiene el AST resultante de realizar los cambios
 definidos por el mejor vector de la población (luego de algunas generaciones).
 
 A continuación se muestra un ejemplo de código y su optimización:
