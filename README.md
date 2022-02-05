@@ -227,3 +227,134 @@ se pasa a utilizar la configuración de la ultima simulación. Cada `endsim`
 termina un nivel de simulación (la última que se haya hecho). Estas palabras
 claves pueden estar en cualquier parte del código, la única restricción es que
 no se pueden realizar más `endsim` que `begsim`.
+
+## Implementación
+
+**Numlab** es un lenguaje evaluado escrito en Python. A continuación se
+exponen las características principales de la implementación de cada estapa.
+
+### Autómatas
+
+Para la creación de las algunas de las proximas funcionalidades, se realizaó
+una implementación de un objeto de tipo `Automata` que permite simular una
+máquina de estados de forma genérica. A los mismos se le pueden agregar
+estados así como transiciones entre los mismos. Cada autómata tiene un estado
+inicial y uno o varios estados finales.
+
+La ejecución de una maquina de estados realizada con un autómata es bastante
+simple. Dado una entrada iterable, se comienza en el estado inicial y se va
+ejecutando cada transición hasta llegar a un estado final. En caso de llegar a
+un estado en el que ninguna transición es válida, se termina la ejecución y la
+entrada no es válida. En caso de terminar de recorrer la entrada se clasifica
+la entrada como válida o inválida en dependencia de si se llegó a un estado
+final o no respectivamente.
+
+Los autómatas pueden tener transiciones **épsilon** entre estados, en este
+caso, la ejecución se bifurca. En estos caso la maquina de estados se mueve
+por todos los estaos posibles al mismo timepo. Esto da la posibliadad de
+ejecutar autómatas no deterministas.
+
+Se implementó además la opción de convertir un autómata no determinista (NFA)
+a un autómata determinista (DFA). Esto se implementó utilizando el algoritmo
+visto en clase (calculando los **goto** y **epsilon clausuras**).
+
+### Motor de expresiones regulares
+
+Las principales funcionalidades implementados son:
+
+- Operador `*`: Matchea cero o más veces la expresión anterior.
+- Operador `|`: Mathcea la expresión anterior o la siguiente.
+- Operador `^`: Matchea cualquier expresion excepto la expresión que le prosigue.
+- Caracter `.`: Matchea cualquier caracter (ASCII).
+- Caracter `\`: Inicio de un caracter especial.
+- Caracter `\d`: Matchea un dígito.
+- Caracter `\a`: Matchea una letra minúscula.
+- Caracter `\A`: Matchea una letra mayúscula.
+- Parentesis `(` y `)`: Agrupa una expresión regular.
+
+> Cualquier operador o caracter especal puede ser escapado con `\`.
+
+Para la realización del motor de expresiones regulares se utilizó la clase
+`Automata`. Para cada expresión regular se construye un autómata finito no
+determinista (NFA) usando el algoritmo de Thompson y luego el mismo se
+convierte a un DFA utlizando el método `to_dfa` de la clase `Automata`.
+
+Se ofrecen además dos funciones para el matcheo de cadenas segun una expresión
+regular: `match` (la cual tiene un comportamiento similar a `re.match`) y
+`compile_patt` (la cual tiene un comportamiento similar a `re.compile`). La
+ventaja principal de usar `compile_patt` es que se no es necesario crear un
+autómata para cada vez que se desea matchear una cadena (ya que el autómata es
+construido una sola vez).
+
+### Tokenizador
+
+Para la implementación del tokenizador se creó una clase `Tokenizer`. Esta
+clase se encarga de tomar un texto y dividirlo en diferentes tipos de tokens.
+Cada patrón que se agrega está definido por un nombre (tipo del token) y una
+expresión regular (se hace uso del motor de expresiones regulares
+implementado).
+
+```python
+tknz = Tokenizer()
+tknz.add_pattern("NUMBER", r"\d\d*|\d\d*\.\d\d*")
+```
+
+Al tokenizar un texto, se revisan los patrones comenzando por el primero (en el
+mismo orden en el que fueron agregados) y el primero que matchee con el inicio
+de la cadena se establece como un token nuevo (se toma como lexema la subcadena
+que matcheó con la expresión regular). Luego se vuelve a realizar esta
+operación con el resto de la cadena, así sucesivamente hasta terminar la misma.
+Si en algún punto no se encuentra un token que matchee con el inicio de la
+cadena, se considera que la cadena no se puede tokenizar (con los tipos de
+tokens establecidos).
+
+Cada vez que se agrega un patrón al tokenizador se puede establecer una
+función que se aplicará al lexema antes de guardar su valor en el token.
+
+Por ejemplo, para quitar las comillas al tokenizar un **string**:
+
+```python
+tknz.add_pattern("STRING", r"'((^')|(\\'))*(^\\)'", lambda t: t[1:-1])
+```
+
+Esta función tambien puede ser utilizada para indicar que se quiere ignorar
+los tokens de un tipo determinado. En tal caso basta con que la función devuelva
+`None`:
+
+```python
+tknz.add_pattern("SPACE", r"( | \t)( |\t)*", lambda t: None)
+```
+
+Se ofrece también la opción de agregar `keywords` (palabras clave) para una
+mayor comodidad. Esto se hace mediante el método `add_keywords()` el cual recibe
+una lista de palabras. En el proceso de tokenización, si la subcadena matcheada
+conicide con alguna de las palabras clave, entonces el tipo del token se
+establece como `KEYWORD`.
+
+En caso de que se quiera aplicar una función para procesar todos los tokens
+obtenidos, se puede usar el decorador `process_tokens` de la clase `Tokenizer`.
+Este debe ser usado en una función que reciba un solo argumento (la lista de
+tokens) y devuelva una lista de tokens procesados.
+
+```python
+@tknz.process_tokens
+def process_tokens(tokens):
+    # ...
+    return tokens
+```
+
+Finalmente, para obtener los tokens de un texto basta con usar la función
+`tokenize`:
+
+```python
+tokens = tknz.tokenize("some text")
+```
+
+### Gramáticas
+
+### Parser
+
+### Evaluación
+
+### Optimización de código
+
