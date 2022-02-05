@@ -522,9 +522,45 @@ Para una mayor comodidad se implementó también la clase `ParserManager`. Esta
 clase ofrece, dado una gramática, un tokenizador (opcional) y un parser
 (opcional, por defecto LR(1)), métodos como: `parse_file` (para parsear un
 archivo), `parse` (para parsear un texto) y `parse_tokens` (para parsear una
-lista de tokens directamete).
+lista de tokens directamete). Estas funciones devuelven el AST resultante del
+proceso de parsing.
 
-### Evaluación
+### Visitors
+
+Una vez obtenido el AST de un programa es necesario realizar recorridos sobre
+él. Para ello se implmentó una clase `Visitor` la cual contiene dos decoradores
+`@visitor` y `@callback`. Por cada **visitor** que se quiera implementar para
+el AST, se debe implementar una nueva clase que tenga como atributo de clase
+una instancia de la clase `Visitor`. Luego, cada método de la clase que tenga
+el decorador `@visitor`, se establecerá como una sobrecarga. Es por ello que
+todos estos métodos deben tener sus argumentos tipados (esta es la forma en la
+que el **visitor** sabe cual de los métodos de la clase debe llamar).
+
+Por ejemplo:
+
+```python
+from numlab.lang.visitor import Visitor
+
+class EvalVisitor:
+    visitor_dec = Visitor().visitor
+
+    @visitor_dec
+    def eval(self, node: ast.Program):
+        for stmt in node.stmts:
+            stmt.eval(self)
+
+    @visitor_dec
+    def eval(self, node: ast.Stmt): ...
+
+    # ...
+```
+
+El decorador `@callback` se utiliza para definir funciones que se van a llamar
+cada vez que se llame a una función marcada como **visitor**. En el proyecto
+uno de los usos quese le da a este decorador es para comprobar que el tiempo de
+ejecución de una simulación es menor que el límite establecido en cada momento.
+
+### Ejecución
 
 ### Optimización de código
 
