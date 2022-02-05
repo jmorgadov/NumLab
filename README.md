@@ -93,7 +93,7 @@ pueden obtener se encuentran:
  - `stats["bit_xor_count"]`: cantidad de veces que se realizó la operación **bitwise xor**
  - `stats["bit_and_count"]`: cantidad de veces que se realizó la operación **bitwise and**
  - `stats["bit_or_count"]`: cantidad de veces que se realizó la operación **bitwise or**
- - `stats["in_count"]`: cantidad de veces que se comprobó si un elemento está contenido en otro
+ - `stats["contains_count"]`: cantidad de veces que se comprobó si un elemento está contenido en otro
  - `stats["eq_count"]`: cantidad de veces que se comprobó si dos elementos son iguales
  - `stats["ne_count"]`: cantidad de veces que se comprobó si dos elementos son distintos
  - `stats["lt_count"]`: cantidad de veces que se comprobó si un elemento es menor que otro
@@ -663,15 +663,15 @@ A continuación se muestra un ejemplo de código y su optimización:
 items = [1, 1, 1, 1, 1]
 
 def foo():
-	a = [i for i in range(100)]
-	return items
+    a = [i for i in range(100)]
+    return items
 
 for i in range(50):
-	if i in [j for j in range(48, 500)] or i < 40: 
-		a = i + 3
-	if foo() and items[0] == 1:
-		items.remove(1)
-		
+    if i in [j for j in range(48, 500)] or i < 40: 
+        a = i + 3
+    if foo() and items[0] == 1:
+        items.remove(1)
+        
 print(stats["time"])
 ```
 
