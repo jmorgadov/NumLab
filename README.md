@@ -208,15 +208,12 @@ conf c1:
     max_time 0.5
 
 begsim c1
-a = 1
-b = 1
+a, b = 1, 1
 print(a)
 print(b)
 for _ in range(98):
-    c = a + b
-    a = b
-    b = c
-    print(c)
+    a, b = b, a + b
+    print(b)
 endsim
 ```
 
@@ -396,6 +393,102 @@ gm = Grammar.open("expr_ab.gm")
 Las gramáticas están compuestas por una lista de expresiones (no terminales).
 Cada no terminal de la gramática, contiene una lista de producciones. Cada
 producción contiene una lista de elementos (terminales o no terminales).
+
+### Árbol de Sintaxis Abstracta (AST)
+
+Para la creación de un AST se creó la clase abstracta `AST`. De esta clase
+heredan todos las clases que representan los nodos del árbol de sintaxis 
+abstracta del lenguaje. En la clase se implementa también un método `dump`
+que permite mostrar el árbol de forma legible. Este método usa el
+atributo `__slots__` mediante el cual se definen los atributos que se
+quieren mostrar.
+
+Ejemplo del árbol generado a partir del código:
+
+```python
+conf c1:
+    max_time 5
+	max_var_count 5
+
+begsim c1
+def foo(a, b):
+	print("hola", a, b)
+
+a, b = 1, 2
+foo(a, b)
+endsim
+```
+
+Árbol generado:
+```text
+Program:
+   stmts: [
+      ConfDefStmt:
+         name: c1
+         configs: [
+            ConfOption:
+               name: max_time
+               value: ConstantExpr(0.5)
+         ]
+      Begsim:
+         config: NameExpr('c1', ctx=ExprCtx.LOAD)
+      ForStmt:
+         target: NameExpr('i', ctx=ExprCtx.LOAD)
+         iter_expr: (TupleExpr)
+            elts: [
+               CallExpr:
+                  func: NameExpr('range', ctx=ExprCtx.LOAD)
+                  args: [
+                     ConstantExpr(100)
+                  ]
+            ]
+            ctx: ExprCtx.LOAD
+         body: [
+            TupleExpr:
+               elts: [
+                  CallExpr:
+                     func: NameExpr('print', ctx=ExprCtx.LOAD)
+                     args: [
+                        BinOpExpr:
+                           left: NameExpr('i', ctx=ExprCtx.LOAD)
+                           op: Operator.POW
+                           right: ConstantExpr(2)
+                     ]
+               ]
+               ctx: ExprCtx.LOAD
+         ]
+      Endsim:
+   ]
+```
+
+Para definir cómo se construye cada nodo del AST se pueden asignar los
+constructores a cada producción de la gramática usando la función
+`assign_builders`. Esta función recibe un diccionario donde las llaves son la
+representación textual de la producción y los valores son funciones que reciben
+como argumentos los elementos de la producción. En caso de que el símbolo sea
+un terminal la función recibirá dicho terminal, en caso de ser un no terminal,
+la función recibirá el resultado de la ejecución algunas de las funciones
+constructoras de las producciones que tengan como cabeza a dicho no terminal.
+
+Por ejemplo, a continuación se muestran algunos de los constructores para
+la gramática de **Numlab**:
+
+```python
+builders = {
+    # -------------------------------------------------------------------------
+    "program -> stmt program": lambda s, p: ast.Program([s] + p.stmts),
+    "program -> NEWLINE program": lambda n, p: p,
+    "program -> EPS": lambda: ast.Program([]),
+    # -------------------------------------------------------------------------
+    "stmt -> simple_stmt": lambda s: s,
+    "stmt -> compound_stmt": lambda c: c,
+    # -------------------------------------------------------------------------
+    "stmt_list -> stmt": lambda s: [s],
+    "stmt_list -> stmt stmt_list": lambda s, sl: [s] + sl,
+    # -------------------------------------------------------------------------
+    # ...
+	# ...
+```
 
 ### Parser
 
