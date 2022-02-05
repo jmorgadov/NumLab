@@ -6,6 +6,8 @@ from numlab.lang.context import Context
 from numlab.nl_builders import builders
 from numlab.nl_tokenizer import tknz
 from numlab.visitors.eval_visitor import EvalVisitor
+from numlab.visitors.opt_visitor import OptVisitor
+from numlab.nl_optimizer import CodeOptimizer
 
 # Set logging level to DEBUG
 # logging.basicConfig(level=logging.DEBUG)
@@ -36,6 +38,26 @@ def main():
     program = parser_man.parse_file(file_path)
     if "-d" in sys.argv:
         program.dump()
+
+
+    if "-o" in sys.argv:
+        run_logger.info("Output (with out optimizing):")
+        evaluator = EvalVisitor(Context())
+        evaluator.eval(program)
+        opt = OptVisitor()
+        opt.check(program)
+        changes = opt.changes
+        program.dump()
+        if changes:
+            run_logger.info("Optimizing program")
+            optimizer = CodeOptimizer(program, changes)
+            optimizer.run()
+            program.dump()
+            run_logger.info("Output (with optimizing):")
+            evaluator = EvalVisitor(Context())
+            evaluator.eval(program)
+        return
+
 
     # Evaluate
     run_logger.info("Executing. Output:")

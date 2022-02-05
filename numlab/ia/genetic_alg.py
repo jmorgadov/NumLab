@@ -32,6 +32,7 @@ class Metaheuristic(metaclass=abc.ABCMeta):
         t_0 = time()
         i = 0
         while not self.brake_condition() and i < self.max_iter:
+            print(f"Iteration {i + 1} of {self.max_iter}")
             self.iteration()
             i += 1
         t_1 = time()
@@ -54,7 +55,9 @@ class GeneticAlg(Metaheuristic, metaclass=abc.ABCMeta):
         self.mutation_prob = mutation_prob
         self.population_size = population_size
         self.new_randoms = generate_new_randoms
+        print(f"Generating population of {self.population_size}")
         self.population = [self.get_random_solution() for _ in range(population_size)]
+        print(f"Evaluating population")
         self.population = [(p, self.eval(p)) for p in self.population]
         self.population.sort(key=lambda p: p[1], reverse=not self.minimize)
         self.best_selection_count = best_selection_count
@@ -104,3 +107,8 @@ class GeneticAlg(Metaheuristic, metaclass=abc.ABCMeta):
         self.population = new_candidates
         self.population.sort(key=lambda p: p[1], reverse=not self.minimize)
         self.best_solution = self.population[0][0]
+        print(f"Best solution: {self.population[0]}")
+        times = [p[1] for p in self.population]
+        avg = sum(times) / len(times)
+        print(f"Average time: {avg}")
+

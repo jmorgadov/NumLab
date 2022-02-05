@@ -51,6 +51,8 @@ OPER_STAT_NAME = {
     ast.Operator.BIT_OR: "bit_or_count",
     ast.Operator.FLOORDIV: "floordiv_count",
     ast.Operator.MATMUL: "matmul_count",
+    ast.Operator.OR: "or_count",
+    ast.Operator.AND: "and_count",
     ast.CmpOp.IN: "contains_count",
     ast.CmpOp.EQ: "eq_count",
     ast.CmpOp.NOT_EQ: "ne_count",
@@ -177,7 +179,7 @@ class EvalVisitor:
             return
         start = self.flags["start_time"]
         now = time()
-        if now - start > config["max_time"]:
+        if now - start > config["max_time"].get("value"):
             raise TimeoutError(f"Time limit exceeded: {config['max_time']}s")
 
     @callback
@@ -218,7 +220,7 @@ class EvalVisitor:
         config = self.in_sim[-1]
         if (
             "max_var_count" in config
-            and self.context.count_vars() > config["max_var_count"]
+            and self.context.count_vars() > config["max_var_count"].get("value")
         ):
             raise TimeoutError(f"Variable limit exceeded: {config['max_var_count']}")
         max_configs = [k for k in config if k.startswith("max_")]
@@ -265,7 +267,7 @@ class EvalVisitor:
                 ("bit_xor_count", 0),
                 ("bit_and_count", 0),
                 ("bit_or_count", 0),
-                ("in_count", 0),
+                ("contains_count", 0),
                 ("eq_count", 0),
                 ("ne_count", 0),
                 ("lt_count", 0),
@@ -600,10 +602,14 @@ class EvalVisitor:
         op = node.op
         if op == ast.Operator.AND:
             self.set_stat("and_count", self.stats["and_count"] + 1)
-            return builtins.nl_bool(_truth(left) and _truth(self.eval(node.right)))
+            if _truth(left):
+                return self.eval(node.right)
+            return left
         if op == ast.Operator.OR:
             self.set_stat("or_count", self.stats["or_count"] + 1)
-            return builtins.nl_bool(_truth(left) or _truth(self.eval(node.right)))
+            if _truth(left):
+                return left
+            return self.eval(node.right)
 
         right: Instance = self.eval(node.right)
 
@@ -833,7 +839,12 @@ class EvalVisitor:
 
         if isinstance(func, Instance):
             return self._call_func(func, args, kwargs)
-        return self._class_init(func, args, kwargs)
+        elif isinstance(func, Type):
+            return self._class_init(func, args, kwargs)
+        elif callable(func):
+            return func(*args, *kwargs)
+        else:
+            raise ValueError("Unknown function")
 
     @visitor
     def eval(self, node: ast.Keyword):

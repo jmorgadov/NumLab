@@ -3,6 +3,7 @@ from math import log2
 import numlab.nl_ast as ast
 import numlab.nl_builtins as builtins
 from numlab.lang.visitor import Visitor
+import itertools
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -14,71 +15,128 @@ class OptVisitor:
 
     def __init__(self):
         self.changes = []
+        self.values = {}
 
     @visitor
     def check(self, node: ast.Program):
-        self.changes.append((0,None, None))
+        for elem in node.stmts:
+            self.check(elem)
 
     @visitor
     def check(self, node: ast.FuncDefStmt):
-        self.changes.append((0,None, None))
+        for arg in node.args.args:
+            if arg.default is not None:
+                self.check(arg.default)
+        for stmt in node.body:
+            self.check(stmt)
 
     @visitor
     def check(self, node: ast.ClassDefStmt):
-        self.changes.append((0,None, None))
+        for base in node.bases:
+            self.check(base)
+        for stmt in node.body:
+            self.check(stmt)
 
     @visitor
     def check(self, node: ast.ConfDefStmt):
-        self.changes.append((0,None, None))
+        for conf_opt in node.configs:
+            self.check(conf_opt)
 
     @visitor
     def check(self, node: ast.ConfOption):
-        self.changes.append((0,None, None))
+        self.check(node.value)
 
     @visitor
     def check(self, node: ast.ReturnStmt):
-        self.changes.append((0,None, None))
+        for val in node.expr.elts:
+            self.check(val)
 
     @visitor
     def check(self, node: ast.DeleteStmt):
-        self.changes.append((0,None, None))
+        for target in node.targets:
+            self.check(target)
 
     @visitor
     def check(self, node: ast.AssignStmt):
-        self.changes.append((0,None, None))
+        for item in node.value.elts:
+            self.check(item)
 
     @visitor
     def check(self, node: ast.AugAssignStmt):
-        raise NotImplementedError()
+        self.check(node.value.elts[0])
 
     @visitor
     def check(self, node: ast.AnnAssignStmt):
-        raise NotImplementedError()
+        self.check(node.value)
 
     @visitor
     def check(self, node: ast.ForStmt):
-        self.changes.append((0,None, None))
+        self.check(node.iter_expr.elts[0])
+        for stmt in node.body:
+            self.check(stmt)
+        for stmt in node.orelse:
+            self.check(stmt)
 
+    def flat_test(self, test: ast.Expr, oper: ast.Operator):
+        if isinstance(test, ast.BinOpExpr) and test.op == oper:
+            flat_left = self.flat_test(test.left, oper)
+            flat_right = self.flat_test(test.right, oper)
+            return flat_left + flat_right
+        return [test]
+
+    def unflat_test(self, items, oper=ast.Operator.OR):
+        if not isinstance(items, list):
+            return items
+        if len(items) == 1:
+            return self.unflat_test(items[0])
+        and_items = [
+            self.unflat_test(item, ast.Operator.AND) if isinstance(item, list) else item
+            for item in items
+        ]
+
+        return ast.BinOpExpr(
+            oper,
+            self.unflat_test(and_items[0]),
+            self.unflat_test(and_items[1:]),
+        )
+
+    def testcheck(self, test):
+        if isinstance(test, ast.BinOpExpr):
+            op = test.op
+            if op == ast.Operator.AND or op == ast.Operator.OR:
+                def change_logical_ops(node: ast.BinOpExpr):
+                    node.right, node.left = node.left, node.right
+                self.changes.append((test, change_logical_ops, change_logical_ops))
 
     @visitor
     def check(self, node: ast.WhileStmt):
-        self.changes.append((0,None, None))
+        self.testcheck(node.test)
+        self.check(node.test)
+        for stmt in node.body:
+            self.check(stmt)
+        for stmt in node.orelse:
+            self.check(stmt)
 
     @visitor
     def check(self, node: ast.IfStmt):
-        self.changes.append((0,None, None))
+        self.testcheck(node.test)
+        self.check(node.test)
+        for stmt in node.body:
+            self.check(stmt)
+        for stmt in node.orelse:
+            self.check(stmt)
 
     @visitor
     def check(self, node: ast.Begsim):
-        self.changes.append((0,None, None))
+        pass
 
     @visitor
     def check(self, node: ast.Endsim):
-        self.changes.append((0,None, None))
+        pass
 
     @visitor
     def check(self, node: ast.ResetStats):
-        self.changes.append((0,None, None))
+        pass
 
     @visitor
     def check(self, node: ast.WithStmt):
@@ -114,56 +172,94 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.PassStmt):
-        return node
+        pass
 
     @visitor
     def check(self, node: ast.BreakStmt):
-        self.changes.append((0,None, None))
+        pass
 
     @visitor
     def check(self, node: ast.ContinueStmt):
-        self.changes.append((0,None, None))
+        pass
 
     @visitor
     def check(self, node: ast.ExprStmt):
-        self.changes.append((0,None, None))
+        self.check(node.expr)
+
+    def can_shift(self, node):
+        if isinstance(node, ast.ConstantExpr) and isinstance(
+            node.value, int
+        ):
+            orig = node.value
+            fac = log2(orig)
+            if int(fac) == fac:
+                return True, orig, int(fac)
+        return False, None, None
 
     @visitor
     def check(self, node: ast.BinOpExpr):
         op = node.op
-        if op == (ast.Operator.AND or ast.Operator.OR):
-            def change_logical_ops(node: ast.BinOpExpr):
-                node.right, node.left = node.left, node.right
-            self.changes.append(1, change_logical_ops, change_logical_ops)
         if op == ast.Operator.MUL:
-            if isinstance(node.right, int):
-                fac = log2(node.right)
-                if fac % 2 == 0:
-                    def change_mult_by_lshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.LSHIFT
-                        node.right = factor
-                    def reverse_lshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.MUL
-                        node.right = factor
-                    self.changes.append(1, change_mult_by_lshift, reverse_lshift)
+            ret, orig1, fac1 = self.can_shift(node.right)
+            if ret:
+                def change_mult_by_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.LSHIFT
+                    node.right.value = fac1
+
+                def reverse_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.MUL
+                    node.right.value = orig1
+
+                self.changes.append((node, change_mult_by_lshift, reverse_lshift))
+            ret, orig2, fac2 = self.can_shift(node.left)
+            if ret:
+                def change_mult_by_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.LSHIFT
+                    node.left.value = fac2
+                    node.left, node.right = node.right, node.left
+
+                def reverse_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.MUL
+                    node.left, node.right = node.right, node.left
+                    node.left.value = orig2
+
+                self.changes.append((node, change_mult_by_lshift, reverse_lshift))
         if op == ast.Operator.DIV:
-            if isinstance(node.right, int):
-                fac = log2(node.right)
-                if fac % 2 == 0:
-                    def change_div_by_rshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.RSHIFT
-                        node.right = factor
-                    def reverse_rshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.DIV
-                        node.right = factor
-                    self.changes.append(1, change_div_by_rshift, reverse_rshift)
+            ret, orig3, fac3 = self.can_shift(node.right)
+            if ret:
+                def change_div_by_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.RSHIFT
+                    node.right.value = fac3
+
+                def reverse_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.DIV
+                    node.right.value = orig3
+
+                self.changes.append((node, change_div_by_rshift, reverse_rshift))
+            ret, orig4, fac4 = self.can_shift(node.left)
+            if ret:
+                def change_div_by_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.RSHIFT
+                    node.left.value = fac4
+                    node.left, node.right = node.right, node.left
+
+                def reverse_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.DIV
+                    node.left, node.right = node.right, node.left
+                    node.left.value = orig4
+
+                self.changes.append((node, change_div_by_rshift, reverse_rshift))
+        self.check(node.left)
+        self.check(node.right)
 
     @visitor
     def check(self, node: ast.UnaryOpExpr):
-        raise NotImplementedError()
+        self.check(node.operand)
 
     @visitor
     def check(self, node: ast.LambdaExpr):
+        for dec in node.decorator[::-1]:
+            self.check(dec)
         raise NotImplementedError()
 
     @visitor
@@ -172,23 +268,26 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.DictExpr):
-        raise NotImplementedError()
+        for key, value in zip(node.keys, node.values):
+            self.check(key)
+            self.check(value)
 
     @visitor
     def check(self, node: ast.SetExpr):
-        raise NotImplementedError()
+        for elem in node.values:
+            self.check(elem)
 
     @visitor
     def check(self, node: ast.ListCompExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.SetCompExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.DictCompExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.GeneratorExpr):
@@ -208,27 +307,35 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.CompareExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.CallExpr):
-        raise NotImplementedError()
+        for arg in node.args:
+            self.check(arg)
+        for kwarg in node.keywords:
+            self.check(kwarg)
+        if isinstance(node.func, ast.AttributeExpr):
+            self.check(node.func.value)
+        if not isinstance(node.func, ast.NameExpr):
+            self.check(node.func)
 
     @visitor
     def check(self, node: ast.Keyword):
-        raise NotImplementedError()
+        self.check(node.value)
 
     @visitor
     def check(self, node: ast.ConstantExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.AttributeExpr):
-        raise NotImplementedError()
+        self.check(node.value)
 
     @visitor
     def check(self, node: ast.SubscriptExpr):
-        raise NotImplementedError()
+        self.check(node.value)
+        self.check(node.slice_expr)
 
     @visitor
     def check(self, node: ast.StarredExpr):
@@ -236,29 +343,26 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.NameExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.ListExpr):
         items = [self.check(i) for i in node.elts]
-        return builtins.nl_list(items)
 
     @visitor
     def check(self, node: ast.TupleExpr):
         items = tuple(self.check(i) for i in node.elts)
-        return builtins.nl_tuple(items)
 
     @visitor
     def check(self, node: ast.SliceExpr):
         low = self.check(node.lower) if node.lower is not None else None
         upper = self.check(node.upper) if node.upper is not None else None
         step = self.check(node.step) if node.step is not None else None
-        return builtins.nl_slice(low, upper, step)
 
     @visitor
     def check(self, node: ast.Args):
-        return node
+        pass
 
     @visitor
     def check(self, node: ast.Arg):
-        return node
+        pass
