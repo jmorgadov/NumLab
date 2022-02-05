@@ -600,10 +600,14 @@ class EvalVisitor:
         op = node.op
         if op == ast.Operator.AND:
             self.set_stat("and_count", self.stats["and_count"] + 1)
-            return builtins.nl_bool(_truth(left) and _truth(self.eval(node.right)))
+            if _truth(left):
+                return left
+            return self.eval(node.right)
         if op == ast.Operator.OR:
             self.set_stat("or_count", self.stats["or_count"] + 1)
-            return builtins.nl_bool(_truth(left) or _truth(self.eval(node.right)))
+            if _truth(left):
+                return left
+            return self.eval(node.right)
 
         right: Instance = self.eval(node.right)
 
