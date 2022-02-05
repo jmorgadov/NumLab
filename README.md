@@ -408,11 +408,11 @@ Ejemplo del árbol generado a partir del código:
 ```python
 conf c1:
     max_time 5
-	max_var_count 5
+    max_var_count 5
 
 begsim c1
 def foo(a, b):
-	print("hola", a, b)
+    print("hola", a, b)
 
 a, b = 1, 2
 foo(a, b)
@@ -487,10 +487,42 @@ builders = {
     "stmt_list -> stmt stmt_list": lambda s, sl: [s] + sl,
     # -------------------------------------------------------------------------
     # ...
-	# ...
+    # ...
 ```
 
 ### Parser
+
+Para la implementación del parser principal del lenguaje se creó la clase
+abstacta `Parser`. Usando esta clase como base se creó una clase `LR1Parser`,
+la cual implementa un parser LR(1).
+
+Para la realización del parser LR(1) fue necesario implementar las clases
+`LR1Item` y `LR1Table`. La primera de estas clases representa un item del
+parser, el cual contiene: la producción que lo genera, la posición del punto
+(dot) en la producción y el terminal que le debe proseguir (lookahead).
+
+La segunda clase (`LR1Table`) representa la tabla de transición del parser.
+Cada posición de la tabla puede contener tres tipos de elementos: un **string**
+`"OK"`, que indica que el estado es de aceptación; un valór numérico entero,
+que indica el estado siguiente; o un no terminal de la gramática, el cual
+representa que hay que realizar una reducción. Para no tener que recalcular la
+tabla cada vez que se va a parsear un texto, la misma puede ser serializada y
+luego cargada.
+
+La construcción de la tabla se realizó siguiendo el algoritmo visto en las
+conferencias de la asignatura (calculando los **goto** y las **clausuras** de
+los estados).
+
+Es en el proceso de parsing, al realizar una acción de reducción, que se
+utilizan las funciones constructoras vistas en la sección anterior. En
+dependencia de la producción que se está reduciendo, se llama a la función
+constructora correspondiente.
+
+Para una mayor comodidad se implementó también la clase `ParserManager`. Esta
+clase ofrece, dado una gramática, un tokenizador (opcional) y un parser
+(opcional, por defecto LR(1)), métodos como: `parse_file` (para parsear un
+archivo), `parse` (para parsear un texto) y `parse_tokens` (para parsear una
+lista de tokens directamete).
 
 ### Evaluación
 
