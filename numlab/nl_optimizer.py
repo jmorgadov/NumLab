@@ -1,27 +1,35 @@
-from numlab.ia.genetic_alg import GeneticAlg
+import random
+from time import time
+from contextlib import redirect_stdout
+
 import numlab.nl_ast as ast
+from numlab.ia.genetic_alg import GeneticAlg
+from numlab.lang.context import Context
 from numlab.visitors.eval_visitor import EvalVisitor
 from numlab.visitors.opt_visitor import OptVisitor
-from numlab.lang.context import Context
-from time import time
-import random
 
 
 class CodeOptimizer(GeneticAlg):
     """
     Genetic algorithm for optimizing the code
     """
+
     def __init__(
         self,
         ast: ast.AST,
         possible_changes: list,
-        max_iter: int = 20,
+        max_iter: int = 5,
         minimize=True,
-        population_size=100,
-        mutation_prob=0.01,
-        best_selection_count=10,
-        generate_new_randoms=5,
+        population_size=10,
+        mutation_prob=0.1,
+        best_selection_count=3,
+        generate_new_randoms=2,
     ):
+        self.ast = ast
+        opt = OptVisitor()
+        opt.check(self.ast)
+        self.possible_changes = opt.changes
+        self.last_vector = [0] * len(possible_changes)
         super().__init__(
             max_iter,
             minimize,
@@ -30,11 +38,6 @@ class CodeOptimizer(GeneticAlg):
             best_selection_count,
             generate_new_randoms,
         )
-        self.ast = ast
-        opt = OptVisitor()
-        opt.check(self.ast)
-        self.possible_changes = opt.changes
-        self.last_vector = [0]*len(possible_changes)
 
     def eval(self, solution) -> float:
         """
@@ -49,12 +52,15 @@ class CodeOptimizer(GeneticAlg):
         evaluator = EvalVisitor(Context())
         start = time()
         try:
-            evaluator.eval(self.ast)
+            with open("logs.txt", "w+") as f:
+                with redirect_stdout(f):
+                    evaluator.eval(self.ast)
         except Exception as e:
+            print(e)
             return float("inf") if self.minimize else 0
         end = time()
         self.last_vector = solution
-        return end-start
+        return end - start
 
     def get_random_solution(self):
         """
@@ -66,13 +72,13 @@ class CodeOptimizer(GeneticAlg):
         """
         Crossover two solutions
         """
-        idx = random.randint(0, len(self.possible_changes)-1)
+        idx = random.randint(0, len(self.possible_changes) - 1)
         return sol1[:idx] + sol2[idx:], sol2[:idx] + sol1[idx:]
 
     def mutate(self, sol):
         """
         Mutate a solution
         """
-        idx = random.randint(0, len(self.possible_changes)-1)
-        sol[idx] = 1-sol[idx]
+        idx = random.randint(0, len(self.possible_changes) - 1)
+        sol[idx] = 1 - sol[idx]
         return sol

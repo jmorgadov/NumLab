@@ -51,6 +51,8 @@ OPER_STAT_NAME = {
     ast.Operator.BIT_OR: "bit_or_count",
     ast.Operator.FLOORDIV: "floordiv_count",
     ast.Operator.MATMUL: "matmul_count",
+    ast.Operator.OR: "or_count",
+    ast.Operator.AND: "and_count",
     ast.CmpOp.IN: "contains_count",
     ast.CmpOp.EQ: "eq_count",
     ast.CmpOp.NOT_EQ: "ne_count",
@@ -265,7 +267,7 @@ class EvalVisitor:
                 ("bit_xor_count", 0),
                 ("bit_and_count", 0),
                 ("bit_or_count", 0),
-                ("in_count", 0),
+                ("contains_count", 0),
                 ("eq_count", 0),
                 ("ne_count", 0),
                 ("lt_count", 0),
@@ -601,8 +603,8 @@ class EvalVisitor:
         if op == ast.Operator.AND:
             self.set_stat("and_count", self.stats["and_count"] + 1)
             if _truth(left):
-                return left
-            return self.eval(node.right)
+                return self.eval(node.right)
+            return left
         if op == ast.Operator.OR:
             self.set_stat("or_count", self.stats["or_count"] + 1)
             if _truth(left):
@@ -837,7 +839,12 @@ class EvalVisitor:
 
         if isinstance(func, Instance):
             return self._call_func(func, args, kwargs)
-        return self._class_init(func, args, kwargs)
+        elif isinstance(func, Type):
+            return self._class_init(func, args, kwargs)
+        elif callable(func):
+            return func(*args, *kwargs)
+        else:
+            raise ValueError("Unknown function")
 
     @visitor
     def eval(self, node: ast.Keyword):

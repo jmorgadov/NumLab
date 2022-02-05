@@ -3,6 +3,7 @@ from math import log2
 import numlab.nl_ast as ast
 import numlab.nl_builtins as builtins
 from numlab.lang.visitor import Visitor
+import itertools
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -14,6 +15,7 @@ class OptVisitor:
 
     def __init__(self):
         self.changes = []
+        self.values = {}
 
     @visitor
     def check(self, node: ast.Program):
@@ -25,11 +27,15 @@ class OptVisitor:
         for arg in node.args.args:
             if arg.default is not None:
                 self.check(arg.default)
+        for stmt in node.body:
+            self.check(stmt)
 
     @visitor
     def check(self, node: ast.ClassDefStmt):
         for base in node.bases:
-            self.check(base) 
+            self.check(base)
+        for stmt in node.body:
+            self.check(stmt)
 
     @visitor
     def check(self, node: ast.ConfDefStmt):
@@ -42,15 +48,12 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.ReturnStmt):
-        val = node.expr.elts
-        if len(val) == 1:
-            val = val[0]
-        self.eval(val)
+        for val in node.expr.elts:
+            self.check(val)
 
     @visitor
     def check(self, node: ast.DeleteStmt):
         for target in node.targets:
-            target.ctx = ast.ExprCtx.DEL
             self.check(target)
 
     @visitor
@@ -60,12 +63,10 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.AugAssignStmt):
-        self.check(node.target.elts[0])
         self.check(node.value.elts[0])
 
     @visitor
     def check(self, node: ast.AnnAssignStmt):
-        self.check(node.target)
         self.check(node.value)
 
     @visitor
@@ -76,17 +77,41 @@ class OptVisitor:
         for stmt in node.orelse:
             self.check(stmt)
 
-    def testcheck(self, test: ast.Expr):
+    def flat_test(self, test: ast.Expr, oper: ast.Operator):
+        if isinstance(test, ast.BinOpExpr) and test.op == oper:
+            flat_left = self.flat_test(test.left, oper)
+            flat_right = self.flat_test(test.right, oper)
+            return flat_left + flat_right
+        return [test]
+
+    def unflat_test(self, items, oper=ast.Operator.OR):
+        if not isinstance(items, list):
+            return items
+        if len(items) == 1:
+            return self.unflat_test(items[0])
+        and_items = [
+            self.unflat_test(item, ast.Operator.AND) if isinstance(item, list) else item
+            for item in items
+        ]
+
+        return ast.BinOpExpr(
+            oper,
+            self.unflat_test(and_items[0]),
+            self.unflat_test(and_items[1:]),
+        )
+
+    def testcheck(self, test):
         if isinstance(test, ast.BinOpExpr):
-            op: ast.BinOpExpr = test.op
+            op = test.op
             if op == ast.Operator.AND or op == ast.Operator.OR:
                 def change_logical_ops(node: ast.BinOpExpr):
                     node.right, node.left = node.left, node.right
-                self.changes.append(test, change_logical_ops, change_logical_ops)
+                self.changes.append((test, change_logical_ops, change_logical_ops))
 
     @visitor
     def check(self, node: ast.WhileStmt):
-        testcheck(node.test)
+        self.testcheck(node.test)
+        self.check(node.test)
         for stmt in node.body:
             self.check(stmt)
         for stmt in node.orelse:
@@ -94,7 +119,8 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.IfStmt):
-        testcheck(node.test)
+        self.testcheck(node.test)
+        self.check(node.test)
         for stmt in node.body:
             self.check(stmt)
         for stmt in node.orelse:
@@ -146,7 +172,7 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.PassStmt):
-        return node
+        pass
 
     @visitor
     def check(self, node: ast.BreakStmt):
@@ -160,31 +186,71 @@ class OptVisitor:
     def check(self, node: ast.ExprStmt):
         self.check(node.expr)
 
+    def can_shift(self, node):
+        if isinstance(node, ast.ConstantExpr) and isinstance(
+            node.value, int
+        ):
+            orig = node.value
+            fac = log2(orig)
+            if int(fac) == fac:
+                return True, orig, int(fac)
+        return False, None, None
+
     @visitor
     def check(self, node: ast.BinOpExpr):
         op = node.op
         if op == ast.Operator.MUL:
-            if isinstance(node.right, ast.ConstantExpr) and isinstance(node.right.value, int):
-                fac = log2(node.right)
-                if fac % 2 == 0:
-                    def change_mult_by_lshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.LSHIFT
-                        node.right.value = factor
-                    def reverse_lshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.MUL
-                        node.right.value = factor
-                    self.changes.append(node, change_mult_by_lshift, reverse_lshift)
+            ret, orig1, fac1 = self.can_shift(node.right)
+            if ret:
+                def change_mult_by_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.LSHIFT
+                    node.right.value = fac1
+
+                def reverse_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.MUL
+                    node.right.value = orig1
+
+                self.changes.append((node, change_mult_by_lshift, reverse_lshift))
+            ret, orig2, fac2 = self.can_shift(node.left)
+            if ret:
+                def change_mult_by_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.LSHIFT
+                    node.left.value = fac2
+                    node.left, node.right = node.right, node.left
+
+                def reverse_lshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.MUL
+                    node.left, node.right = node.right, node.left
+                    node.left.value = orig2
+
+                self.changes.append((node, change_mult_by_lshift, reverse_lshift))
         if op == ast.Operator.DIV:
-            if isinstance(node.right, ast.ConstantExpr) and isinstance(node.right.value, int):
-                fac = log2(node.right)
-                if fac % 2 == 0:
-                    def change_div_by_rshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.RSHIFT
-                        node.right.value = factor
-                    def reverse_rshift(node: ast.BinOpExpr, factor: int):
-                        node.op = ast.Operator.DIV
-                        node.right.value = factor
-                    self.changes.append(node, change_div_by_rshift, reverse_rshift)
+            ret, orig3, fac3 = self.can_shift(node.right)
+            if ret:
+                def change_div_by_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.RSHIFT
+                    node.right.value = fac3
+
+                def reverse_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.DIV
+                    node.right.value = orig3
+
+                self.changes.append((node, change_div_by_rshift, reverse_rshift))
+            ret, orig4, fac4 = self.can_shift(node.left)
+            if ret:
+                def change_div_by_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.RSHIFT
+                    node.left.value = fac4
+                    node.left, node.right = node.right, node.left
+
+                def reverse_rshift(node: ast.BinOpExpr):
+                    node.op = ast.Operator.DIV
+                    node.left, node.right = node.right, node.left
+                    node.left.value = orig4
+
+                self.changes.append((node, change_div_by_rshift, reverse_rshift))
+        self.check(node.left)
+        self.check(node.right)
 
     @visitor
     def check(self, node: ast.UnaryOpExpr):
@@ -213,15 +279,15 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.ListCompExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.SetCompExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.DictCompExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.GeneratorExpr):
@@ -241,11 +307,11 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.CompareExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.CallExpr):
-        for arg in node .args:
+        for arg in node.args:
             self.check(arg)
         for kwarg in node.keywords:
             self.check(kwarg)
@@ -277,7 +343,7 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.NameExpr):
-        raise NotImplementedError()
+        pass
 
     @visitor
     def check(self, node: ast.ListExpr):
@@ -295,8 +361,8 @@ class OptVisitor:
 
     @visitor
     def check(self, node: ast.Args):
-        return node
+        pass
 
     @visitor
     def check(self, node: ast.Arg):
-        return node
+        pass

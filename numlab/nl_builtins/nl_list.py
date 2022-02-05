@@ -3,6 +3,7 @@ from numlab.lang.type import Instance, Type
 nl_int = Type.get("int")
 nl_slice = Type.get("slice")
 nl_str = Type.get("str")
+nl_bool = Type.get("bool")
 nl_list = Type("list", Type.get("object"))
 
 
@@ -11,6 +12,10 @@ def nl__new__(value: list):
     _inst = Instance(nl_list)
     _inst.set("value", list(value))
     return _inst
+
+@nl_list.method("__bool__")
+def nl__bool__(self: Instance):
+    return nl_bool(len(self.get("value")) > 0)
 
 
 @nl_list.method("__contains__")
@@ -105,4 +110,10 @@ def nl_sort(self):
 
 @nl_list.method("remove")
 def nl_remove(self, obj: Instance):
-    self.get("value").remove(obj)
+    items = self.get("value")
+    for pos in range(len(items)):
+        val = items[pos]
+        if val.get("__eq__")(val, obj):
+            items.pop(pos)
+            return
+    raise ValueError("list.remove(x): x not in list")
