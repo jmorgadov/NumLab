@@ -165,7 +165,14 @@ builders = {
     "small_stmt -> global_stmt": lambda g: g,
     "small_stmt -> nonlocal_stmt": lambda n: n,
     "small_stmt -> assert_stmt": lambda a: a,
+    "small_stmt -> sim_stmt": lambda s: s,
+    "small_stmt -> stat_stmt": lambda s: s,
     # "small_stmt -> import_stmt": lambda i: i,
+    # -------------------------------------------------------------------------
+    "sim_stmt -> begsim test": lambda b, t: ast.Begsim(t),
+    "sim_stmt -> endsim": lambda e: ast.Endsim(),
+    # -------------------------------------------------------------------------
+    "stat_stmt -> resetstats": lambda s: ast.ResetStats(),
     # -------------------------------------------------------------------------
     "del_stmt -> del expr_list": lambda l, e: ast.DeleteStmt(e),
     # -------------------------------------------------------------------------
@@ -191,7 +198,7 @@ builders = {
     "continue_stmt -> continue": lambda c: ast.ContinueStmt(),
     # -------------------------------------------------------------------------
     "return_stmt -> return": lambda r: ast.ReturnStmt(),
-    "return_stmt -> return expr_list": lambda r, e: ast.ReturnStmt(e),
+    "return_stmt -> return test_list": lambda r, e: ast.ReturnStmt(e),
     # -------------------------------------------------------------------------
     "yield_stmt -> yield": lambda y: ast.YieldExpr(),
     "yield_stmt -> yield expr_list": lambda y, e: ast.YieldExpr(e),
@@ -208,10 +215,25 @@ builders = {
     "compound_stmt -> funcdef": lambda f: f,
     "compound_stmt -> classdef": lambda c: c,
     "compound_stmt -> decorated": lambda d: d,
+    "compound_stmt -> confdef": lambda c: c,
     # -------------------------------------------------------------------------
-    "if_stmt -> if test : suite elif_clause": lambda i, t, s, e: build_if_stmt(t, s, e),
+    "confdef -> conf NAME : NEWLINE INDENT confbody DEDENT": (
+        lambda c, n, c_, nl, i, cb, d: ast.ConfDefStmt(n.value, cb)
+    ),
+    "confdef -> conf NAME ( NAME ) : NEWLINE INDENT confbody DEDENT": (
+        lambda c, n, p1, b, p2, c_, nl, i, cb, d: ast.ConfDefStmt(n.value, cb, b.value)
+    ),
+    # -------------------------------------------------------------------------
+    "confbody -> NAME test NEWLINE": lambda n, t, nl: [ast.ConfOption(n.value, t)],
+    "confbody -> NAME test NEWLINE confbody": (
+        lambda n, t, nl, cb: [ast.ConfOption(n.value, t)] + cb
+    ),
+    # -------------------------------------------------------------------------
+    "if_stmt -> if test : suite elif_clause": lambda i, t, c, s, e: build_if_stmt(
+        t, s, e
+    ),
     "if_stmt -> if test : suite elif_clause else : suite": (
-        lambda i, t, s, e, el, s2: build_if_stmt(t, s, e, s2)
+        lambda i, t, c, s, e, el, s2: build_if_stmt(t, s, e, s2)
     ),
     # -------------------------------------------------------------------------
     "elif_clause -> elif test : suite elif_clause": (lambda e, t, s, e2: [(t, s)] + e2),
@@ -364,7 +386,7 @@ builders = {
     "test_nocond -> or_test": lambda o: o,
     "test_nocond -> lambdef_nocond": lambda l: l,
     # -------------------------------------------------------------------------
-    "lambdef -> lambda : test": lambda l, c, t: ast.FuncDefStmt(None, [], [t]),
+    "lambdef -> lambda : test": lambda l, c, t: ast.FuncDefStmt(None, ast.Args(), [t]),
     "lambdef -> lambda varargslist : test": (
         lambda l, v, c, t: ast.FuncDefStmt(None, v, [t])
     ),
@@ -486,7 +508,11 @@ builders = {
     "atom -> ( test_list_comp )": (
         lambda b1, t, b2: ast.GeneratorExpr(t[0], build_generators(t[1]))
         if isinstance(t, tuple)
-        else ast.ListExpr(t)
+        else (
+            t.elts[0]
+            if len(t.elts) == 1
+            else t
+        )
     ),
     "atom -> [ test_list_comp ]": (
         lambda b1, t, b2: ast.ListCompExpr(t[0], build_generators(t[1]))

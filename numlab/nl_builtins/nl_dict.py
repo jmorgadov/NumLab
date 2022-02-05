@@ -17,7 +17,12 @@ def nl__new__(value: dict):
 
 @nl_dict.method("__contains__")
 def nl__contains__(self, key: Instance):
-    return nl_bool(key in self.get("value"))
+    val = nl_bool(key in self.get("value"))
+    if val.get("value"):
+        return val
+    if key.has_value():
+        return nl_bool(key.get("value") in self.get("value"))
+    return val
 
 
 @nl_dict.method("__iter__")
@@ -38,11 +43,20 @@ def nl__repr__(self):
 
 @nl_dict.method("__getitem__")
 def nl__getitem__(self, key: Instance):
-    return self.get("value")[key]
+    _dic = self.get("value")
+    for k in _dic:
+        if k.get("__eq__")(k, key).get("value"):
+            return _dic[k]
+    raise KeyError(key)
 
 
 @nl_dict.method("__setitem__")
 def nl__setitem__(self, key: Instance, value: Instance):
+    _dic = self.get("value")
+    for k in _dic:
+        if k.get("__eq__")(k, key).get("value"):
+            _dic[k] = value
+            return
     self.get("value")[key] = value
 
 

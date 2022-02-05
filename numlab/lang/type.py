@@ -36,8 +36,11 @@ class Type:
         return all_attrs
 
     def subtype(self, other: Type):
-        if self.type_name == other.type_name:
-            return True
+        if not isinstance(other, tuple):
+            other = (other,)
+        for subtype in other:
+            if self.type_name == subtype.type_name:
+                return True
         if self.parent is None:
             return False
         return self.parent.subtype(other)
@@ -57,6 +60,33 @@ class Type:
             raise ValueError(f"{type_name} is not a valid NumLab type")
         return Type.nl_types[type_name]
 
+    @staticmethod
+    def get_type(value):
+        if isinstance(value, str):
+            return Type.get("str")
+        if isinstance(value, bool):
+            return Type.get("bool")
+        if isinstance(value, int):
+            return Type.get("int")
+        if isinstance(value, float):
+            return Type.get("float")
+        if value is None:
+            return Type.get("none")
+        if isinstance(value, list):
+            return Type.get("list")
+        if isinstance(value, dict):
+            return Type.get("dict")
+        if isinstance(value, tuple):
+            return Type.get("tuple")
+        if callable(value):
+            return Type.get("function")
+        return value
+
+    @staticmethod
+    def resolve_type(value):
+        val_type = Type.get_type(value)
+        return val_type(value)
+
 
 class Instance:
     def __init__(self, _type: Type):
@@ -65,6 +95,8 @@ class Instance:
         self._dict["__dict__"] = self._dict
 
     def get(self, attr_name):
+        if attr_name == "__dict__":
+            return Type.get("dict")(self._dict)
         if attr_name not in self._dict:
             raise ValueError(f"{self.type.type_name} has no attribute {attr_name}")
         return self._dict[attr_name]
@@ -72,8 +104,11 @@ class Instance:
     def set(self, attr_name, value):
         self._dict[attr_name] = value
 
+    def has_value(self):
+        return self.type.type_name in ["int", "float", "str", "bool"]
+
     def get_value(self):
-        if self.type.type_name in ["int", "float", "bool", "str"]:
+        if self.has_value():
             return self.get("__new__")(self.get("value"))
         return self
 
@@ -88,6 +123,7 @@ class Instance:
     def __repr__(self):
         return self.get("__repr__")(self).get("value")
 
+
 nl_object = Type("object")
 nl_float = Type("float", nl_object)
 nl_int = Type("int", nl_float)
@@ -100,5 +136,4 @@ nl_set = Type("set", nl_object)
 nl_slice = Type("slice", nl_object)
 nl_function = Type("function", nl_object)
 nl_generator = Type("generator", nl_object)
-
-
+nl_none = Type("none", nl_object)

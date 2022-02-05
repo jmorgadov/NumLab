@@ -21,7 +21,7 @@ def nl__contains__(self, obj: Instance):
 @nl_list.method("__getitem__")
 def nl__getitem__(self, indx: Instance):
     if indx.type.subtype(nl_int):
-        return self.get("value")[indx.value]
+        return self.get("value")[indx.get("value")]
     if indx.type.subtype(nl_slice):
         low = indx.low if indx.low is not None else 0
         upper = indx.up if indx.upper is not None else len(self.get("value"))
@@ -43,7 +43,7 @@ def nl__getitem__(self, indx: Instance):
 @nl_list.method("__delitem__")
 def nl__delitem__(self, indx: Instance):
     if indx.type.subtype(nl_int):
-        return self.get("value").__delitem__(indx.value)
+        return self.get("value").__delitem__(indx.get("value"))
     raise TypeError("List indices must be integers")
 
 
@@ -95,7 +95,7 @@ def nl_count(self, obj: Instance):
 @nl_list.method("insert")
 def nl_insert(self, indx: Instance, obj: Instance):
     if indx.type.subtype(nl_int):
-        self.get("value").insert(indx, obj)
+        self.get("value").insert(indx.get("value"), obj)
 
 
 @nl_list.method("sort")

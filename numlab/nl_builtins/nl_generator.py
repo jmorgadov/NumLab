@@ -1,5 +1,4 @@
 from numlab.lang.type import Instance, Type
-from numlab.nl_types.nl_object import nl_object
 
 nl_generator = Type.get("generator")
 
@@ -11,6 +10,11 @@ def nl__new__(func):
     return _inst
 
 
+@nl_generator.method("__iter__")
+def nl__iter__(self):
+    return self
+
+
 @nl_generator.method("__next__")
 def nl__next__(self):
-    return self.get("func")()
+    return self.get("func")(self)

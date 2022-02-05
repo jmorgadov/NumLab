@@ -2,13 +2,14 @@ from numlab.lang.type import Instance, Type
 
 nl_bool = Type.get("bool")
 nl_str = Type.get("str")
+nl_int = Type.get("int")
 nl_float = Type.get("float")
 
 
 @nl_float.method("__new__")
 def nl__new__(value: float):
     _inst = Instance(nl_float)
-    _inst.set("value", value)
+    _inst.set("value", float(value))
     return _inst
 
 
@@ -20,7 +21,7 @@ def nl__bool__(self: Instance):
 @nl_float.method("__add__")
 def nl__add__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.get("value") + other.get("value"))
+        return Type.resolve_type(self.get("value") + other.get("value"))
     raise TypeError("Can't add float to non-float")
 
 
@@ -35,7 +36,7 @@ def nl__iadd__(self, other: Instance):
 @nl_float.method("__sub__")
 def nl__sub__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.get("value") - other.get("value"))
+        return Type.resolve_type(self.get("value") - other.get("value"))
     raise TypeError("Can't subtract float from non-float")
 
 
@@ -50,7 +51,7 @@ def nl__isub__(self, other: Instance):
 @nl_float.method("__mul__")
 def nl__mul__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.get("value") * other.get("value"))
+        return Type.resolve_type(self.get("value") * other.get("value"))
     raise TypeError("Can't multiply float by non-float")
 
 
@@ -61,11 +62,17 @@ def nl__imul__(self, other: Instance):
         return self
     raise TypeError("Can't multiply float by non-float")
 
+@nl_float.method("__pow__")
+def nl__pow__(self, other: Instance):
+    if other.type.subtype(nl_int):
+        return Type.resolve_type(self.get("value") ** other.get("value"))
+    raise TypeError("Can't raise float to non-int")
+
 
 @nl_float.method("__div__")
 def nl__div__(self, other: Instance):
     if other.type.subtype(nl_float):
-        return nl__new__(self.get("value") / other.get("value"))
+        return Type.resolve_type(self.get("value") / other.get("value"))
     raise TypeError("Can't divide float by non-float")
 
 

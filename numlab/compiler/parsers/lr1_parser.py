@@ -1,5 +1,4 @@
 import logging
-from pprint import pprint
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple, Union
@@ -213,7 +212,6 @@ class LR1Table:
                 cont_val = lr1_table.get(table_key, None)
 
                 if cont_val is not None and cont_val != val:
-                    print(item)
                     raise ValueError(
                         f"LR1 table already contains "
                         f"{table_key} -> {cont_val.__repr__()}  *** {val.__repr__()}"

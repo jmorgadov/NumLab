@@ -22,6 +22,14 @@ def nl__add__(self, other: Instance):
     raise TypeError("Cant concat string to non-string")
 
 
+@nl_string.method("__iadd__")
+def nl__iadd__(self, other: Instance):
+    if other.type.subtype(nl_string):
+        self.set("value", self.get("value") + other.get("value"))
+        return self
+    raise TypeError("Cant concat string to non-string")
+
+
 @nl_string.method("__contains__")
 def nl__contains__(self, other: Instance):
     if other.type.subtype(nl_string):
@@ -69,12 +77,12 @@ def nl__len__(self):
 
 @nl_string.method("__str__")
 def nl__str__(self):
-    return self.get("value")
+    return self
 
 
 @nl_string.method("__repr__")
 def nl__repr__(self):
-    return self.get("value")
+    return nl_str(f'\'{self.get("value")}\'')
 
 
 @nl_string.method("__hash__")

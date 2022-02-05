@@ -152,6 +152,38 @@ class AnnAssignStmt(Stmt):
         return self
 
 
+class ConfDefStmt(Stmt):
+    __slots__ = ("name", "base", "configs")
+
+    def __init__(self, name: str, cofigs: List[ConfOption], base: str = None):
+        self.name = name
+        self.base = base
+        self.configs = cofigs
+
+
+class ConfOption(AST):
+    __slots__ = ("name", "value")
+
+    def __init__(self, name: str, value: Expr):
+        self.name = name
+        self.value = value
+
+
+class Begsim(Stmt):
+    __slots__ = ("config",)
+
+    def __init__(self, config: Expr):
+        self.config = config
+
+
+class Endsim(Stmt):
+    pass
+
+
+class ResetStats(Stmt):
+    pass
+
+
 class ForStmt(Stmt):
     __slots__ = ("target", "iter_expr", "body", "orelse")
 
@@ -161,7 +193,7 @@ class ForStmt(Stmt):
         self.target = target
         self.iter_expr = iter_expr
         self.body = body
-        self.orelse = orelse
+        self.orelse = orelse or []
 
 
 class WhileStmt(Stmt):
@@ -170,7 +202,7 @@ class WhileStmt(Stmt):
     def __init__(self, test: Expr, body: List[Stmt], orelse: List[Stmt] = None):
         self.test = test
         self.body = body
-        self.orelse = orelse
+        self.orelse = orelse or []
 
 
 class IfStmt(Stmt):
