@@ -20,6 +20,7 @@ def nl__mod__(self: Instance, other: Instance):
         )
     )
 
+
 @nl_int.method("__lshift__")
 def nl__lshift__(self: Instance, other: Instance):
     if other.type.subtype(nl_int):
@@ -29,6 +30,7 @@ def nl__lshift__(self: Instance, other: Instance):
             other.type.name
         )
     )
+
 
 @nl_int.method("__rshift__")
 def nl__rshift__(self: Instance, other: Instance):

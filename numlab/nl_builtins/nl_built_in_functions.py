@@ -185,6 +185,46 @@ def nl_sleep(x: nl_float):
     return nl_float(sleep(x))
 
 
+@builtin_func("log")
+def log(x, base):
+    return nl_float(math.log(x.get("value"), base.get("value")))
+
+
+@builtin_func("log2")
+def log2(x):
+    return nl_float(math.log2(x.get("value")))
+
+
+@builtin_func("exp")
+def exp(x):
+    return nl_float(math.exp(x.get("value")))
+
+
+@builtin_func("ceil")
+def ceil(x):
+    return nl_int(math.ceil(x.get("value")))
+
+
+@builtin_func("floor")
+def floor(x):
+    return nl_int(math.floor(x.get("value")))
+
+
+@builtin_func("sin")
+def sin(x):
+    return nl_float(math.sin(x.get("value")))
+
+
+@builtin_func("cos")
+def cos(x):
+    return nl_int(math.cos(x.get("value")))
+
+
+@builtin_func("tan")
+def tan(x):
+    return nl_int(math.tan(x.get("value")))
+
+
 @builtin_func("montcar")
 def nl_montcar(n, func):
     if not n.type.subtype(nl_int):
