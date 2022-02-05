@@ -177,7 +177,7 @@ class EvalVisitor:
             return
         start = self.flags["start_time"]
         now = time()
-        if now - start > config["max_time"]:
+        if now - start > config["max_time"].get("value"):
             raise TimeoutError(f"Time limit exceeded: {config['max_time']}s")
 
     @callback
@@ -218,7 +218,7 @@ class EvalVisitor:
         config = self.in_sim[-1]
         if (
             "max_var_count" in config
-            and self.context.count_vars() > config["max_var_count"]
+            and self.context.count_vars() > config["max_var_count"].get("value")
         ):
             raise TimeoutError(f"Variable limit exceeded: {config['max_var_count']}")
         max_configs = [k for k in config if k.startswith("max_")]
