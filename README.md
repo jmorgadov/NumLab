@@ -1,5 +1,27 @@
 # Numlab
 
+## Contenidos
+
+- [Objetivos](https://github.com/jmorgadov/NumLab#objetivos)
+- [Lenguaje](https://github.com/jmorgadov/NumLab#lenguaje)
+  - [Cracterísticas básicas](https://github.com/jmorgadov/NumLab#caracter%C3%ADsticas-b%C3%A1sicas)
+  - [Estadísticas en tiempo de ejecución](https://github.com/jmorgadov/NumLab#estad%C3%ADsticas-en-tiempo-de-ejecuci%C3%B3n)
+  - [Simulación de código](https://github.com/jmorgadov/NumLab#simulaci%C3%B3n-de-c%C3%B3digo)
+    - [Configuración de la simulación](https://github.com/jmorgadov/NumLab#configuraci%C3%B3n-de-la-simulaci%C3%B3n)
+    - [Regiones de código simuladas](https://github.com/jmorgadov/NumLab#regiones-de-c%C3%B3digo-simuladas)
+- [Implementación](https://github.com/jmorgadov/NumLab#implementaci%C3%B3n)
+  - [Motor de expresiones regulares](https://github.com/jmorgadov/NumLab#motor-de-expresiones-regulares)
+  - [Tokenizador](https://github.com/jmorgadov/NumLab#tokenizador)
+  - [Gramáticas](https://github.com/jmorgadov/NumLab#gram%C3%A1ticas)
+  - [Árbol de Sintaxis Abstracta (AST)](https://github.com/jmorgadov/NumLab#%C3%A1rbol-de-sintaxis-abstracta-ast)
+  - [Parser](https://github.com/jmorgadov/NumLab#parser)
+  - [Visitors](https://github.com/jmorgadov/NumLab#visitors)
+  - [Ejecución](https://github.com/jmorgadov/NumLab#ejecuci%C3%B3n)
+    - [Tipos y funciones predefinidas](https://github.com/jmorgadov/NumLab#tipos-y-funciones-predefinidas)
+    - [Contextos](https://github.com/jmorgadov/NumLab#contextos)
+    - [Evaluación](https://github.com/jmorgadov/NumLab#evaluaci%C3%B3n)
+- [Optimización de código](https://github.com/jmorgadov/NumLab#optimizaci%C3%B3n-de-c%C3%B3digo) 
+
 ## Objetivos
 
 El objetivo de este proyecto es crear una herramienta de aprendizaje
@@ -624,7 +646,7 @@ class EvalVisitor:
     # ... Other eval methods
 ```
 
-### Optimización de código
+## Optimización de código
 
 Se implementó también un optimizador de código, el cual, mediante un algorítmo
 genético, cambia la estructura de un AST para reducir el tiempo de ejecución.
