@@ -1,6 +1,6 @@
 import random
-from time import time
 from contextlib import redirect_stdout
+from time import time
 
 import numlab.nl_ast as ast
 from numlab.ia.genetic_alg import GeneticAlg
