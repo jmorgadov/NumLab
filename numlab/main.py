@@ -68,6 +68,26 @@ def optimize(
     Optimize a program given in the input file
     """
 
+    if config_file is not None:
+        if not config_file.endswith(".json"):
+            raise typer.Exit(
+                "Configuration file must be a JSON file. Got " + config_file
+            )
+        with open(config_file, "r") as conf_fd:
+            config = json.load(conf_fd)
+    else:
+        config = {}
+
+    pop_size = config["pop_size"] = config.get("pop_size", pop_size)
+    max_iter = config["max_iter"] = config.get("max_iter", max_iter)
+    mutation_prob = config["mutation_prob"] = config.get("mutation_prob", mutation_prob)
+    best_sel_count = config["best_sel_count"] = config.get(
+        "best_sel_count", best_sel_count
+    )
+    new_random_count = config["new_random_count"] = config.get(
+        "new_random_count", new_random_count
+    )
+
     # Validate parameters
     if not 0 <= mutation_prob <= 1:
         raise typer.Exit(
@@ -100,26 +120,6 @@ def optimize(
             "individuals must be less than population size. Got "
             f"{best_sel_count} and {new_random_count}"
         )
-
-    if config_file is not None:
-        if not config_file.endswith(".json"):
-            raise typer.Exit(
-                "Configuration file must be a JSON file. Got " + config_file
-            )
-        with open(config_file, "r") as conf_fd:
-            config = json.load(conf_fd)
-    else:
-        config = {}
-
-    pop_size = config["pop_size"] = config.get("pop_size", pop_size)
-    max_iter = config["max_iter"] = config.get("max_iter", max_iter)
-    mutation_prob = config["mutation_prob"] = config.get("mutation_prob", mutation_prob)
-    best_sel_count = config["best_sel_count"] = config.get(
-        "best_sel_count", best_sel_count
-    )
-    new_random_count = config["new_random_count"] = config.get(
-        "new_random_count", new_random_count
-    )
 
     max_lenght = max([len(str(item)) for item in config.values()]) + 2
     total_length = 42 + max_lenght
