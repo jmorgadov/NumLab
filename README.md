@@ -760,6 +760,47 @@ archivo de configuración `.json`. Estos parámetros son:
 - `best_sel_count`: Número de mejores individuos que se seleccionan para el siguiente ciclo.
 - `new_random_count`: Número de nuevos individuos que se generan aleatoriamente para el siguiente ciclo.
 
+### Sistema difuso para la estimación de la calidad de la optimización
+
+Dado que optimizar un código conlleva la evaluación del mismo varias veces, se
+implementó un sistema difuso para estimar que tan buena puede ser la calidad de
+la optimización antes de realizarla. A cada cambio posible se le asigna una
+puntuación de calidad (entre 0 y 1) y finalmente se devuelve la mejor
+puntuación obtenida.
+
+Cada cambio tiene dos valores asociados:
+
+- Valor principal: Puntuación que se asigna al cambio.
+- Profundidad en loops: Número de loops en los que se encuentra el cambio.
+
+El valor principal varía en dependencia del cambio en sí. Por ejemplo, un
+cambio de una multiplicación que puede convertirse en un **shift** no tiene
+un valor tan alto como cambiar el orden de las condiciones en un `if`. Así como
+cambiar el orden de las condiciones en un `while` tiene más valor que cambiarlas
+en un `if`.
+
+La calidad de cada cambio es estimada por el sistema difuso siguiendo 3 reglas
+principales:
+
+- El cambio tiene baja puntuación o bajo nivel de profundidad en ciclos (cambio pobre).
+- El cambio tiene puntuación media o un nivel medio en profundidad en ciclos (cambio aceptable).
+- El cambio tiene alta puntuación o alto nivel de profundidad en ciclos (buen cambio).
+
+Para ello, se implemento una clase `FuzzyRule` que representa una regla del
+sistema difuso. En cada regla se guardan las funciones que se deben comprobar
+para cada valor (en nuestro caso funciones de tipo campanas variando su media y
+variaza), así como la función que se debe aplicar al los valores resultantes
+(en nuestro caso la función `max`, ya que todas las reglas utilizan solo el
+operador `OR`).
+
+Toda la implementación del sistema se realizó en la clase `FuzzyOptClassifier`.
+En la obtención de los consecuentes de las reglas se utiliza el método de
+Mamdani (truncar). En el caso de la desfusificación de los cambios se utiliza
+el método de media de los valores máximos.
+
+En el ejemplo anterior el sitema estimó la calidad de la optimización con un
+valor de 0.6 aproximadamente.
+
 ## Extras
 
 ### Aplicación CLI
