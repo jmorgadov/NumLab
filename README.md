@@ -40,6 +40,18 @@ otras. Esto fomenta en los estudiantes la búsqueda de soluciones más
 eficientes. Además, el lenguaje también constará con la posibilidad, mediante
 un algoritmo genético, de optimizar códigos ya escritos.
 
+## ¿Cómo instalar numlab?
+
+```bash
+pip install numlab
+```
+
+Para más información sobre el uso del programa:
+
+```bash
+numlab --help
+```
+
 ## Lenguaje
 
 **Numlab** es el lenguaje que se ha implementado para dar solución a los
@@ -729,3 +741,30 @@ algoritmo genético obtuvo como mejor resultado realizar el primer cambio y no
 el segundo. Finalmente, el código optimizado tuvo un tiempo de ejecución de
 aproximadamente 0.6 segundos.
 
+## Extras
+
+### Aplicación CLI
+
+Al instalar **Numlab** es posible usar una interfaz de comando mediente la
+terminal. La misma cuenta con dos opciones principales: `run` y `optimize`, 
+las cuales ejecutan u optimizan un script respectivamente.
+
+```text
+$ numlab --help
+Usage: numlab [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  optimize  Optimize a program given in the input file
+  run       Run the program given in the input file
+  version   Print the version number
+```
+
+### Extensión de VSCode
+
+Una [extensión](https://marketplace.visualstudio.com/items?itemName=JessicaNunez.numlab)
+de VSCode fue desarrollada también para el uso del lenguaje.
+La misma aporta ***highlighting*** de las palabras claves del lenguaje
+para los archivos `.nl`.
