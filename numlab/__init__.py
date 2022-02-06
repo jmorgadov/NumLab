@@ -10,4 +10,4 @@ logging.basicConfig(
 
 __all__ = ["nlre"]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
