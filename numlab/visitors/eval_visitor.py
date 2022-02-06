@@ -4,7 +4,7 @@ from time import sleep, time
 from typing import Any, List, Tuple
 
 import numlab.nl_ast as ast
-import numlab.nl_builtins as builtins
+from numlab import builtin
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
@@ -64,51 +64,51 @@ OPER_STAT_NAME = {
 
 
 CONFIG_OPTS_VALIDATOR = {
-    "max_time": (builtins.nl_float,),
-    "max_var_count": (builtins.nl_int,),
-    "max_call_count": (builtins.nl_int,),
-    "max_add_count": (builtins.nl_int,),
-    "max_sub_count": (builtins.nl_int,),
-    "max_mul_count": (builtins.nl_int,),
-    "max_truediv_count": (builtins.nl_int,),
-    "max_pow_count": (builtins.nl_int,),
-    "max_mod_count": (builtins.nl_int,),
-    "max_lshift_count": (builtins.nl_int,),
-    "max_rshift_count": (builtins.nl_int,),
-    "max_bit_xor_count": (builtins.nl_int,),
-    "max_bit_and_count": (builtins.nl_int,),
-    "max_bit_or_count": (builtins.nl_int,),
-    "max_floordiv_count": (builtins.nl_int,),
-    "max_matmul_count": (builtins.nl_int,),
-    "max_contains_count": (builtins.nl_int,),
-    "max_eq_count": (builtins.nl_int,),
-    "max_ne_count": (builtins.nl_int,),
-    "max_lt_count": (builtins.nl_int,),
-    "max_gt_count": (builtins.nl_int,),
-    "max_le_count": (builtins.nl_int,),
-    "max_ge_count": (builtins.nl_int,),
-    "call_time": (builtins.nl_float, builtins.nl_function),
-    "assign_time": (builtins.nl_float, builtins.nl_function),
-    "add_time": (builtins.nl_float, builtins.nl_function),
-    "sub_time": (builtins.nl_float, builtins.nl_function),
-    "mul_time": (builtins.nl_float, builtins.nl_function),
-    "truediv_time": (builtins.nl_float, builtins.nl_function),
-    "pow_time": (builtins.nl_float, builtins.nl_function),
-    "mod_time": (builtins.nl_float, builtins.nl_function),
-    "lshift_time": (builtins.nl_float, builtins.nl_function),
-    "rshift_time": (builtins.nl_float, builtins.nl_function),
-    "bit_xor_time": (builtins.nl_float, builtins.nl_function),
-    "bit_and_time": (builtins.nl_float, builtins.nl_function),
-    "bit_or_time": (builtins.nl_float, builtins.nl_function),
-    "floordiv_time": (builtins.nl_float, builtins.nl_function),
-    "matmul_time": (builtins.nl_float, builtins.nl_function),
-    "contains_time": (builtins.nl_float, builtins.nl_function),
-    "eq_time": (builtins.nl_float, builtins.nl_function),
-    "ne_time": (builtins.nl_float, builtins.nl_function),
-    "lt_time": (builtins.nl_float, builtins.nl_function),
-    "gt_time": (builtins.nl_float, builtins.nl_function),
-    "le_time": (builtins.nl_float, builtins.nl_function),
-    "ge_time": (builtins.nl_float, builtins.nl_function),
+    "max_time": (builtin.nl_float,),
+    "max_var_count": (builtin.nl_int,),
+    "max_call_count": (builtin.nl_int,),
+    "max_add_count": (builtin.nl_int,),
+    "max_sub_count": (builtin.nl_int,),
+    "max_mul_count": (builtin.nl_int,),
+    "max_truediv_count": (builtin.nl_int,),
+    "max_pow_count": (builtin.nl_int,),
+    "max_mod_count": (builtin.nl_int,),
+    "max_lshift_count": (builtin.nl_int,),
+    "max_rshift_count": (builtin.nl_int,),
+    "max_bit_xor_count": (builtin.nl_int,),
+    "max_bit_and_count": (builtin.nl_int,),
+    "max_bit_or_count": (builtin.nl_int,),
+    "max_floordiv_count": (builtin.nl_int,),
+    "max_matmul_count": (builtin.nl_int,),
+    "max_contains_count": (builtin.nl_int,),
+    "max_eq_count": (builtin.nl_int,),
+    "max_ne_count": (builtin.nl_int,),
+    "max_lt_count": (builtin.nl_int,),
+    "max_gt_count": (builtin.nl_int,),
+    "max_le_count": (builtin.nl_int,),
+    "max_ge_count": (builtin.nl_int,),
+    "call_time": (builtin.nl_float, builtin.nl_function),
+    "assign_time": (builtin.nl_float, builtin.nl_function),
+    "add_time": (builtin.nl_float, builtin.nl_function),
+    "sub_time": (builtin.nl_float, builtin.nl_function),
+    "mul_time": (builtin.nl_float, builtin.nl_function),
+    "truediv_time": (builtin.nl_float, builtin.nl_function),
+    "pow_time": (builtin.nl_float, builtin.nl_function),
+    "mod_time": (builtin.nl_float, builtin.nl_function),
+    "lshift_time": (builtin.nl_float, builtin.nl_function),
+    "rshift_time": (builtin.nl_float, builtin.nl_function),
+    "bit_xor_time": (builtin.nl_float, builtin.nl_function),
+    "bit_and_time": (builtin.nl_float, builtin.nl_function),
+    "bit_or_time": (builtin.nl_float, builtin.nl_function),
+    "floordiv_time": (builtin.nl_float, builtin.nl_function),
+    "matmul_time": (builtin.nl_float, builtin.nl_function),
+    "contains_time": (builtin.nl_float, builtin.nl_function),
+    "eq_time": (builtin.nl_float, builtin.nl_function),
+    "ne_time": (builtin.nl_float, builtin.nl_function),
+    "lt_time": (builtin.nl_float, builtin.nl_function),
+    "gt_time": (builtin.nl_float, builtin.nl_function),
+    "le_time": (builtin.nl_float, builtin.nl_function),
+    "ge_time": (builtin.nl_float, builtin.nl_function),
 }
 
 
@@ -117,7 +117,7 @@ def _truth(inst: Instance) -> bool:
         return inst.get("__bool__")(inst).get("value")
     if "__len__" in inst._dict:
         return inst.get("__len__")(inst).get("value") > 0
-    return builtins.nl_bool(True).get("value")
+    return builtin.nl_bool(True).get("value")
 
 
 def ioper(oper: str) -> str:
@@ -132,19 +132,19 @@ def convert_to_nl_obj(obj: Any):
     if isinstance(obj, Instance):
         return obj
     if isinstance(obj, bool):
-        return builtins.nl_bool(obj)
+        return builtin.nl_bool(obj)
     if isinstance(obj, int):
-        return builtins.nl_int(obj)
+        return builtin.nl_int(obj)
     if isinstance(obj, float):
-        return builtins.nl_float(obj)
+        return builtin.nl_float(obj)
     if isinstance(obj, str):
-        return builtins.nl_str(obj)
+        return builtin.nl_str(obj)
     if isinstance(obj, list):
         items = [convert_to_nl_obj(item) for item in obj]
-        return builtins.nl_list(items)
+        return builtin.nl_list(items)
     if isinstance(obj, tuple):
         items = [convert_to_nl_obj(item) for item in obj]
-        return builtins.nl_tuple(items)
+        return builtin.nl_tuple(items)
     raise TypeError(f"Unsupported type: {type(obj)}")
 
 
@@ -236,7 +236,7 @@ class EvalVisitor:
             return None
         obj = config[name]
         base_type = CONFIG_OPTS_VALIDATOR[name][0]
-        if obj.type.subtype(builtins.nl_function):
+        if obj.type.subtype(builtin.nl_function):
             val = obj.get("__call__")(obj)
             if not val.type.subtype(base_type):
                 raise TypeError(
@@ -247,7 +247,7 @@ class EvalVisitor:
         return obj
 
     def reset_stats(self):
-        self.define("stats", builtins.nl_dict({}))
+        self.define("stats", builtin.nl_dict({}))
         self.set_stats(
             [
                 ("time", 0),
@@ -297,7 +297,7 @@ class EvalVisitor:
     def resolve(self, obj_name):
         val = self.context.resolve(obj_name)
         if val is None:
-            val = builtins.resolve(obj_name)
+            val = builtin.resolve(obj_name)
         if val is None:
             raise ValueError(f"{obj_name} is not defined")
         return val
@@ -344,7 +344,7 @@ class EvalVisitor:
             )
             return last_stmt if node.name is None else val
 
-        func_obj = builtins.nl_function(func)
+        func_obj = builtin.nl_function(func)
         func_obj.set("args", node.args)
         if node.name is not None:
             self.define(node.name.name_id, func_obj)
@@ -356,7 +356,7 @@ class EvalVisitor:
         if len(bases) > 1:
             raise NotImplementedError("Multiple inheritance not supported")
         if not bases:
-            bases = [builtins.nl_object]
+            bases = [builtin.nl_object]
         new_type = Type(node.name, bases[0])
         self.define(node.name.name_id, new_type)
         self.flags["class"].append(new_type)
@@ -616,9 +616,9 @@ class EvalVisitor:
         self.set_stat(OPER_STAT_NAME[op], self.stats[OPER_STAT_NAME[op]] + 1)
         neg = False
         if op == ast.CmpOp.IS:
-            return builtins.nl_bool(left.type.subtype(right.type))
+            return builtin.nl_bool(left.type.subtype(right.type))
         if op == ast.CmpOp.IS_NOT:
-            return builtins.nl_bool(not left.type.subtype(right.type))
+            return builtin.nl_bool(not left.type.subtype(right.type))
 
         if op == ast.CmpOp.NOT_IN:
             neg = True
@@ -627,13 +627,13 @@ class EvalVisitor:
         if op == ast.CmpOp.IN:
             val = right.get("__contains__")(right, left)
             if neg:
-                return builtins.nl_bool(not val.get("value"))
+                return builtin.nl_bool(not val.get("value"))
             return val
 
         oper = OPERATOR_FUNC[op]
         val = left.get(oper)(left, right)
         if neg:
-            val = builtins.nl_bool(not _truth(val))
+            val = builtin.nl_bool(not _truth(val))
         return val
 
     @visitor
@@ -641,13 +641,13 @@ class EvalVisitor:
         op = node.op
         val: Instance = self.eval(node.operand)
         if op == ast.UnaryOp.NOT:
-            return builtins.nl_bool(not _truth(val))
+            return builtin.nl_bool(not _truth(val))
         if op == ast.UnaryOp.INVERT:
             return val.get("__invert__")(val)
         if op == ast.UnaryOp.UADD:
             return val
         if op == ast.UnaryOp.USUB:
-            return val.get("__sub__")(builtins.nl_int(0), val)
+            return val.get("__sub__")(builtin.nl_int(0), val)
         raise ValueError("Unsupported unary operator")
 
     @visitor
@@ -665,12 +665,12 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.DictExpr):
         dic = {self.eval(k): self.eval(v) for k, v in zip(node.keys, node.values)}
-        return builtins.nl_dict(dic)
+        return builtin.nl_dict(dic)
 
     @visitor
     def eval(self, node: ast.SetExpr):
         values = {self.eval(v) for v in node.values}
-        return builtins.nl_set(values)
+        return builtin.nl_set(values)
 
     def _generate(self, compr: List[ast.Comprehension]):
         current = compr[0]
@@ -709,7 +709,7 @@ class EvalVisitor:
             item = self.resolve(node.elt.name_id)
             items.append(item)
         self.context = self.context.parent
-        return builtins.nl_list(items)
+        return builtin.nl_list(items)
 
     @visitor
     def eval(self, node: ast.SetCompExpr):
@@ -719,7 +719,7 @@ class EvalVisitor:
         for _ in self._generate(node.generators):
             item = self.resolve(node.target.name_id)
             items.add(item)
-        return builtins.nl_list(items)
+        return builtin.nl_list(items)
 
     @visitor
     def eval(self, node: ast.DictCompExpr):
@@ -826,7 +826,7 @@ class EvalVisitor:
         if isinstance(node.func, ast.NameExpr):
             func = self.context.resolve(node.func.name_id)
             if func is None:
-                bi_func = builtins.resolve(node.func.name_id)
+                bi_func = builtin.resolve(node.func.name_id)
                 if bi_func is None:
                     raise ValueError("Unknown function")
                 return bi_func(*args, **kwargs)
@@ -857,15 +857,15 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ConstantExpr):
         if isinstance(node.value, str):
-            return builtins.nl_str(node.value)
+            return builtin.nl_str(node.value)
         if isinstance(node.value, bool):
-            return builtins.nl_bool(node.value)
+            return builtin.nl_bool(node.value)
         if isinstance(node.value, int):
-            return builtins.nl_int(node.value)
+            return builtin.nl_int(node.value)
         if isinstance(node.value, float):
-            return builtins.nl_float(node.value)
+            return builtin.nl_float(node.value)
         if node.value is None:
-            return builtins.nl_none()
+            return builtin.nl_none()
         raise ValueError(f"Unsupported constant type {type(node.value)}")
 
     @visitor
@@ -903,19 +903,19 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ListExpr):
         items = [self.eval(i) for i in node.elts]
-        return builtins.nl_list(items)
+        return builtin.nl_list(items)
 
     @visitor
     def eval(self, node: ast.TupleExpr):
         items = tuple(self.eval(i) for i in node.elts)
-        return builtins.nl_tuple(items)
+        return builtin.nl_tuple(items)
 
     @visitor
     def eval(self, node: ast.SliceExpr):
         low = self.eval(node.lower) if node.lower is not None else None
         upper = self.eval(node.upper) if node.upper is not None else None
         step = self.eval(node.step) if node.step is not None else None
-        return builtins.nl_slice(low, upper, step)
+        return builtin.nl_slice(low, upper, step)
 
     @visitor
     def eval(self, node: ast.Args):

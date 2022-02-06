@@ -1,13 +1,16 @@
 from math import log2
 
 import numlab.nl_ast as ast
-import numlab.nl_builtins as builtins
 from numlab.lang.visitor import Visitor
-import itertools
+from numlab.optimization.fuzzy_opt_classifier import FuzzyOptClassifier
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
 
+
+SHIFT_CAT = 0.2
+IF_COND_CAT = 0.6
+WHILE_COND_CAT = 0.9
 
 class OptVisitor:
 
@@ -16,6 +19,8 @@ class OptVisitor:
     def __init__(self):
         self.changes = []
         self.values = {}
+        self.classifier = FuzzyOptClassifier()
+        self.loop_depth = 0
 
     @visitor
     def check(self, node: ast.Program):
@@ -72,8 +77,10 @@ class OptVisitor:
     @visitor
     def check(self, node: ast.ForStmt):
         self.check(node.iter_expr.elts[0])
+        self.loop_depth += 1
         for stmt in node.body:
             self.check(stmt)
+        self.loop_depth -= 1
         for stmt in node.orelse:
             self.check(stmt)
 
@@ -100,17 +107,21 @@ class OptVisitor:
             self.unflat_test(and_items[1:]),
         )
 
-    def testcheck(self, test):
+    def testcheck(self, test, from_while=False):
         if isinstance(test, ast.BinOpExpr):
             op = test.op
             if op == ast.Operator.AND or op == ast.Operator.OR:
+
                 def change_logical_ops(node: ast.BinOpExpr):
                     node.right, node.left = node.left, node.right
+
                 self.changes.append((test, change_logical_ops, change_logical_ops))
+                cat = WHILE_COND_CAT if from_while else IF_COND_CAT
+                self.classifier.add_change(cat, self.loop_depth)
 
     @visitor
     def check(self, node: ast.WhileStmt):
-        self.testcheck(node.test)
+        self.testcheck(node.test, True)
         self.check(node.test)
         for stmt in node.body:
             self.check(stmt)
@@ -187,9 +198,7 @@ class OptVisitor:
         self.check(node.expr)
 
     def can_shift(self, node):
-        if isinstance(node, ast.ConstantExpr) and isinstance(
-            node.value, int
-        ):
+        if isinstance(node, ast.ConstantExpr) and isinstance(node.value, int):
             orig = node.value
             fac = log2(orig)
             if int(fac) == fac:
@@ -202,6 +211,7 @@ class OptVisitor:
         if op == ast.Operator.MUL:
             ret, orig1, fac1 = self.can_shift(node.right)
             if ret:
+
                 def change_mult_by_lshift(node: ast.BinOpExpr):
                     node.op = ast.Operator.LSHIFT
                     node.right.value = fac1
@@ -211,8 +221,10 @@ class OptVisitor:
                     node.right.value = orig1
 
                 self.changes.append((node, change_mult_by_lshift, reverse_lshift))
+                self.classifier.add_change(SHIFT_CAT, self.loop_depth)
             ret, orig2, fac2 = self.can_shift(node.left)
             if ret:
+
                 def change_mult_by_lshift(node: ast.BinOpExpr):
                     node.op = ast.Operator.LSHIFT
                     node.left.value = fac2
@@ -224,9 +236,11 @@ class OptVisitor:
                     node.left.value = orig2
 
                 self.changes.append((node, change_mult_by_lshift, reverse_lshift))
+                self.classifier.add_change(SHIFT_CAT, self.loop_depth)
         if op == ast.Operator.DIV:
             ret, orig3, fac3 = self.can_shift(node.right)
             if ret:
+
                 def change_div_by_rshift(node: ast.BinOpExpr):
                     node.op = ast.Operator.RSHIFT
                     node.right.value = fac3
@@ -236,8 +250,10 @@ class OptVisitor:
                     node.right.value = orig3
 
                 self.changes.append((node, change_div_by_rshift, reverse_rshift))
+                self.classifier.add_change(SHIFT_CAT, self.loop_depth)
             ret, orig4, fac4 = self.can_shift(node.left)
             if ret:
+
                 def change_div_by_rshift(node: ast.BinOpExpr):
                     node.op = ast.Operator.RSHIFT
                     node.left.value = fac4
@@ -249,6 +265,7 @@ class OptVisitor:
                     node.left.value = orig4
 
                 self.changes.append((node, change_div_by_rshift, reverse_rshift))
+                self.classifier.add_change(SHIFT_CAT, self.loop_depth)
         self.check(node.left)
         self.check(node.right)
 

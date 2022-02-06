@@ -7,8 +7,8 @@ import numlab
 from numlab.compiler import Grammar, LR1Parser, ParserManager
 from numlab.lang.context import Context
 from numlab.nl_builders import builders
-from numlab.nl_optimizer import CodeOptimizer
 from numlab.nl_tokenizer import tknz
+from numlab.optimization.optimizer import CodeOptimizer
 from numlab.visitors.eval_visitor import EvalVisitor
 from numlab.visitors.opt_visitor import OptVisitor
 
@@ -143,15 +143,19 @@ def optimize(
     typer.echo("\n")
 
     program = get_ast(input_file)
-    typer.echo("Output (before optimizing):")
-    evaluator = EvalVisitor(Context())
-    evaluator.eval(program)
     opt = OptVisitor()
     opt.check(program)
     changes = opt.changes
-    if dump:
-        program.dump()
     if changes:
+        opt_quality = opt.classifier.classify_optimization_quality()
+        typer.echo(f"Estimated optimization quality: {opt_quality}")
+        if not typer.confirm("\nDo you want to proceed with the optimization?"):
+            raise typer.Exit("Optimization aborted")
+        if dump:
+            program.dump()
+        typer.echo("Output (before optimizing):")
+        evaluator = EvalVisitor(Context())
+        evaluator.eval(program)
         typer.echo("\nOptimizing program")
         optimizer = CodeOptimizer(
             program,
