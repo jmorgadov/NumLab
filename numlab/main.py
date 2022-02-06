@@ -1,5 +1,6 @@
 import logging
 import sys
+import typer
 
 from numlab.compiler import Grammar, LR1Parser, ParserManager
 from numlab.lang.context import Context
@@ -12,36 +13,40 @@ from numlab.nl_optimizer import CodeOptimizer
 # Set logging level to DEBUG
 # logging.basicConfig(level=logging.DEBUG)
 
-def main():
-    if len(sys.argv) < 2:
-        raise Exception("Missing script file")
-    file_path = sys.argv[1]
+app = typer.Typer(add_completion=False)
 
-    run_logger = logging.getLogger('run')
-    run_logger.setLevel(logging.INFO)
+@app.command()
+def main(file_path: str,
+         optmize: bool = typer.Options(
+             False, "--optimize", "-o"
+         ),
+         dump: bool = typer.Options(
+             False, "--dump", "-d"
+         )):
 
     # Load grammar
-    run_logger.info('Loading grammar')
+    typer.echo('Loading grammar')
     gm = Grammar.open("numlab/nl_grammar.gm")
-    run_logger.info('Assigning builders')
+    typer.echo('Assigning builders')
     gm.assign_builders(builders)
 
     # Create LR1Parser
-    run_logger.info('Loading parser table')
+    typer.echo('Loading parser table')
     parser = LR1Parser(gm, "numlab/nl_lr1_table")
 
     # Create parser
     parser_man = ParserManager(gm, tknz, parser)
 
     # Parse file
-    run_logger.info("Parsing script")
+    typer.echo("Parsing script")
     program = parser_man.parse_file(file_path)
-    if "-d" in sys.argv:
+    
+    if dump:
         program.dump()
 
 
-    if "-o" in sys.argv:
-        run_logger.info("Output (with out optimizing):")
+    if optmize:
+        typer.echo("Output (with out optimizing):")
         evaluator = EvalVisitor(Context())
         evaluator.eval(program)
         opt = OptVisitor()
@@ -49,21 +54,21 @@ def main():
         changes = opt.changes
         program.dump()
         if changes:
-            run_logger.info("Optimizing program")
+            typer.echo("Optimizing program")
             optimizer = CodeOptimizer(program, changes)
             optimizer.run()
             program.dump()
-            run_logger.info("Output (with optimizing):")
+            typer.echo("Output (with optimizing):")
             evaluator = EvalVisitor(Context())
             evaluator.eval(program)
         return
 
 
     # Evaluate
-    run_logger.info("Executing. Output:")
+    typer.echo("Executing. Output:")
     evaluator = EvalVisitor(Context())
     evaluator.eval(program)
 
 
 if __name__ == "__main__":
-    main()
+    app()
