@@ -749,6 +749,17 @@ algoritmo genético obtuvo como mejor resultado realizar el primer cambio y no
 el segundo. Finalmente, el código optimizado tuvo un tiempo de ejecución de
 aproximadamente 0.6 segundos.
 
+Los parámetros usados en el algoritmo genético pueden ser modificados
+directamente desde el commando `optimize` del
+[CLI](https://github.com/jmorgadov/NumLab#aplicaci%C3%B3n-cli) o mediante un
+archivo de configuración `.json`. Estos parámetros son:
+
+- `pop_size`: Tamaño de la polbación.
+- `max_iter`: Número máximo de generaciones.
+- `mutation_prob`: Probabilidad de mutación.
+- `best_sel_count`: Número de mejores individuos que se seleccionan para el siguiente ciclo.
+- `new_random_count`: Número de nuevos individuos que se generan aleatoriamente para el siguiente ciclo.
+
 ## Extras
 
 ### Aplicación CLI
