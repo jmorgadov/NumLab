@@ -60,7 +60,9 @@ def optimize(
     new_random_count: int = typer.Option(
         2, "--new-random-count", "-r", help="Number of new random individuals"
     ),
-    config_file: str = typer.Option(None, "--config", "-c", help="Configuration file"),
+    config_file: str = typer.Option(
+        None, "--config", "-c", help="Configuration file (JSON)"
+    ),
 ):
     """
     Optimize a program given in the input file
@@ -100,6 +102,10 @@ def optimize(
         )
 
     if config_file is not None:
+        if not config_file.endswith(".json"):
+            raise typer.Exit(
+                "Configuration file must be a JSON file. Got " + config_file
+            )
         with open(config_file, "r") as conf_fd:
             config = json.load(conf_fd)
     else:
@@ -157,7 +163,8 @@ def optimize(
             generate_new_randoms=new_random_count,
         )
         optimizer.run()
-        program.dump()
+        if dump:
+            program.dump()
         typer.echo("\nOutput (after optimizing):")
         evaluator = EvalVisitor(Context())
         evaluator.eval(program)
