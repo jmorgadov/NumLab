@@ -3,6 +3,7 @@
 ## Contenidos
 
 - [Objetivos](https://github.com/jmorgadov/NumLab#objetivos)
+- [¿Cómo instalar numlab?](https://github.com/jmorgadov/NumLab#c%C3%B3mo-instalar-numlab)
 - [Lenguaje](https://github.com/jmorgadov/NumLab#lenguaje)
   - [Características básicas](https://github.com/jmorgadov/NumLab#caracter%C3%ADsticas-b%C3%A1sicas)
   - [Estadísticas en tiempo de ejecución](https://github.com/jmorgadov/NumLab#estad%C3%ADsticas-en-tiempo-de-ejecuci%C3%B3n)
@@ -20,7 +21,10 @@
     - [Tipos y funciones predefinidas](https://github.com/jmorgadov/NumLab#tipos-y-funciones-predefinidas)
     - [Contextos](https://github.com/jmorgadov/NumLab#contextos)
     - [Evaluación](https://github.com/jmorgadov/NumLab#evaluaci%C3%B3n)
-- [Optimización de código](https://github.com/jmorgadov/NumLab#optimizaci%C3%B3n-de-c%C3%B3digo) 
+- [Optimización de código](https://github.com/jmorgadov/NumLab#optimizaci%C3%B3n-de-c%C3%B3digo)
+- [Extras](https://github.com/jmorgadov/NumLab#extras)
+  - [Aplicación CLI](https://github.com/jmorgadov/NumLab#aplicaci%C3%B3n-cli)
+  - [Extensión de VSCode](https://github.com/jmorgadov/NumLab#extensi%C3%B3n-de-vscode)
 
 ## Objetivos
 
@@ -51,6 +55,10 @@ Para más información sobre el uso del programa:
 ```bash
 numlab --help
 ```
+
+> También se encuentra una breve descripción en la sección
+> [Aplicación CLI](https://github.com/jmorgadov/NumLab#aplicaci%C3%B3n-cli)
+
 
 ## Lenguaje
 
@@ -746,8 +754,8 @@ aproximadamente 0.6 segundos.
 ### Aplicación CLI
 
 Al instalar **Numlab** es posible usar una interfaz de comando mediente la
-terminal. La misma cuenta con dos opciones principales: `run` y `optimize`, 
-las cuales ejecutan u optimizan un script respectivamente.
+terminal. La misma cuenta con dos comandos principales: `run` y `optimize`, 
+las cuales ejecutan u optimizan un programa respectivamente.
 
 ```text
 $ numlab --help
@@ -760,6 +768,19 @@ Commands:
   optimize  Optimize a program given in the input file
   run       Run the program given in the input file
   version   Print the version number
+```
+
+Ejemplo:
+
+```bash
+numlab "my_script.nl" --verbose
+```
+
+Para más información sobre los comandos:
+
+```bash
+numlab run --help
+numlab optimize --help
 ```
 
 ### Extensión de VSCode
