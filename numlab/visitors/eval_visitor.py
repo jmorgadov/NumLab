@@ -8,6 +8,7 @@ from numlab import builtin
 from numlab.lang.context import Context
 from numlab.lang.type import Instance, Type
 from numlab.lang.visitor import Visitor
+import numlab.exceptions as excpt
 
 # pylint: disable=function-redefined
 # pylint: disable=missing-function-docstring
@@ -299,7 +300,7 @@ class EvalVisitor:
         if val is None:
             val = builtin.resolve(obj_name)
         if val is None:
-            raise ValueError(f"{obj_name} is not defined")
+            raise excpt.RuntimeError(f"{obj_name} is not defined")
         return val
 
     def define(self, name, value):
@@ -385,7 +386,7 @@ class EvalVisitor:
         if node.base is not None:
             base_config = self.configs.get(node.base, None)
             if base_config is None:
-                raise ValueError(f"Config {node.base} is not defined")
+                raise excpt.RuntimeError(f"Config {node.base} is not defined")
         self.flags["current_config"] = node.name
         self.configs[node.name] = base_config.copy()
         for conf_opt in node.configs:
@@ -394,10 +395,10 @@ class EvalVisitor:
     @visitor
     def eval(self, node: ast.ConfOption):
         if node.name not in CONFIG_OPTS_VALIDATOR:
-            raise ValueError(f"Unknown config option: {node.name}")
+            raise excpt.InvalidConfigError(f"Unknown config option: {node.name}")
         val = self.eval(node.value)
         if not val.type.subtype(CONFIG_OPTS_VALIDATOR[node.name]):
-            raise ValueError(
+            raise excpt.InvalidTypeError(
                 f"Invalid value for config option: {node.name}. "
                 "Expected: "
                 + repr([ct.type_name for ct in CONFIG_OPTS_VALIDATOR[node.name]])
@@ -443,7 +444,7 @@ class EvalVisitor:
             values[i] = values[i].get_value()
         for target_tuple in targets:
             if len(target_tuple.elts) != len(values):
-                raise ValueError("Too many values to unpack")
+                raise excpt.RuntimeError("Too many values to unpack")
             for target, value in zip(target_tuple.elts, values):
                 self._assign(target, value)
 
@@ -467,7 +468,7 @@ class EvalVisitor:
         self.flags["inside_loop"] += 1
         obj = self.eval(node.iter_expr.elts[0])
         if not isinstance(node.target, ast.NameExpr):
-            raise ValueError("For loop target must be a NameExpr")
+            raise excpt.RuntimeError("For loop target must be a NameExpr")
         for item in obj:  # pylint: disable=not-an-iterable
             target_name = node.target.name_id
             self.define(target_name, item)
@@ -532,16 +533,16 @@ class EvalVisitor:
     def eval(self, node: ast.Begsim):
         val = node.config
         if not isinstance(val, ast.NameExpr):
-            raise ValueError("Invalid value for begsim config option")
+            raise excpt.InvalidTypeError("Invalid value for begsim config option")
         conf_name = val.name_id
         if not conf_name in self.configs:
-            raise ValueError(f"Unknown config: {conf_name}")
+            raise excpt.RuntimeError(f"Unknown config: {conf_name}")
         self.in_sim.append(self.configs[val.name_id])
 
     @visitor
     def eval(self, node: ast.Endsim):
         if not self.in_sim:
-            raise ValueError("Endsim without begsim")
+            raise excpt.RuntimeError("Endsim without begsim")
         self.in_sim.pop()
 
     @visitor
@@ -648,7 +649,7 @@ class EvalVisitor:
             return val
         if op == ast.UnaryOp.USUB:
             return val.get("__sub__")(builtin.nl_int(0), val)
-        raise ValueError("Unsupported unary operator")
+        raise excpt.RuntimeError("Unsupported unary operator")
 
     @visitor
     def eval(self, node: ast.LambdaExpr):
@@ -694,7 +695,7 @@ class EvalVisitor:
                 break
             if len(compr) == 1:
                 if not isinstance(current.target, ast.NameExpr):
-                    raise ValueError("Invalid target")
+                    raise excpt.RuntimeError("Invalid target")
                 yield self.resolve(current.target.name_id)
             else:
                 yield from self._generate(compr[1:])
@@ -703,7 +704,7 @@ class EvalVisitor:
     def eval(self, node: ast.ListCompExpr):
         items = []
         if not isinstance(node.elt, ast.NameExpr):
-            raise ValueError("Invalid target")
+            raise excpt.RuntimeError("Invalid target")
         self.context = self.context.make_child()
         for _ in self._generate(node.generators):
             item = self.resolve(node.elt.name_id)
@@ -715,7 +716,7 @@ class EvalVisitor:
     def eval(self, node: ast.SetCompExpr):
         items = set()
         if not isinstance(node.target, ast.NameExpr):
-            raise ValueError("Invalid target")
+            raise excpt.RuntimeError("Invalid target")
         for _ in self._generate(node.generators):
             item = self.resolve(node.target.name_id)
             items.add(item)
@@ -763,7 +764,7 @@ class EvalVisitor:
         i = 0
         for arg in args:
             if i >= count:
-                raise ValueError("Too many positional arguments")
+                raise excpt.RuntimeError("Too many positional arguments")
             if func_args[i].is_arg:
                 call_args[names[i]].append(arg)
                 continue
@@ -794,20 +795,20 @@ class EvalVisitor:
                 if call_args[kwarg] is None:
                     call_args[kwarg] = kwargs[kwarg]
                 else:
-                    raise ValueError("Duplicate argument")
+                    raise excpt.RuntimeError("Duplicate argument")
                 continue
             if kwarg in call_kwargs:
                 call_kwargs[kwarg] = kwargs[kwarg]
             elif kwarguments is not None:
                 call_kwargs[kwarguments][kwarg] = kwargs[kwarg]
             else:
-                raise ValueError("Unknown argument")
+                raise excpt.RuntimeError("Unknown argument")
 
         if kwarguments is not None:
             call_kwargs[kwarguments] = Type.get("dict")(call_kwargs[kwarguments])
 
         if None in call_args.values():
-            raise ValueError("Missing argument")
+            raise excpt.RuntimeError("Missing argument")
 
         return func.get("__call__")(func, *call_args.values(), **call_kwargs)
 
@@ -828,7 +829,7 @@ class EvalVisitor:
             if func is None:
                 bi_func = builtin.resolve(node.func.name_id)
                 if bi_func is None:
-                    raise ValueError("Unknown function")
+                    raise excpt.RuntimeError("Unknown function")
                 return bi_func(*args, **kwargs)
         elif isinstance(node.func, ast.AttributeExpr):
             obj = self.eval(node.func.value)
@@ -844,12 +845,12 @@ class EvalVisitor:
         elif callable(func):
             return func(*args, *kwargs)
         else:
-            raise ValueError("Unknown function")
+            raise excpt.RuntimeError("Unknown function")
 
     @visitor
     def eval(self, node: ast.Keyword):
         if not isinstance(node.arg, ast.NameExpr):
-            raise ValueError("Keyword value must be a name")
+            raise excpt.RuntimeError("Keyword value must be a name")
         arg = node.arg.name_id
         val = self.eval(node.value)
         return arg, val
@@ -866,7 +867,7 @@ class EvalVisitor:
             return builtin.nl_float(node.value)
         if node.value is None:
             return builtin.nl_none()
-        raise ValueError(f"Unsupported constant type {type(node.value)}")
+        raise excpt.RuntimeError(f"Unsupported constant type {type(node.value)}")
 
     @visitor
     def eval(self, node: ast.AttributeExpr):

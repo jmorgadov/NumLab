@@ -3,6 +3,7 @@ import math
 import random
 from time import sleep
 
+import numlab.exceptions as excpt
 from numlab.lang.type import Type
 
 __BUILTINS = {}
@@ -72,7 +73,7 @@ def nl_sum(iterable, start=nl_int(0)):
             else:
                 answ = answ.get("__add__")(answ, item)
         return answ
-    raise TypeError("sum() can't sum non-iterable")
+    raise excpt.InvalidTypeError("sum() can't sum non-iterable")
 
 
 @builtin_func("sorted")
@@ -228,11 +229,13 @@ def tan(x):
 @builtin_func("montcar")
 def nl_montcar(n, func):
     if not n.type.subtype(nl_int):
-        raise TypeError("montcar() argument 1 must be an integer")
+        raise excpt.InvalidTypeError("montcar() argument 1 must be an integer")
     if n.get("value") <= 0:
-        raise ValueError("montcar() argument 1 must be > 0")
+        raise excpt.ValueError("montcar() argument 1 must be > 0")
     if not func.type.subtype(nl_function):
-        raise TypeError("montcar() argument 2 must be a function (predicate)")
+        raise excpt.InvalidTypeError(
+            "montcar() argument 2 must be a function (predicate)"
+        )
     true_count, total_count = 0, 0
     for _ in range(n.get("value")):
         total_count += 1

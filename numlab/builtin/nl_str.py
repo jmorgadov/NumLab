@@ -1,5 +1,6 @@
 from ctypes import sizeof
 
+import numlab.exceptions as excpt
 from numlab.lang.type import Instance, Type
 
 nl_bool = Type.get("bool")
@@ -19,7 +20,7 @@ def nl__new__(value: str):
 def nl__add__(self, other: Instance):
     if other.type.subtype(nl_string):
         return nl__new__(self.get("value") + other.get("value"))
-    raise TypeError("Cant concat string to non-string")
+    raise excpt.InvalidTypeError("Cant concat string to non-string")
 
 
 @nl_string.method("__iadd__")
@@ -27,21 +28,21 @@ def nl__iadd__(self, other: Instance):
     if other.type.subtype(nl_string):
         self.set("value", self.get("value") + other.get("value"))
         return self
-    raise TypeError("Cant concat string to non-string")
+    raise excpt.InvalidTypeError("Cant concat string to non-string")
 
 
 @nl_string.method("__contains__")
 def nl__contains__(self, other: Instance):
     if other.type.subtype(nl_string):
         return nl_bool(self.get("value") in other.get("value"))
-    raise TypeError("Can't match string to non-string")
+    raise excpt.InvalidTypeError("Can't match string to non-string")
 
 
 @nl_string.method("__eq__")
 def nl__eq__(self, other: Instance):
     if other.type.subtype(nl_string):
         return nl_bool(self.get("value") == other.get("value"))
-    raise TypeError("Cant compare string to non-string")
+    raise excpt.InvalidTypeError("Cant compare string to non-string")
 
 
 @nl_string.method("__sizeof__")
@@ -53,14 +54,14 @@ def nl__sizeof__(self):
 def nl__mul__(self, other):
     if other.type.subtype(Type.get("int")):
         return nl__new__(self.get("value") * other.get("value"))
-    raise TypeError("Can't multiply sequence by non-int")
+    raise excpt.InvalidTypeError("Can't multiply sequence by non-int")
 
 
 @nl_string.method("__getitem__")
 def nl__getitem__(self, other: Instance):
     if other.type.subtype(Type.get("int")):
         return self.get("value")[other.get("value")]
-    raise TypeError("String indices must be integers")
+    raise excpt.InvalidTypeError("String indices must be integers")
 
 
 @nl_string.method("__iter__")

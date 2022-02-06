@@ -1,3 +1,4 @@
+import numlab.exceptions as excpt
 from numlab.lang.type import Instance, Type
 
 nl_bool = Type.get("bool")
@@ -22,7 +23,7 @@ def nl__bool__(self: Instance):
 def nl__add__(self, other: Instance):
     if other.type.subtype(nl_float):
         return Type.resolve_type(self.get("value") + other.get("value"))
-    raise TypeError("Can't add float to non-float")
+    raise excpt.InvalidTypeError("Can't add float to non-float")
 
 
 @nl_float.method("__iadd__")
@@ -30,14 +31,14 @@ def nl__iadd__(self, other: Instance):
     if other.type.subtype(nl_float):
         self.set("value", self.get("value") + other.get("value"))
         return self
-    raise TypeError("Can't add float to non-float")
+    raise excpt.InvalidTypeError("Can't add float to non-float")
 
 
 @nl_float.method("__sub__")
 def nl__sub__(self, other: Instance):
     if other.type.subtype(nl_float):
         return Type.resolve_type(self.get("value") - other.get("value"))
-    raise TypeError("Can't subtract float from non-float")
+    raise excpt.InvalidTypeError("Can't subtract float from non-float")
 
 
 @nl_float.method("__isub__")
@@ -45,14 +46,14 @@ def nl__isub__(self, other: Instance):
     if other.type.subtype(nl_float):
         self.set("value", self.get("value") - other.get("value"))
         return self
-    raise TypeError("Can't subtract float from non-float")
+    raise excpt.InvalidTypeError("Can't subtract float from non-float")
 
 
 @nl_float.method("__mul__")
 def nl__mul__(self, other: Instance):
     if other.type.subtype(nl_float):
         return Type.resolve_type(self.get("value") * other.get("value"))
-    raise TypeError("Can't multiply float by non-float")
+    raise excpt.InvalidTypeError("Can't multiply float by non-float")
 
 
 @nl_float.method("__imul__")
@@ -60,20 +61,21 @@ def nl__imul__(self, other: Instance):
     if other.type.subtype(nl_float):
         self.set("value", self.get("value") * other.get("value"))
         return self
-    raise TypeError("Can't multiply float by non-float")
+    raise excpt.InvalidTypeError("Can't multiply float by non-float")
+
 
 @nl_float.method("__pow__")
 def nl__pow__(self, other: Instance):
     if other.type.subtype(nl_int):
         return Type.resolve_type(self.get("value") ** other.get("value"))
-    raise TypeError("Can't raise float to non-int")
+    raise excpt.InvalidTypeError("Can't raise float to non-int")
 
 
-@nl_float.method("__div__")
+@nl_float.method("__truediv__")
 def nl__div__(self, other: Instance):
     if other.type.subtype(nl_float):
         return Type.resolve_type(self.get("value") / other.get("value"))
-    raise TypeError("Can't divide float by non-float")
+    raise excpt.InvalidTypeError("Can't divide float by non-float")
 
 
 @nl_float.method("__idiv__")
@@ -81,42 +83,42 @@ def nl__idiv__(self, other: Instance):
     if other.type.subtype(nl_float):
         self.set("value", self.get("value") / other.get("value"))
         return self
-    raise TypeError("Can't divide float by non-float")
+    raise excpt.InvalidTypeError("Can't divide float by non-float")
 
 
 @nl_float.method("__eq__")
 def nl__eq__(self, other: Instance):
     if other.type.subtype(nl_float):
         return nl_bool(self.get("value") == other.get("value"))
-    raise TypeError("Can't compare float to non-float")
+    raise excpt.InvalidTypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__lt__")
 def nl__lt__(self, other: Instance):
     if other.type.subtype(nl_float):
         return nl_bool(self.get("value") < other.get("value"))
-    raise TypeError("Can't compare float to non-float")
+    raise excpt.InvalidTypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__gt__")
 def nl__gt__(self, other: Instance):
     if other.type.subtype(nl_float):
         return nl_bool(self.get("value") > other.get("value"))
-    raise TypeError("Can't compare float to non-float")
+    raise excpt.InvalidTypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__le__")
 def nl__le__(self, other: Instance):
     if other.type.subtype(nl_float):
         return nl_bool(self.get("value") <= other.get("value"))
-    raise TypeError("Can't compare float to non-float")
+    raise excpt.InvalidTypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__ge__")
 def nl__ge__(self, other: Instance):
     if other.type.subtype(nl_float):
         return nl_bool(self.get("value") >= other.get("value"))
-    raise TypeError("Can't compare float to non-float")
+    raise excpt.InvalidTypeError("Can't compare float to non-float")
 
 
 @nl_float.method("__str__")

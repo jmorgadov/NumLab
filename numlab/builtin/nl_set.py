@@ -1,5 +1,6 @@
 from symbol import yield_stmt
 
+import numlab.exceptions as excpt
 from numlab.lang.type import Instance, Type
 
 nl_int = Type.get("int")
@@ -50,28 +51,28 @@ def nl_copy(self):
 def nl_intersection(self, obj: Instance):
     if obj.type.subtype(nl_set):
         self.get("value").intersection(obj.get("value"))
-    raise ValueError("Can't intersect a set with a non-set")
+    raise excpt.InvalidTypeError("Can't intersect a set with a non-set")
 
 
 @nl_set.method("union")
 def nl_union(self, obj: Instance):
     if obj.type.subtype(nl_set):
         return nl_set(self.get("value").union(obj.get("value")))
-    raise ValueError("Can't unite a set with a non-set")
+    raise excpt.InvalidTypeError("Can't unite a set with a non-set")
 
 
 @nl_set.method("issubset")
 def nl_issubset(self, obj: Instance):
     if obj.type.subtype(nl_set):
         return nl_bool(self.get("value").issubset(obj.get("value")))
-    raise ValueError("Can't match a set with a non-set")
+    raise excpt.InvalidTypeError("Can't match a set with a non-set")
 
 
 @nl_set.method("issuperset")
 def nl_issuperset(self, obj: Instance):
     if obj.type.subtype(nl_set):
         return nl_bool(self.get("value").issuperset(obj.get("value")))
-    raise ValueError("Can't match a set with a non-set")
+    raise excpt.InvalidTypeError("Can't match a set with a non-set")
 
 
 @nl_set.method("remove")

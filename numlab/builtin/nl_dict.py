@@ -6,6 +6,7 @@ nl_int = Type.get("int")
 nl_bool = Type.get("bool")
 nl_dict = Type.get("dict")
 nl_str = Type.get("str")
+nl_list = Type.get("list")
 
 
 @nl_dict.method("__new__")
@@ -67,22 +68,22 @@ def nl_clear(self):
 
 @nl_dict.method("copy")
 def nl_copy(self):
-    self.get("value").copy()
+    return nl_dict(self.get("value").copy())
 
 
 @nl_dict.method("items")
 def nl_items(self):
-    return self.get("value").items()
+    return nl_list(self.get("value").items())
 
 
 @nl_dict.method("keys")
 def nl_keys(self):
-    return self.get("value").keys()
+    return nl_list(self.get("value").keys())
 
 
 @nl_dict.method("values")
 def nl_values(self):
-    return self.get("value").values()
+    return nl_list(self.get("value").values())
 
 
 @nl_dict.method("get")
@@ -93,8 +94,3 @@ def nl_get(self, key: Instance):
 @nl_dict.method("pop")
 def nl_pop(self, key: Instance):
     return self.get("value").pop(key)
-
-
-@nl_dict.method("popitem")
-def nl_popitem(self):
-    return self.get("value").popitem()

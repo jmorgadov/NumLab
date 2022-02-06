@@ -1,3 +1,4 @@
+import numlab.exceptions as excpt
 from numlab.lang.type import Instance, Type
 
 nl_int = Type.get("int")
@@ -12,6 +13,7 @@ def nl__new__(value: list):
     _inst = Instance(nl_list)
     _inst.set("value", list(value))
     return _inst
+
 
 @nl_list.method("__bool__")
 def nl__bool__(self: Instance):
@@ -32,24 +34,28 @@ def nl__getitem__(self, indx: Instance):
         upper = indx.up if indx.upper is not None else len(self.get("value"))
         step = indx.step if indx.step is not None else 1
         if not isinstance(low, int) and not low.type.subtype(nl_int):
-            raise TypeError(f"Slice indices must be integers, not {low.type.type_name}")
+            raise excpt.InvalidTypeError(
+                f"Slice indices must be integers, not {low.type.type_name}"
+            )
         if not isinstance(upper, int) and not upper.type.subtype(nl_int):
-            raise TypeError(
+            raise excpt.InvalidTypeError(
                 f"Slice indices must be integers, not {upper.type.type_name}"
             )
         if not isinstance(step, int) and not step.type.subtype(nl_int):
-            raise TypeError(
+            raise excpt.InvalidTypeError(
                 f"Slice indices must be integers, not {step.type.type_name}"
             )
         return self.get("value")[low:upper:step]
-    raise TypeError(f"List indices must be integer or slice, not {indx.type.type_name}")
+    raise excpt.InvalidTypeError(
+        f"List indices must be integer or slice, not {indx.type.type_name}"
+    )
 
 
 @nl_list.method("__delitem__")
 def nl__delitem__(self, indx: Instance):
     if indx.type.subtype(nl_int):
         return self.get("value").__delitem__(indx.get("value"))
-    raise TypeError("List indices must be integers")
+    raise excpt.InvalidTypeError("List indices must be integers")
 
 
 @nl_list.method("__iter__")
@@ -74,7 +80,7 @@ def nl__reversed__(self):
 def nl__setitem__(self, indx: Instance, obj: Instance):
     if indx.type.subtype(nl_int):
         self.get("value")[indx] = obj
-    raise TypeError("List indices must be integers")
+    raise excpt.InvalidTypeError("List indices must be integers")
 
 
 @nl_list.method("__repr__")
@@ -116,4 +122,4 @@ def nl_remove(self, obj: Instance):
         if val.get("__eq__")(val, obj):
             items.pop(pos)
             return
-    raise ValueError("list.remove(x): x not in list")
+    raise excpt.ValueError("list.remove(x): x not in list")
