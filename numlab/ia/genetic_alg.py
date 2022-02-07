@@ -110,5 +110,4 @@ class GeneticAlg(Metaheuristic, metaclass=abc.ABCMeta):
         print(f"Best solution: {self.population[0]}")
         times = [p[1] for p in self.population]
         avg = sum(times) / len(times)
-        print(f"Average time: {avg}")
 

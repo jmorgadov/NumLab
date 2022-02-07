@@ -56,7 +56,9 @@ class CodeOptimizer(GeneticAlg):
                 with redirect_stdout(f):
                     evaluator.eval(self.ast)
         except Exception as e:
-            print(e)
+            if isinstance(e, KeyboardInterrupt):
+                raise e
+            self.last_vector = solution
             return float("inf") if self.minimize else 0
         end = time()
         self.last_vector = solution
@@ -66,7 +68,8 @@ class CodeOptimizer(GeneticAlg):
         """
         Generate a random solution
         """
-        return [random.randint(0, 1) for _ in range(len(self.possible_changes))]
+        vals = [random.randint(0, 1) for _ in range(len(self.possible_changes))]
+        return vals
 
     def crossover(self, sol1, sol2):
         """

@@ -149,7 +149,9 @@ def optimize(
     if changes:
         opt_quality = opt.classifier.classify_optimization_quality()
         typer.echo(f"Estimated optimization quality: {opt_quality}")
-        if not typer.confirm("\nDo you want to proceed with the optimization?"):
+        if not typer.confirm(
+            "\nDo you want to proceed with the optimization?", default=True
+        ):
             raise typer.Exit("Optimization aborted")
         if dump:
             program.dump()
@@ -161,6 +163,7 @@ def optimize(
             program,
             changes,
             max_iter=max_iter,
+            minimize=True,
             population_size=pop_size,
             mutation_prob=mutation_prob,
             best_selection_count=best_sel_count,

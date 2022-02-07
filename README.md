@@ -712,43 +712,6 @@ La mutación consiste en cambiar aleatoriamente algún valor del vector.
 Al ejecutar la optimización se obtiene el AST resultante de realizar los cambios
 definidos por el mejor vector de la población (luego de algunas generaciones).
 
-A continuación se muestra un ejemplo de código y su optimización:
-
-```python
-items = [1, 1, 1, 1, 1]
-
-def foo():
-    a = [i for i in range(100)]
-    return items
-
-for i in range(50):
-    if i in [j for j in range(48, 500)] or i < 40: 
-        a = i + 3
-    if foo() and items[0] == 1:
-        items.remove(1)
-        
-print(stats["time"])
-```
-
-En este código se puede ver que el primer `if` realiza dos comprobaciones. La
-primera de ellas genera una lista de al rededor de 450 elementos cada vez que
-se ejecuta el `if`, mientras que la segunda solamente compara dos valores.
-
-Se puede observar además que existe otra comprobación, donde también se
-realizan dos operaciones y la primera de ellas es más costosa temporalmente que
-la segunda. Sin embargo en este caso la segunda operación es dependiente de la
-primera, por lo que no se puede realizar antes. Esto no se comprueba en ningún
-momento al extraer los cambios posibles debido a la complegidad que puede
-presentar comprobar este tipo relaciones entre los nodos. Más adelante el
-algoritmo genético es quien decidirá si es correcto realizar el cambio o no.
-
-Al ejecutar este código se obtuvo un tiempo de ejecución promedio de 1.8
-segundos. Al optimizar el AST, se detectaron dos cambios potenciales (el orden
-de comprobación en las expresiones condicionales mencionadas anteriormente). El
-algoritmo genético obtuvo como mejor resultado realizar el primer cambio y no
-el segundo. Finalmente, el código optimizado tuvo un tiempo de ejecución de
-aproximadamente 0.6 segundos.
-
 Los parámetros usados en el algoritmo genético pueden ser modificados
 directamente desde el commando `optimize` del
 [CLI](https://github.com/jmorgadov/NumLab#aplicaci%C3%B3n-cli) o mediante un
@@ -798,8 +761,86 @@ En la obtención de los consecuentes de las reglas se utiliza el método de
 Mamdani (truncar). En el caso de la desfusificación de los cambios se utiliza
 el método de media de los valores máximos.
 
-En el ejemplo anterior el sitema estimó la calidad de la optimización con un
-valor de 0.6 aproximadamente.
+### Ejemplo de optimización
+
+A continuación se muestra un ejemplo de código y su optimización:
+
+```python
+items = [1, 1, 1, 1, 1]
+
+def foo():
+	a = [i for i in range(100)]
+	return items
+
+for i in range(50):
+	if i in [j for j in range(48, 500)] or i < 40: 
+		a = i + 3
+
+	if foo() and items[0] == 1:
+		items.remove(1)
+
+print(stats["time"])
+```
+
+En este código se puede ver que el primer `if` realiza dos comprobaciones. La
+primera de ellas genera una lista de al rededor de 450 elementos cada vez que
+se ejecuta el `if`, mientras que la segunda solamente compara dos valores.
+
+Se puede observar además que existe otra comprobación, donde también se
+realizan dos operaciones y la primera de ellas es más costosa temporalmente que
+la segunda. Sin embargo en este caso la segunda operación es dependiente de la
+primera, por lo que no se puede realizar antes. Esto no se comprueba en ningún
+momento al extraer los cambios posibles debido a la complegidad que puede
+presentar comprobar este tipo relaciones entre los nodos. Más adelante el
+algoritmo genético es quien decidirá si es correcto realizar el cambio o no.
+
+Al ejecutar este código se obtuvo un tiempo de ejecución promedio de 1.8
+segundos. Al optimizar el AST, se detectaron dos cambios potenciales (el orden
+de comprobación en las expresiones condicionales mencionadas anteriormente). El
+valor de la calidad de la optimización estimado fue aproximadamente 0.6. El
+algoritmo genético obtuvo como mejor resultado realizar el primer cambio y no
+el segundo. Finalmente, el código optimizado tuvo un tiempo de ejecución de
+aproximadamente 0.6 segundos.
+
+```text
+$ numlab optmize "numlab_test.nl"
+
+ .===============================================.
+ |                 Configuration                 |
+ |===============================================|
+ | Parameter                               Value |
+ |-----------------------------------------------|
+ | Population size                            10 |
+ | Maximum number of iterations                5 |
+ | Mutation probability                      0.1 |
+ | Number of best individuals to select        3 |
+ | Number of new random individuals            2 |
+ '==============================================='
+
+
+Estimated optimization quality: 0.6034089537672265
+
+Do you want to proceed with the optimization? [Y/n]: 
+Output (before optimizing):
+1.8277204990386963
+
+Optimizing program
+Generating population of 10
+Evaluating population
+Iteration 1 of 5
+Best solution: ([1, 0], 0.7729673385620117)
+Iteration 2 of 5
+Best solution: ([1, 0], 0.7729673385620117)
+Iteration 3 of 5
+Best solution: ([1, 0], 0.6900575160980225)
+Iteration 4 of 5
+Best solution: ([1, 0], 0.6900575160980225)
+Iteration 5 of 5
+Best solution: ([1, 0], 0.6900575160980225)
+
+Output (after optimizing):
+0.6344912147521973
+```
 
 ## Extras
 
