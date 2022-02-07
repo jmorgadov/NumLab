@@ -23,6 +23,7 @@
     - [Evaluación](https://github.com/jmorgadov/NumLab#evaluaci%C3%B3n)
 - [Optimización de código](https://github.com/jmorgadov/NumLab#optimizaci%C3%B3n-de-c%C3%B3digo)
   - [Sistema difuso para la estimación de la calidad de la optimización](https://github.com/jmorgadov/NumLab#sistema-difuso-para-la-estimaci%C3%B3n-de-la-calidad-de-la-optimizaci%C3%B3n)
+  - [Ejemplo de optimización](https://github.com/jmorgadov/NumLab#ejemplo-de-optimizaci%C3%B3n)
 - [Extras](https://github.com/jmorgadov/NumLab#extras)
   - [Aplicación CLI](https://github.com/jmorgadov/NumLab#aplicaci%C3%B3n-cli)
   - [Extensión de VSCode](https://github.com/jmorgadov/NumLab#extensi%C3%B3n-de-vscode)
@@ -750,10 +751,10 @@ principales:
 - El cambio tiene puntuación media o un nivel medio en profundidad en ciclos (cambio aceptable).
 - El cambio tiene alta puntuación o alto nivel de profundidad en ciclos (buen cambio).
 
-Para ello, se implemento una clase `FuzzyRule` que representa una regla del
+Para ello, se implementó una clase `FuzzyRule` que representa una regla del
 sistema difuso. En cada regla se guardan las funciones que se deben comprobar
-para cada valor (en nuestro caso funciones de tipo campanas variando su media y
-variaza), así como la función que se debe aplicar al los valores resultantes
+para cada valor (en nuestro caso funciones de tipo campana de Gauss variando su media y
+variaza), así como la función que se debe aplicar a los valores resultantes
 (en nuestro caso la función `max`, ya que todas las reglas utilizan solo el
 operador `OR`).
 
