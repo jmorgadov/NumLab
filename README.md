@@ -771,15 +771,15 @@ A continuación se muestra un ejemplo de código y su optimización:
 items = [1, 1, 1, 1, 1]
 
 def foo():
-	a = [i for i in range(100)]
-	return items
+    a = [i for i in range(100)]
+    return items
 
 for i in range(50):
-	if i in [j for j in range(48, 500)] or i < 40: 
-		a = i + 3
+    if i in [j for j in range(48, 500)] or i < 40: 
+        a = i + 3
 
-	if foo() and items[0] == 1:
-		items.remove(1)
+    if foo() and items[0] == 1:
+        items.remove(1)
 
 print(stats["time"])
 ```
