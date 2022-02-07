@@ -110,9 +110,6 @@ class Foo:
     def __init__(self, a, b):
         self.a = a
         self.b = b
-
-    def __str__(self):
-        return "Foo(%s, %s)" % (self.a, self.b)
 ```
 
 ### Estadísticas en tiempo de ejecución
