@@ -22,6 +22,7 @@
     - [Contextos](https://github.com/jmorgadov/NumLab#contextos)
     - [Evaluación](https://github.com/jmorgadov/NumLab#evaluaci%C3%B3n)
 - [Optimización de código](https://github.com/jmorgadov/NumLab#optimizaci%C3%B3n-de-c%C3%B3digo)
+  - [Sistema difuso para la estimación de la calidad de la optimización](https://github.com/jmorgadov/NumLab#sistema-difuso-para-la-estimaci%C3%B3n-de-la-calidad-de-la-optimizaci%C3%B3n)
 - [Extras](https://github.com/jmorgadov/NumLab#extras)
   - [Aplicación CLI](https://github.com/jmorgadov/NumLab#aplicaci%C3%B3n-cli)
   - [Extensión de VSCode](https://github.com/jmorgadov/NumLab#extensi%C3%B3n-de-vscode)
