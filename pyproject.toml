@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "numlab"
-version = "0.2.0"
+version = "0.2.1"
 description = "Programming language for analyzing mathematical numerical problem's solutions"
 authors = [
 	"Jorge Morgado Vega <jorge.morgadov@gmail.com>",
