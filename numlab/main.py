@@ -1,5 +1,6 @@
 import json
 import logging
+from pathlib import Path
 
 import typer
 
@@ -26,13 +27,13 @@ def echo(msg, verbose):
 def get_ast(file_path: str, verbose: bool = False):
     # Load grammar
     echo("Loading grammar", verbose)
-    grammar = Grammar.open("numlab/nl_grammar.gm")
+    grammar = Grammar.open(str(Path(__file__).parent / "nl_grammar.gm"))
     echo("Assigning builders", verbose)
     grammar.assign_builders(builders)
 
     # Create LR1Parser
     echo("Loading parser table", verbose)
-    parser = LR1Parser(grammar, "numlab/nl_lr1_table")
+    parser = LR1Parser(grammar, str(Path(__file__).parent / "nl_lr1_table"))
 
     # Create parser
     parser_man = ParserManager(grammar, tknz, parser)
