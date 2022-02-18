@@ -216,17 +216,6 @@ builders = {
     "compound_stmt -> classdef": lambda c: c,
     "compound_stmt -> decorated": lambda d: d,
     "compound_stmt -> confdef": lambda c: c,
-    "compound_stmt -> cli_serv_model": lambda c: c,
-    # -------------------------------------------------------------------------
-    "cli_serv_model -> server NAME : NEWLINE INDENT confbody DEDENT": (
-        lambda s, n, c, nl, i, b, d: ast.ServerDefStmt(n, b)
-    ),
-    "cli_serv_model -> servmod NAME : NEWLINE INDENT confbody DEDENT": (
-        lambda s, n, c, nl, i, b, d: ast.ServerModelDefStmt(n, b)
-    ),
-    "cli_serv_model -> modopt NAME : NEWLINE INDENT confbody DEDENT": (
-        lambda s, n, c, nl, i, b, d: ast.ModelOptDefStmt(n, b)
-    ),
     # -------------------------------------------------------------------------
     "confdef -> conf NAME : NEWLINE INDENT confbody DEDENT": (
         lambda c, n, c_, nl, i, cb, d: ast.ConfDefStmt(n.value, cb)

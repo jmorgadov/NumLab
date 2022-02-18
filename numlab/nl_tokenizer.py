@@ -98,9 +98,6 @@ tknz.add_keywords(
     "begsim",
     "endsim",
     "resetstats",
-    "server",
-    "servmod",
-    "modopt"
 )
 
 # Special terminals

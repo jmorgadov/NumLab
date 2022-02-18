@@ -406,18 +406,6 @@ class EvalVisitor:
         self.configs[self.flags["current_config"]][node.name] = val
 
     @visitor
-    def eval(self, node: ast.ServerDefStmt):
-        pass
-
-    @visitor
-    def eval(self, node: ast.ServerModelDefStmt):
-        pass
-
-    @visitor
-    def eval(self, node: ast.ModelOptDefStmt):
-        pass
-
-    @visitor
     def eval(self, node: ast.ReturnStmt):
         if self.context.parent is None:
             raise RuntimeError("Cannot return from top-level code")

@@ -113,12 +113,6 @@ compound_stmt:
 	| classdef
 	| decorated
 	| confdef
-	| cli_serv_model
-
-cli_serv_model:
-    | 'server' NAME ':' NEWLINE INDENT confbody DEDENT
-	| 'servmod' NAME ':' NEWLINE INDENT confbody DEDENT
-	| 'modopt' NAME ':' NEWLINE INDENT confbody DEDENT
 
 confdef:
     | 'conf' NAME ':' NEWLINE INDENT confbody DEDENT

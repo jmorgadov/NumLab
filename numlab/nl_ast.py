@@ -169,30 +169,6 @@ class ConfOption(AST):
         self.value = value
 
 
-class ServerDefStmt(Stmt):
-    __slots__ = ("name", "configs")
-
-    def __init__(self, name: str, configs: List[ConfOption]):
-        self.name = name
-        self.configs = configs
-
-
-class ServerModelDefStmt(Stmt):
-    __slots__ = ("name", "configs")
-
-    def __init__(self, name: str, configs: List[ConfOption]):
-        self.name = name
-        self.configs = configs
-
-
-class ModelOptDefStmt(Stmt):
-    __slots__ = ("name", "configs")
-
-    def __init__(self, name: str, configs: List[ConfOption]):
-        self.name = name
-        self.configs = configs
-
-
 class Begsim(Stmt):
     __slots__ = ("config",)
 
